@@ -1,6 +1,9 @@
 // Matches the item structure in Fetch Profile.json & Add Profile.json
+// Backend profile_id is a 16-char hex string; older mocks used numbers.
+export type ProfileId = string | number;
+
 export interface Profile {
-  profile_id: number;
+  profile_id: ProfileId;
   profile_icon: number; // Integer (1 to 12)
   profile_fullname: string;
   profile_birthdate: string;

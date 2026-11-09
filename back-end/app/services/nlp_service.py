@@ -90,7 +90,8 @@ _WARNING_TERMS = {
     "SEALED",
 }
 _BOILERPLATE_PATTERN = re.compile(
-    r"\b(?:manufactured|distributed|marketed|registered|packed)\s+by\b",
+    r"\b(?:manufactured|distributed|marketed|registered|packed)\s+by\b"
+    r"|\b(?:fda\s+)?reg(?:istration)?\.?\s*no\.?\b",
     re.IGNORECASE,
 )
 _ACTIVE_INGREDIENT_PATTERN = re.compile(

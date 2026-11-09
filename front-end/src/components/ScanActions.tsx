@@ -42,29 +42,24 @@ export default function ScanActions({ status, hasSelection, onViewDetails, onSav
 
       {status === 'needs_verification' && !hasSelection && (
         <>
-          <Text style={styles.hint}>Tap the correct medicine above to edit and save, or save it directly.</Text>
+          <Text style={styles.hint}>Tap the correct medicine above to edit or save it.</Text>
           <Pressable style={[styles.button, { backgroundColor: Amber }]} onPress={onRedoScan} accessibilityRole="button">
             <Image source={Assets.icons.scanWhite} style={styles.icon} contentFit="contain" />
             <Text style={[styles.text, { color: Colors.surfacePrimary }]}>Redo Scan</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.button, { backgroundColor: Colors.onAction, borderWidth: 1, borderColor: Colors.actionPrimary }]}
-            onPress={onSave}
-            accessibilityRole="button"
-          >
-            <Image
-              source={Assets.icons.saveWhite}
-              style={styles.icon}
-              contentFit="contain"
-              tintColor={Colors.actionPrimary}
-            />
-            <Text style={[styles.text, { color: Colors.actionPrimary }]}>Save to Vault</Text>
           </Pressable>
         </>
       )}
 
       {status === 'needs_verification' && hasSelection && (
         <>
+          <Pressable
+            style={[styles.button, { backgroundColor: Colors.actionPrimary }]}
+            onPress={onSave}
+            accessibilityRole="button"
+          >
+            <Image source={Assets.icons.saveWhite} style={styles.icon} contentFit="contain" />
+            <Text style={[styles.text, { color: Colors.onAction }]}>Save to Vault</Text>
+          </Pressable>
           <Pressable style={[styles.button, styles.editButton]} onPress={onEdit} accessibilityRole="button">
             <Image source={Assets.icons.edit} style={styles.icon} contentFit="contain" />
             <Text style={[styles.text, { color: Colors.textPrimary }]}>Edit</Text>
@@ -82,7 +77,7 @@ export default function ScanActions({ status, hasSelection, onViewDetails, onSav
 
       {status === 'no_results' && (
         <>
-          <Text style={styles.hint}>Tap the correct medicine above to edit or save it.</Text>
+          <Text style={styles.hint}>No matching medicine was found. Try scanning a clearer photo or enter details manually.</Text>
           <Pressable
             style={[styles.button, { backgroundColor: RedSoft, borderWidth: 1, borderColor: RedBorder }]}
             onPress={onRedoScan}

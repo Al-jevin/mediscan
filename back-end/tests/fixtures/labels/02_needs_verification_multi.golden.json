@@ -1,0 +1,81 @@
+{
+  "success": true,
+  "code": 200,
+  "message": "OCR and medicine extraction completed.",
+  "entities": {
+    "medicine_name": "Heparin Sodium",
+    "dosage": null,
+    "frequency": null,
+    "expiry_date": null
+  },
+  "suggested_medicines": [
+    {
+      "fda_id": 1,
+      "fda_registration_id": "BR-1005",
+      "fda_approval_id": "0f3b194307307840",
+      "fda_brandname": "Heparin Leo",
+      "fda_genericname": "Heparin Sodium",
+      "fda_dosage_form": "Solution For Injection (IV/SC)",
+      "fda_dosage_strength": "5,000 IU/mL",
+      "fda_manufacturer": "Antithrombotic Agents",
+      "fda_pharmacologic_category": "Clear colorless glass Type I vial with coated grey 13 mm bromobutyl rubber stopper x 5 mL (Box of 50's)",
+      "fda_classification": "Prescription (Rx)",
+      "match_type": "fuzzy",
+      "match_score": 0.95,
+      "confidence_percentage": 95,
+      "confidence_level": "high",
+      "accuracy_guidance": "The medicine name matches exactly. A clearer photo of the dosage can confirm the result."
+    },
+    {
+      "fda_id": 2,
+      "fda_registration_id": "BR-1004",
+      "fda_approval_id": "b89b1967237573e4",
+      "fda_brandname": "Heparin Leo",
+      "fda_genericname": "Heparin Sodium",
+      "fda_dosage_form": "Solution For Injection (IV/SC)",
+      "fda_dosage_strength": "1,000 IU/mL",
+      "fda_manufacturer": "Anticoagulant",
+      "fda_pharmacologic_category": "Type I clear glass vial with coated bromobutyl rubber stopper x 5mL (Box of 50 vials)",
+      "fda_classification": "Prescription (Rx)",
+      "match_type": "fuzzy",
+      "match_score": 0.95,
+      "confidence_percentage": 95,
+      "confidence_level": "high",
+      "accuracy_guidance": "The medicine name matches exactly. A clearer photo of the dosage can confirm the result."
+    },
+    {
+      "fda_id": 3,
+      "fda_registration_id": "BR-1005",
+      "fda_approval_id": "2a01afba706fd57e",
+      "fda_brandname": "Heparin Leo",
+      "fda_genericname": "Heparin Sodium",
+      "fda_dosage_form": "Solution For Injection (IV/SC)",
+      "fda_dosage_strength": "5,000 IU/mL",
+      "fda_manufacturer": "Leo Pharma A/S",
+      "fda_pharmacologic_category": "Antithrombotic Agents",
+      "fda_classification": "Prescription (Rx)",
+      "match_type": "fuzzy",
+      "match_score": 0.95,
+      "confidence_percentage": 95,
+      "confidence_level": "high",
+      "accuracy_guidance": "The medicine name matches exactly. A clearer photo of the dosage can confirm the result."
+    },
+    {
+      "fda_id": 4,
+      "fda_registration_id": "BR-1004",
+      "fda_approval_id": "064907158a81e559",
+      "fda_brandname": "Heparin Leo",
+      "fda_genericname": "Heparin Sodium",
+      "fda_dosage_form": "Solution For Injection (IV/SC)",
+      "fda_dosage_strength": "1,000 IU/mL",
+      "fda_manufacturer": "Leo Pharma A/S",
+      "fda_pharmacologic_category": "Anticoagulant",
+      "fda_classification": "Prescription (Rx)",
+      "match_type": "fuzzy",
+      "match_score": 0.95,
+      "confidence_percentage": 95,
+      "confidence_level": "high",
+      "accuracy_guidance": "The medicine name matches exactly. A clearer photo of the dosage can confirm the result."
+    }
+  ]
+}

@@ -9,8 +9,11 @@ import { FormColors, FormField, InputBox } from '@/components/FormField';
 import PossibleMatchCard from '@/components/PossibleMatchCard';
 import { Assets } from '@/constants/assets';
 import { Colors } from '@/constants/display';
-import { findPossibleMatch } from '@/data/mockScanResults';
+import { buildNewMedicineFromFda, normalizeExpiryToYMD } from '@/services/ocrAdapter';
+import { findMatchById } from '@/services/scanSession';
+import { addMedicine } from '@/services/vaultStore';
 import { formatDateInput } from '@/utils/date';
+import { ymdToMDY } from '@/utils/medicine';
 
 // Edit Medicine screen, opened from Scan Result with the selected possible match (?id=...).
 // The medicine name is auto-filled from that medicine; the expiration date is typed. The header
@@ -19,10 +22,10 @@ export default function EditMedicineScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const match = findPossibleMatch(id);
+  const match = findMatchById(id);
 
   const [name, setName] = useState(match?.name ?? '');
-  const [expiry, setExpiry] = useState('');
+  const [expiry, setExpiry] = useState(match?.expiryYMD ? ymdToMDY(match.expiryYMD) : '');
 
   const [addedOpen, setAddedOpen] = useState(false);
   const [quitOpen, setQuitOpen] = useState(false);
@@ -45,8 +48,28 @@ export default function EditMedicineScreen() {
     repeatLeave.current?.();
   };
 
-  // TODO: actually save the medicine to the vault. For now Save to Vault only shows the Medicine Added overlay.
-  const onSave = () => {
+  const onSave = async () => {
+    if (!match) return;
+    const fda = match.fdaMedicine ?? {
+      fda_approval_id: match.id,
+      fda_registration_id: match.id,
+      fda_brandname: name.trim() || match.name,
+      fda_genericname: match.category,
+      fda_dosage_form: match.form || 'Other',
+      fda_dosage_strength: match.strength || '',
+      fda_manufacturer: null,
+      fda_pharmacologic_category: null,
+      fda_classification: null,
+    };
+    await addMedicine(
+      buildNewMedicineFromFda(fda, {
+        status: 'needs_verification',
+        source: 'scan',
+        confidence: match.similarity,
+        expiryYMD: normalizeExpiryToYMD(expiry),
+        overrideName: name,
+      }),
+    );
     setPreventLeave(false);
     setAddedOpen(true);
   };

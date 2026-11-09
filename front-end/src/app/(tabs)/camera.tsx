@@ -14,39 +14,58 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import CantReadModal from "@/components/CantReadModal";
+import { getApiBaseUrl, OCR_REQUEST_TIMEOUT_MS, USE_OCR_MOCK } from "@/constants/apiConfig";
+import { mockScanResults, type ScanResult, type ScanState } from "@/data/mockScanResults";
+import { isOcrEmpty, ocrResponseToScanResult, type OCRResponse } from "@/services/ocrAdapter";
+import { setLatestScanResult } from "@/services/scanSession";
 
-// ---- MOCK BACKEND (replace when the API is ready) ----
-const USE_MOCK = true; // change to false when the API is ready
-
-type ScanState = "verified" | "needs_verification" | "no_results";
-
-// Each scan shows the next scenario: verified -> needs_verification -> no_results -> repeat
 const MOCK_STATES: ScanState[] = ["verified", "needs_verification", "no_results"];
 let mockIndex = 0;
 
-async function scanImage(base64: string): Promise<ScanState> {
-  if (USE_MOCK) {
-    await new Promise((r) => setTimeout(r, 1000)); // fake waiting time
-    console.log("MOCK: pretending to send", Math.round(base64.length / 1024), "KB");
+type ScanOutcome =
+  | { kind: "result"; scanResult: ScanResult }
+  | { kind: "unreadable" };
 
+async function scanImage(imageUri: string): Promise<ScanOutcome> {
+  if (USE_OCR_MOCK) {
+    await new Promise((r) => setTimeout(r, 600));
     const state = MOCK_STATES[mockIndex];
     mockIndex = (mockIndex + 1) % MOCK_STATES.length;
-    console.log("MOCK result:", state);
-    return state;
+    return { kind: "result", scanResult: mockScanResults[state] };
   }
 
-  const response = await fetch("https://PLACEHOLDER-URL/api/scan", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image: base64 }),
-  });
+  const baseUrl = getApiBaseUrl();
+  const formData = new FormData();
+  formData.append("file", {
+    uri: imageUri,
+    name: "label.jpg",
+    type: "image/jpeg",
+  } as unknown as Blob);
 
-  if (!response.ok) throw new Error("Server error: " + response.status);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), OCR_REQUEST_TIMEOUT_MS);
 
-  const data = await response.json();
-  return data.status; // adjust to match the real API response format
+  try {
+    const response = await fetch(`${baseUrl}/api/v1/ocr/extract-label`, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server error (${response.status})`);
+    }
+
+    const payload = (await response.json()) as OCRResponse;
+    if (isOcrEmpty(payload)) {
+      return { kind: "unreadable" };
+    }
+    return { kind: "result", scanResult: ocrResponseToScanResult(payload) };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
-// ---- END MOCK BACKEND ----
 
 export default function CameraScreen() {
   const router = useRouter();
@@ -62,6 +81,7 @@ export default function CameraScreen() {
   const [cameraReady, setCameraReady] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [cantReadOpen, setCantReadOpen] = useState(false);
 
   // Single place where every image ends up (camera or gallery)
   const handleImage = async (uri: string) => {
@@ -83,17 +103,27 @@ export default function CameraScreen() {
       // Checks
       const sizeKB = Math.round((result.base64.length * 0.75) / 1024);
       console.log("Processed:", result.width, "x", result.height, "~", sizeKB, "KB");
-      console.log("Base64 starts with:", result.base64.substring(0, 20));
 
-      // Step 3: send to backend (mock for now)
-      const state = await scanImage(result.base64);
-      console.log("Image scan result:", state);
+      // Step 3: send to backend OCR
+      const outcome = await scanImage(result.uri);
+      if (outcome.kind === "unreadable") {
+        setCantReadOpen(true);
+        return;
+      }
 
-      // Step 4: open the Scan Result screen with the matching scenario
-      router.push({ pathname: "/result", params: { state } });
+      // Step 4: store live ScanResult and open Scan Result screen
+      setLatestScanResult(outcome.scanResult);
+      router.push({ pathname: "/result", params: { state: outcome.scanResult.status } });
     } catch (e) {
       console.log("Processing failed:", e);
-      Alert.alert("Error", "Could not process or send the image. Please try again.");
+      Alert.alert(
+        "Scan failed",
+        `Could not reach OCR server at ${getApiBaseUrl()}. Check that FastAPI is running on 0.0.0.0:8000, or enter details manually.`,
+        [
+          { text: "Try Again", style: "cancel" },
+          { text: "Manual Entry", onPress: () => router.push("/manual-entry") },
+        ]
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -254,6 +284,12 @@ export default function CameraScreen() {
           </View>
         </View>
       </SafeAreaView>
+
+      <CantReadModal
+        visible={cantReadOpen}
+        onClose={() => setCantReadOpen(false)}
+        onUseDifferentPhoto={onPickFromGallery}
+      />
     </View>
   );
 }

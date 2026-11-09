@@ -1,5 +1,6 @@
 import type { MedicineInfoRow } from '@/components/MedicineInfoCard';
 import { Assets } from '@/constants/assets';
+import type { FdaMedicine } from '@/types/medicine';
 import multipleResponse from './response_2_multiple.json';
 import emptyResponse from './response_3_empty.json';
 
@@ -13,6 +14,8 @@ export type PossibleMatch = {
   form: string;     // raw dosage form, e.g. "Film-Coated Tablet": shown as an icon and used to auto-fill Edit Medicine
   strength: string; // e.g. "500 mg"
   similarity: number; // 0-100
+  fdaMedicine?: FdaMedicine;
+  expiryYMD?: string | null;
 };
 
 export type ScanResult =
@@ -21,6 +24,8 @@ export type ScanResult =
       confidence: number;
       medicine: { name: string; category: string; form: string }; // form: raw dosage form, shown as an icon
       info: MedicineInfoRow[];
+      fdaMedicine?: FdaMedicine;
+      expiryYMD?: string | null;
     }
   | { status: 'needs_verification'; confidence: number; matches: PossibleMatch[] }
   | { status: 'no_results' };
@@ -58,6 +63,8 @@ export function fromSearchResponse(res: ApiResponse): ScanResult {
     form: m.fda_dosage_form,
     strength: m.fda_dosage_strength,
     similarity: MOCK_SIMILARITIES[i],
+    fdaMedicine: m,
+    expiryYMD: null,
   }));
   return { status: 'needs_verification', confidence: MOCK_CONFIDENCE, matches };
 }
@@ -66,6 +73,8 @@ export function fromSearchResponse(res: ApiResponse): ScanResult {
 // This is the id of the same medicine in the mock vault (src/mock/index.ts: `mock-<fda_approval_id>`), so
 // View Medicine Details opens the matching Medicine Details screen. Confidence (96) is the vault mock's value.
 export const VERIFIED_VAULT_ID = 'mock-0f3b194307307840';
+
+const verifiedMockFda: FdaMedicine = (multipleResponse as ApiResponse).data[0];
 
 export const mockScanResults: Record<ScanState, ScanResult> = {
   verified: {
@@ -76,6 +85,8 @@ export const mockScanResults: Record<ScanState, ScanResult> = {
       category: 'Heparin Sodium',
       form: 'Solution For Injection (IV/SC)',
     },
+    fdaMedicine: verifiedMockFda,
+    expiryYMD: '2030-05-19',
     info: [
       // Same values the Medicine Details screen shows. The mock data's manufacturer field is mis-mapped
       // (it holds a category), and there is no batch number in the data, so that row stays a sample value.

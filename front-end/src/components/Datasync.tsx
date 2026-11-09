@@ -29,11 +29,14 @@ function formatLastSynced(iso: string): string {
 }
 
 async function syncNow(onProgress: (percent: number) => void): Promise<void> {
-  for (const percent of [15, 35, 60, 85, 100]) {
-    await delay(500);
-    onProgress(percent);
-  }
+  const { syncPendingChanges } = await import('@/services/backendSync');
+  onProgress(20);
+  await delay(200);
+  onProgress(55);
+  await syncPendingChanges();
+  onProgress(85);
   await AsyncStorage.setItem(LAST_SYNCED_KEY, new Date().toISOString());
+  onProgress(100);
 }
 
 function SyncModal({
@@ -64,9 +67,9 @@ function SyncModal({
 
           {done ? (
             <>
-              <Text style={modalStyles.title}>Up to date</Text>
+              <Text style={modalStyles.title}>Sync finished</Text>
               <Text style={modalStyles.message}>
-                Your medicines, reminders and profiles are synced.
+                Local changes were checked against the server when you are logged in. Device copy stays available offline.
               </Text>
               <Pressable style={modalStyles.doneBtn} onPress={onDone}>
                 <Text style={modalStyles.doneText}>Done</Text>
@@ -74,9 +77,9 @@ function SyncModal({
             </>
           ) : (
             <>
-              <Text style={modalStyles.title}>Syncing your data...</Text>
+              <Text style={modalStyles.title}>Syncing...</Text>
               <Text style={modalStyles.message}>
-                Uploading medicines, reminders and profiles to the cloud. Please keep the app open.
+                Uploading local vault changes and refreshing schedules from the server.
               </Text>
               <View style={modalStyles.track}>
                 <View style={[modalStyles.fill, { width: `${pct}%` }]} />
