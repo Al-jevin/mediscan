@@ -1,12 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { MockAuth } from '../mock/mockAuth';
-import { AddProfileRequest, EditProfileRequest, Profile } from '../types/profile';
+import { AddProfileRequest, EditProfileRequest, Profile, ProfileId } from '../types/profile';
 
-// ONE source of truth for profiles. Data comes from MockAuth (the mock "backend").
+// ONE source of truth for profiles. Data comes from MockAuth (live API when available).
 // Every screen reads it from here, so an edit anywhere shows up everywhere.
-// When the backend is ready, change MockAuth's functions, not this file.
 
 const UNDO_SECONDS = 15;
+
+const sameId = (a: ProfileId | null | undefined, b: ProfileId | null | undefined) =>
+  a != null && b != null && String(a) === String(b);
 
 interface ProfileContextType {
   email: string | null;
@@ -16,10 +18,10 @@ interface ProfileContextType {
   /** Throws an Error(message) if the save fails. */
   addProfile: (data: AddProfileRequest) => Promise<Profile>;
   /** Throws an Error(message) if the save fails. */
-  updateProfile: (profileId: number, data: EditProfileRequest) => Promise<void>;
-  deleteProfileWithUndo: (profileId: number) => void;
+  updateProfile: (profileId: ProfileId, data: EditProfileRequest) => Promise<void>;
+  deleteProfileWithUndo: (profileId: ProfileId) => void;
   undoDelete: () => void;
-  pendingDeleteId: number | null;
+  pendingDeleteId: ProfileId | null;
   undoSecondsLeft: number;
 }
 
@@ -29,14 +31,14 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const store = useSyncExternalStore(MockAuth.subscribe, MockAuth.getSnapshot, MockAuth.getSnapshot);
 
   // ---- Delete with 15-second undo ----
-  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<ProfileId | null>(null);
   // Hidden from lists: the pending one + any whose DELETE is still in flight (no flicker)
-  const [hiddenIds, setHiddenIds] = useState<number[]>([]);
-  const unhide = (id: number) => setHiddenIds((ids) => ids.filter((x) => x !== id));
+  const [hiddenIds, setHiddenIds] = useState<ProfileId[]>([]);
+  const unhide = (id: ProfileId) => setHiddenIds((ids) => ids.filter((x) => !sameId(x, id)));
   const [undoSecondsLeft, setUndoSecondsLeft] = useState(UNDO_SECONDS);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pendingRef = useRef<number | null>(null);
+  const pendingRef = useRef<ProfileId | null>(null);
 
   const clearTimers = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -60,8 +62,8 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const deleteProfileWithUndo = useCallback(
-    (profileId: number) => {
-      if (store.activeProfile?.profile_id === profileId) return; // can't remove the profile in use
+    (profileId: ProfileId) => {
+      if (sameId(store.activeProfile?.profile_id, profileId)) return; // can't remove the profile in use
       // Only one undo at a time: finish the previous delete first so it isn't lost
       if (pendingRef.current !== null) commitPendingDelete();
 
@@ -101,7 +103,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return res.data;
   }, []);
 
-  const updateProfile = useCallback(async (profileId: number, data: EditProfileRequest) => {
+  const updateProfile = useCallback(async (profileId: ProfileId, data: EditProfileRequest) => {
     const res = await MockAuth.updateProfile(profileId, data);
     if (!res.success) throw new Error(res.message);
   }, []);
@@ -109,7 +111,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const setActiveProfile = useCallback((profile: Profile) => MockAuth.selectProfile(profile), []);
 
   const profiles = useMemo(
-    () => store.profiles.filter((p) => !hiddenIds.includes(p.profile_id)),
+    () => store.profiles.filter((p) => !hiddenIds.some((id) => sameId(id, p.profile_id))),
     [store.profiles, hiddenIds]
   );
 

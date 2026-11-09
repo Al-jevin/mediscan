@@ -6,6 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MedicineAddedModal from '@/components/MedicineAddedModal';
 import { Assets } from '@/constants/assets';
 import { Colors } from '@/constants/display';
+import multipleResponse from '@/data/response_2_multiple.json';
+import { buildNewMedicineFromFda, normalizeExpiryToYMD } from '@/services/ocrAdapter';
+import { newId } from '@/services/changeLog';
+import { addMedicine } from '@/services/vaultStore';
+import type { FdaMedicine } from '@/types/medicine';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
 const InputBorder = '#C9D6CF';
@@ -54,8 +59,54 @@ export default function ManualEntryScreen() {
   const [expiry, setExpiry] = useState('');
   const [addedOpen, setAddedOpen] = useState(false);
 
-  // TODO: fill these from the medicine picked in the search results.
-  const selected = { genericName: '', brandName: '', strength: '', form: '', manufacturer: '' };
+  const catalog: FdaMedicine[] = (multipleResponse as { data: FdaMedicine[] }).data ?? [];
+  const query = medicineName.trim().toLowerCase();
+  const matchedFda =
+    query.length >= 2
+      ? catalog.find(
+          (m) =>
+            m.fda_brandname?.toLowerCase().includes(query) ||
+            m.fda_genericname?.toLowerCase().includes(query),
+        ) ?? null
+      : null;
+
+  const selected = {
+    genericName: matchedFda?.fda_genericname ?? '',
+    brandName: matchedFda?.fda_brandname ?? '',
+    strength: matchedFda?.fda_dosage_strength ?? '',
+    form: matchedFda?.fda_dosage_form ?? '',
+    manufacturer: matchedFda?.fda_manufacturer ?? matchedFda?.fda_pharmacologic_category ?? '',
+  };
+
+  const canSave = medicineName.trim().length > 0;
+
+  const handleSave = async () => {
+    const cleanName = medicineName.trim();
+    if (!cleanName) return;
+
+    const baseFda: FdaMedicine = matchedFda ?? {
+      fda_approval_id: newId('manual'),
+      fda_registration_id: 'MANUAL',
+      fda_brandname: cleanName,
+      fda_genericname: cleanName,
+      fda_dosage_form: 'Other',
+      fda_dosage_strength: '',
+      fda_manufacturer: null,
+      fda_pharmacologic_category: null,
+      fda_classification: null,
+    };
+
+    await addMedicine(
+      buildNewMedicineFromFda(baseFda, {
+        status: matchedFda ? 'verified' : 'needs_verification',
+        source: 'manual',
+        confidence: null,
+        expiryYMD: normalizeExpiryToYMD(expiry),
+        overrideName: matchedFda ? undefined : cleanName,
+      }),
+    );
+    setAddedOpen(true);
+  };
 
   return (
     <ScrollView
@@ -125,8 +176,12 @@ export default function ManualEntryScreen() {
       </View>
 
       {/* Actions */}
-      {/* TODO: actually save the entry to the vault. For now it only shows the Medicine Added overlay. */}
-      <Pressable style={styles.saveButton} onPress={() => setAddedOpen(true)} accessibilityRole="button">
+      <Pressable
+        style={[styles.saveButton, !canSave && { opacity: 0.5 }]}
+        onPress={handleSave}
+        disabled={!canSave}
+        accessibilityRole="button"
+      >
         <Image source={Assets.icons.bookmark} style={styles.bookmarkIcon} contentFit="contain" />
         <Text style={styles.saveText}>Save to Vault</Text>
       </Pressable>

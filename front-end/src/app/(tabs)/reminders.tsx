@@ -21,6 +21,7 @@ import {
   type Reminder,
 } from '@/components/reminderTypes';
 import { useColors } from '@/hooks/useColors';
+import { pushReminder } from '@/services/backendSync';
 
 
 
@@ -163,6 +164,9 @@ export default function RemindersScreen() {
       ? reminders.map((item) => (item.id === reminder.id ? reminder : item))
       : [reminder, ...reminders];
     void persist(next);
+    if (!isEditing) {
+      void pushReminder(reminder).catch((e) => console.log('[reminders] backend create skipped', e));
+    }
     setEditorVisible(false);
     setEditingReminder(null);
     returnHomeRef.current = false;

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import get_db
 from schemas.ocr import OCRResponse
-from services.data_linker import link_medicine_record
+from services.data_linker import link_medicine_candidates_from_csv, link_medicine_record
 from services.nlp_service import extract_entities
 from services.vision import extract_text
 
@@ -31,19 +31,28 @@ async def extract_label(
     raw_text = await extract_text(image_bytes)
     extracted_data = await extract_entities(raw_text)
     print(f"\n--- NLP JSON RESULT ---\n{extracted_data}\n")
-    linked_medicine = (
-        await link_medicine_record(db, extracted_data)
-        if db is not None
-        else None
-    )
+    linked_medicine = None
+    if db is not None:
+        try:
+            linked_medicine = await link_medicine_record(db, extracted_data)
+        except Exception as exc:
+            print(f"[ocr] DB link failed, falling back to CSV index: {exc}")
+            linked_medicine = None
+
     if linked_medicine:
+        suggestions = [linked_medicine]
+    else:
+        suggestions = link_medicine_candidates_from_csv(extracted_data, raw_text=raw_text)
+
+    if suggestions:
+        top = suggestions[0]
         print(
             "\n--- SUGGESTED MEDICINE ---\n"
-            f"Name: {linked_medicine.fda_brandname or linked_medicine.fda_genericname}\n"
-            f"Dosage: {linked_medicine.fda_dosage_strength or 'Not detected'}\n"
-            f"Accuracy: {linked_medicine.confidence_percentage}% "
-            f"({linked_medicine.confidence_level.upper()})\n"
-            f"Guidance: {linked_medicine.accuracy_guidance}\n"
+            f"Name: {top.fda_brandname or top.fda_genericname}\n"
+            f"Dosage: {top.fda_dosage_strength or 'Not detected'}\n"
+            f"Accuracy: {top.confidence_percentage}% "
+            f"({top.confidence_level.upper()})\n"
+            f"Guidance: {top.accuracy_guidance}\n"
         )
     else:
         print(
@@ -57,5 +66,5 @@ async def extract_label(
         code=status.HTTP_200_OK,
         message="OCR and medicine extraction completed.",
         entities=extracted_data,
-        suggested_medicines=[linked_medicine] if linked_medicine else [],
+        suggested_medicines=suggestions,
     )

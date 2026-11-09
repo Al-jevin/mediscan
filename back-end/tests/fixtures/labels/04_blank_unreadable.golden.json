@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "code": 200,
+  "message": "OCR and medicine extraction completed.",
+  "entities": {
+    "medicine_name": null,
+    "dosage": null,
+    "frequency": null,
+    "expiry_date": null
+  },
+  "suggested_medicines": []
+}

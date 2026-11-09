@@ -1,0 +1,30 @@
+{
+  "success": true,
+  "code": 200,
+  "message": "OCR and medicine extraction completed.",
+  "entities": {
+    "medicine_name": "FDA Reg No DRP-16103",
+    "dosage": "80 mg",
+    "frequency": null,
+    "expiry_date": "12/31/2028"
+  },
+  "suggested_medicines": [
+    {
+      "fda_id": 1,
+      "fda_registration_id": "DRP-16103",
+      "fda_approval_id": "5c26ea80b081279b",
+      "fda_brandname": "Mistel",
+      "fda_genericname": "Telmisartan",
+      "fda_dosage_form": "Tablet",
+      "fda_dosage_strength": "80 mg",
+      "fda_manufacturer": "Nucare Labs LLP",
+      "fda_pharmacologic_category": "Angiotensin II Receptor Blocker",
+      "fda_classification": "Prescription (Rx)",
+      "match_type": "exact",
+      "match_score": 1.0,
+      "confidence_percentage": 100,
+      "confidence_level": "max",
+      "accuracy_guidance": "Exact FDA Registration ID match."
+    }
+  ]
+}

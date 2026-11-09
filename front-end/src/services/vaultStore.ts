@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { buildMockVault } from '@/mock';
 import type { NewMedicine, VaultMedicine } from '@/types/medicine';
+import { pushVaultMedicine } from './backendSync';
 import { logChange, newId } from './changeLog';
 
 const KEY = 'mediscan.vault.medicines.v1';
@@ -131,7 +132,11 @@ export async function addMedicine(input: NewMedicine): Promise<VaultMedicine> {
   setState({ medicines: [med, ...state.medicines] });
   await persist();
   await logChange('create', med.vault_id, { ...med });
-  // TODO(Sprint 4): POST to backend here (log entry stays unsynced if offline).
+  try {
+    await pushVaultMedicine(med);
+  } catch (e) {
+    console.log('[vault] backend create skipped', e);
+  }
   return med;
 }
 

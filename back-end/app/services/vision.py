@@ -3,9 +3,8 @@ import os
 os.environ["FLAGS_enable_pir_api"] = "0"
 os.environ["FLAGS_use_mkldnn"] = "0"
 
-from paddleocr import PaddleOCR
-
 import io
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -20,7 +19,23 @@ class OCRProcessingError(RuntimeError):
     """Raised when an image cannot be decoded or processed."""
 
 
-ocr_model = PaddleOCR(lang="en", enable_mkldnn=False)
+_ocr_backend = "none"
+ocr_model: Any = None
+
+try:
+    from paddleocr import PaddleOCR
+
+    ocr_model = PaddleOCR(lang="en", enable_mkldnn=False)
+    _ocr_backend = "paddleocr"
+except Exception:
+    try:
+        from rapidocr import RapidOCR
+
+        ocr_model = RapidOCR()
+        _ocr_backend = "rapidocr"
+    except Exception:
+        ocr_model = None
+        _ocr_backend = "none"
 
 
 def _extract_text_sync(image_bytes: bytes) -> str:
@@ -44,6 +59,17 @@ def _extract_text_sync(image_bytes: bytes) -> str:
 
     try:
         print(f"Received {len(image_bytes)} bytes")
+        if ocr_model is None:
+            raise OCRConfigurationError(
+                "No OCR runtime is installed (install paddleocr or rapidocr)."
+            )
+        if _ocr_backend == "rapidocr" and not hasattr(ocr_model, "ocr"):
+            rapid_out = ocr_model(img_np)
+            txts = getattr(rapid_out, "txts", None) or ()
+            text_lines = [t.strip() for t in txts if isinstance(t, str) and t.strip()]
+            readable_text = "\n".join(text_lines)
+            print(f"\n--- RAW OCR OUTPUT ---\n{readable_text or 'No text detected'}\n")
+            return readable_text
         raw_results = ocr_model.ocr(img_np)
     except Exception as exc:
         raise OCRProcessingError(

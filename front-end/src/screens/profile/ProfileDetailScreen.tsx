@@ -8,7 +8,7 @@ export default function ProfileDetailScreen({ route, navigation }: any) {
   const { profiles, deleteProfileWithUndo } = useProfile();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const profile = profiles.find((p) => p.profile_id === profileId);
+  const profile = profiles.find((p) => String(p.profile_id) === String(profileId));
   if (!profile) return null;
 
   const handleConfirmDelete = () => {

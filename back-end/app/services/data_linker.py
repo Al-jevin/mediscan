@@ -9,6 +9,7 @@ from sqlalchemy import Column, Integer, MetaData, String, Table, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from schemas.ocr import ExtractedEntityResponse, LinkedMedicineResponse
+from services.search_service import _load_fda_index, query_fda
 
 
 _metadata = MetaData()
@@ -166,3 +167,82 @@ async def link_medicine_record(
         matched_keywords,
         len(keywords),
     )
+
+
+def link_medicine_candidates_from_csv(
+    extracted_data: ExtractedEntityResponse,
+    raw_text: str | None = None,
+    top_k: int = 4,
+) -> list[LinkedMedicineResponse]:
+    """Match OCR entities against the in-memory FDA CSV index when Postgres is unavailable or yields no hits."""
+    keywords = _keywords(extracted_data.medicine_name)
+    if not keywords and not raw_text:
+        return []
+
+    _by_reg, all_records = _load_fda_index()
+    if not all_records:
+        return []
+
+    query_result = query_fda(
+        structured={
+            "fda_brandname": extracted_data.medicine_name,
+            "fda_genericname": extracted_data.medicine_name,
+            "fda_dosage_strength": extracted_data.dosage,
+        },
+        raw_text=raw_text or extracted_data.medicine_name or "",
+        top_k=top_k,
+    )
+
+    candidates: list[LinkedMedicineResponse] = []
+    for idx, hit in enumerate(query_result.matches, start=1):
+        row_map = {
+            "fda_id": idx,
+            "fda_registration_id": hit.registration_number,
+            "fda_approval_id": hit.approval_id or hit.registration_number,
+            "fda_brandname": hit.brand_name,
+            "fda_genericname": hit.generic_name or hit.product_name or hit.brand_name or "Unknown",
+            "fda_dosage_form": hit.dosage_form,
+            "fda_dosage_strength": hit.dosage_strength,
+            "fda_manufacturer": hit.manufacturer,
+            "fda_pharmacologic_category": hit.pharmacologic_category,
+            "fda_classification": hit.classification,
+        }
+        searchable = " ".join(
+            str(row_map.get(field) or "")
+            for field in ("fda_brandname", "fda_genericname")
+        ).casefold()
+        matched_keywords = sum(keyword in searchable for keyword in keywords)
+        dosage_match = _dosage_matches(row_map, extracted_data.dosage)
+        if hit.match_method == "registration_id":
+            candidates.append(
+                LinkedMedicineResponse(
+                    fda_id=idx,
+                    fda_registration_id=str(row_map["fda_registration_id"]),
+                    fda_approval_id=str(row_map["fda_approval_id"]),
+                    fda_brandname=row_map["fda_brandname"],
+                    fda_genericname=str(row_map["fda_genericname"]),
+                    fda_dosage_form=row_map["fda_dosage_form"],
+                    fda_dosage_strength=row_map["fda_dosage_strength"],
+                    fda_manufacturer=row_map["fda_manufacturer"],
+                    fda_pharmacologic_category=row_map["fda_pharmacologic_category"],
+                    fda_classification=row_map["fda_classification"],
+                    match_type="exact",
+                    match_score=1.0,
+                    confidence_percentage=100,
+                    confidence_level="max",
+                    accuracy_guidance="Exact FDA Registration ID match.",
+                )
+            )
+        else:
+            candidates.append(
+                _to_response(
+                    row_map,
+                    extracted_data.medicine_name,
+                    dosage_match,
+                    matched_keywords,
+                    len(keywords),
+                )
+            )
+
+    return candidates
+

@@ -61,7 +61,7 @@ export type ReminderSchedule = {
 
 // Profile, as in Mockdata/Profiles/Response/Fetch Profile.json
 export type Profile = {
-  profile_id: number;
+  profile_id: string | number;
   profile_icon: number;
   profile_fullname: string;
   profile_birthdate: string;

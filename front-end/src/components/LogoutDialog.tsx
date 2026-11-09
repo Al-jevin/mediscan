@@ -39,7 +39,7 @@ export default function LogoutDialog() {
 
   const confirmLogout = () => {
     closeLogout();
-    MockAuth.logout(); // clear the (mock) session
+    void MockAuth.logout();
     router.replace('/login');
   };
 
