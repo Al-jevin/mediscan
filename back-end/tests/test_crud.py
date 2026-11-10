@@ -420,10 +420,28 @@ def test_vault_item_create_read_update_and_delete(database_records):
     item = medicine_crud.get_vault_item_by_id(account_id, profile_id, vault_id)
     assert item["fda_genericname"] == database_records["genericname"]
     assert item["fda_dosage_form"] == "Tablet"
+    assert item["vault_status"] == "verified"
+    assert item["vault_source"] == "scan"
     assert medicine_crud.list_vault_items_by_profile(
         account_id,
         profile_id,
     )[0]["vault_id"] == vault_id
+
+    metadata_item = medicine_crud.create_vault_item(
+        account_id,
+        profile_id,
+        database_records["fda_id"],
+        date.today() + timedelta(days=180),
+        vault_note="Store below 25 C",
+        vault_status="needs_verification",
+        vault_source="manual",
+        vault_confidence=72,
+    )
+    database_records["records"]["vault_ids"].append(metadata_item["vault_id"])
+    assert metadata_item["vault_note"] == "Store below 25 C"
+    assert metadata_item["vault_status"] == "needs_verification"
+    assert metadata_item["vault_source"] == "manual"
+    assert metadata_item["vault_confidence"] == 72
 
     other_account = user_crud.create_account(_new_email(), "other-vault-hash")
     _track_account(database_records, other_account["account_id"])

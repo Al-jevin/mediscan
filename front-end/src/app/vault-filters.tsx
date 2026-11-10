@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CalendarDatePicker from '@/components/medicine/CalendarDatePicker';
 import { Colors, Components, Radius, Spacing, Type } from '@/constants/display';
 import { getListQuery, isListScope, setListQuery } from '@/services/listQueryStore';
 import type { MedicineForm, UrgencyFilter } from '@/types/medicine';
@@ -28,6 +29,7 @@ export default function VaultFiltersScreen() {
   const [urgency, setUrgency] = useState<UrgencyFilter>(current.urgency);
   const [fromText, setFromText] = useState(ymdToMDY(current.customFrom));
   const [toText, setToText] = useState(ymdToMDY(current.customTo));
+  const [datePickerTarget, setDatePickerTarget] = useState<'from' | 'to' | null>(null);
   const [error, setError] = useState('');
 
   const toggleForm = (f: MedicineForm) =>
@@ -56,8 +58,8 @@ export default function VaultFiltersScreen() {
         setError('Please enter dates as MM/DD/YYYY.');
         return;
       }
-      if (!customFrom && !customTo) {
-        setError('Enter a From date, a To date, or both.');
+      if (!customFrom || !customTo) {
+        setError('Enter both a From and To date, or unselect Custom range.');
         return;
       }
       if (customFrom && customTo && customFrom > customTo) {
@@ -132,8 +134,26 @@ export default function VaultFiltersScreen() {
           </View>
 
           <View style={styles.dates}>
-            <DateField label="From" value={fromText} onChange={setFromText} enabled={customOn} />
-            <DateField label="To" value={toText} onChange={setToText} enabled={customOn} />
+            <DateField
+              label="From"
+              value={fromText}
+              onChange={(value) => {
+                setFromText(value);
+                setError('');
+              }}
+              enabled={customOn}
+              onOpenPicker={() => setDatePickerTarget('from')}
+            />
+            <DateField
+              label="To"
+              value={toText}
+              onChange={(value) => {
+                setToText(value);
+                setError('');
+              }}
+              enabled={customOn}
+              onOpenPicker={() => setDatePickerTarget('to')}
+            />
           </View>
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </ScrollView>
@@ -152,13 +172,37 @@ export default function VaultFiltersScreen() {
           </Pressable>
         </View>
       </View>
+      <CalendarDatePicker
+        visible={datePickerTarget !== null}
+        value={
+          datePickerTarget === 'from'
+            ? mdyToYMD(fromText)
+            : datePickerTarget === 'to'
+              ? mdyToYMD(toText)
+              : null
+        }
+        title={datePickerTarget === 'from' ? 'From Date' : 'To Date'}
+        onSelect={(date) => {
+          if (datePickerTarget === 'from') setFromText(ymdToMDY(date));
+          if (datePickerTarget === 'to') setToText(ymdToMDY(date));
+          setError('');
+          setDatePickerTarget(null);
+        }}
+        onClose={() => setDatePickerTarget(null)}
+      />
     </KeyboardAvoidingView>
   );
 }
 
 function DateField({
-  label, value, onChange, enabled,
-}: { label: string; value: string; onChange: (t: string) => void; enabled: boolean }) {
+  label, value, onChange, enabled, onOpenPicker,
+}: {
+  label: string;
+  value: string;
+  onChange: (t: string) => void;
+  enabled: boolean;
+  onOpenPicker: () => void;
+}) {
   // Adds the slashes while typing: 12252026 -> 12/25/2026
   const onText = (t: string) => {
     const digits = t.replace(/\D/g, '').slice(0, 8);
@@ -170,7 +214,10 @@ function DateField({
   return (
     <View style={{ flex: 1 }}>
       <Text style={[styles.dateLabel, !enabled && { opacity: 0.5 }]}>{label}</Text>
-      <View style={[styles.dateBox, !enabled && { opacity: 0.5 }]}>
+      <View
+        pointerEvents={enabled ? 'auto' : 'none'}
+        style={[styles.dateBox, !enabled && { opacity: 0.5 }]}
+      >
         <TextInput
           style={styles.dateInput}
           value={value}
@@ -181,8 +228,17 @@ function DateField({
           keyboardType="number-pad"
           maxLength={10}
           accessibilityLabel={`${label} date`}
+          accessibilityState={{ disabled: !enabled }}
         />
-        <Ionicons name="calendar-outline" size={18} color={Colors.textSecondary} />
+        <Pressable
+          onPress={onOpenPicker}
+          disabled={!enabled}
+          accessibilityRole="button"
+          accessibilityLabel={`Choose ${label.toLowerCase()} date`}
+          accessibilityState={{ disabled: !enabled }}
+        >
+          <Ionicons name="calendar-outline" size={18} color={Colors.textSecondary} />
+        </Pressable>
       </View>
     </View>
   );

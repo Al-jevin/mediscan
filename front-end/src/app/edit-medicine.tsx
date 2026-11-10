@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { Image } from 'expo-image';
 import { useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CalendarDatePicker from '@/components/medicine/CalendarDatePicker';
 import MedicineAddedModal from '@/components/MedicineAddedModal';
 import QuitEditingModal from '@/components/QuitEditingModal';
 import { FormColors, FormField, InputBox } from '@/components/FormField';
@@ -12,7 +13,7 @@ import { Colors } from '@/constants/display';
 import { findPossibleMatch } from '@/data/mockScanResults';
 import { addMedicine } from '@/services/vaultStore';
 import { formatDateInput } from '@/utils/date';
-import { mdyToYMD } from '@/utils/medicine';
+import { mdyToYMD, ymdToMDY } from '@/utils/medicine';
 
 // Edit Medicine screen, opened from Scan Result with the selected possible match (?id=...).
 // The medicine name is auto-filled from that medicine; the expiration date is typed. The header
@@ -25,6 +26,7 @@ export default function EditMedicineScreen() {
 
   const name = match?.name ?? '';
   const [expiry, setExpiry] = useState('');
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -116,8 +118,12 @@ export default function EditMedicineScreen() {
               maxLength={14}
               accessibilityLabel="Expiration date"
             />
-            {/* TODO: open a date picker */}
-            <Pressable hitSlop={8} accessibilityRole="button" accessibilityLabel="Open calendar">
+            <Pressable
+              hitSlop={8}
+              onPress={() => setDatePickerOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Open calendar"
+            >
               <Image source={Assets.icons.calendar} style={styles.icon} contentFit="contain" />
             </Pressable>
           </InputBox>
@@ -145,6 +151,17 @@ export default function EditMedicineScreen() {
         onClose={() => setAddedOpen(false)}
       />
       <QuitEditingModal visible={quitOpen} onConfirm={confirmQuit} onCancel={() => setQuitOpen(false)} />
+      <CalendarDatePicker
+        visible={datePickerOpen}
+        value={mdyToYMD(expiry)}
+        title="Expiration Date"
+        onSelect={(date) => {
+          setExpiry(formatDateInput(ymdToMDY(date)));
+          setSaveError('');
+          setDatePickerOpen(false);
+        }}
+        onClose={() => setDatePickerOpen(false)}
+      />
     </KeyboardAvoidingView>
   );
 }

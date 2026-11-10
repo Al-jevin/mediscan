@@ -1,6 +1,7 @@
 """Authenticated, profile-scoped medicine vault APIs."""
 
 from datetime import date, datetime
+from typing import Literal
 
 import psycopg2
 from fastapi import APIRouter, Depends, HTTPException, Path, status
@@ -32,9 +33,13 @@ class VaultItem(BaseModel):
     vault_id: int = Field(ge=1)
     profile_id: str
     fda_id: int = Field(ge=1)
-    vault_expiry_date: date
+    vault_expiry_date: date | None
     vault_created_at: datetime
     vault_updated_at: datetime
+    vault_note: str
+    vault_status: Literal["verified", "needs_verification"]
+    vault_source: Literal["scan", "manual"]
+    vault_confidence: int | None = Field(ge=0, le=100)
     fda_registration_id: str
     fda_approval_id: str
     fda_genericname: str
@@ -53,6 +58,10 @@ class VaultItemCreate(BaseModel):
 
     fda_id: int = Field(ge=1)
     vault_expiry_date: date
+    vault_note: str = ""
+    vault_status: Literal["verified", "needs_verification"] = "verified"
+    vault_source: Literal["scan", "manual"] = "scan"
+    vault_confidence: int | None = Field(default=None, ge=0, le=100)
 
 
 class VaultItemPatch(BaseModel):
@@ -169,6 +178,10 @@ async def create_vault_item(
             profile_id,
             payload.fda_id,
             payload.vault_expiry_date,
+            payload.vault_note,
+            payload.vault_status,
+            payload.vault_source,
+            payload.vault_confidence,
         )
     except ForeignKeyError as error:
         raise HTTPException(

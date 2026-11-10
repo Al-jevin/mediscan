@@ -10,9 +10,13 @@ type VaultApiItem = {
   vault_id: number;
   profile_id: string;
   fda_id: number;
-  vault_expiry_date: string;
+  vault_expiry_date: string | null;
   vault_created_at: string;
   vault_updated_at: string;
+  vault_note: string;
+  vault_status: VaultMedicine['vault_status'];
+  vault_source: NonNullable<VaultMedicine['vault_source']>;
+  vault_confidence: number | null;
   fda_registration_id: string;
   fda_approval_id: string;
   fda_genericname: string;
@@ -64,7 +68,7 @@ function asErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'The vault request failed.';
 }
 
-function toVaultMedicine(item: VaultApiItem, note = ''): VaultMedicine {
+function toVaultMedicine(item: VaultApiItem, note?: string): VaultMedicine {
   return {
     fda_id: item.fda_id,
     fda_registration_id: item.fda_registration_id,
@@ -78,9 +82,10 @@ function toVaultMedicine(item: VaultApiItem, note = ''): VaultMedicine {
     fda_classification: item.fda_classification,
     vault_id: String(item.vault_id),
     vault_expiry_date: item.vault_expiry_date,
-    vault_status: 'verified',
-    vault_confidence: null,
-    vault_note: note,
+    vault_status: item.vault_status,
+    vault_source: item.vault_source,
+    vault_confidence: item.vault_confidence,
+    vault_note: note ?? item.vault_note,
     vault_saved_at: item.vault_created_at,
   };
 }
@@ -119,7 +124,7 @@ async function fetchVaultItems(profileId: string): Promise<VaultMedicine[]> {
     ),
     loadNotes(profileId),
   ]);
-  return response.data.map((item) => toVaultMedicine(item, notes[String(item.vault_id)] ?? ''));
+  return response.data.map((item) => toVaultMedicine(item, notes[String(item.vault_id)]));
 }
 
 export async function loadVault(profileId = MockAuth.getActiveProfile()?.profile_id): Promise<void> {
@@ -254,15 +259,23 @@ export async function addMedicine(input: NewMedicine): Promise<VaultMedicine> {
   if (!input.vault_expiry_date) {
     throw new Error('Enter the medicine expiration date before saving it to your vault.');
   }
+  const note = input.vault_note?.trim() ?? '';
   const response = await apiRequest<ApiEnvelope<VaultApiItem>>(
     `/accounts/me/profiles/${encodeURIComponent(profileId)}/vault`,
     'POST',
-    { fda_id: input.fda_id, vault_expiry_date: input.vault_expiry_date },
+    {
+      fda_id: input.fda_id,
+      vault_expiry_date: input.vault_expiry_date,
+      vault_note: note,
+      vault_status: input.vault_status,
+      vault_source: input.vault_source ?? 'scan',
+      vault_confidence: input.vault_confidence,
+    },
   );
-  const medicine = toVaultMedicine(response.data, input.vault_note ?? '');
-  if (input.vault_note?.trim()) {
+  const medicine = toVaultMedicine(response.data, note);
+  if (note) {
     const notes = await loadNotes(profileId);
-    await saveNotes(profileId, { ...notes, [medicine.vault_id]: input.vault_note.trim() });
+    await saveNotes(profileId, { ...notes, [medicine.vault_id]: note });
   }
   if (state.profileId === profileId) {
     setState({

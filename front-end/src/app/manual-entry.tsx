@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MedicineAddedModal from '@/components/MedicineAddedModal';
+import CalendarDatePicker from '@/components/medicine/CalendarDatePicker';
 import { Assets } from '@/constants/assets';
 import { Colors } from '@/constants/display';
+import { apiRequest } from '@/mock/mockAuth';
+import { addMedicine } from '@/services/vaultStore';
+import type { FdaMedicine } from '@/types/medicine';
+import { formatDateInput } from '@/utils/date';
+import { mdyToYMD, ymdToMDY } from '@/utils/medicine';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
 const InputBorder = '#C9D6CF';
@@ -15,12 +21,12 @@ const Placeholder = '#9AAFA3';
 const HelperText = '#5B6B6C';
 const RequiredStar = '#D93025';
 
-// Formats typed digits as "MM / DD / YYYY".
-const formatDate = (raw: string) => {
-  const d = raw.replace(/\D/g, '').slice(0, 8);
-  const parts = [d.slice(0, 2), d.slice(2, 4), d.slice(4, 8)].filter(Boolean);
-  return parts.join(' / ');
-};
+type MedicineSearchResponse = { data: FdaMedicine[] };
+
+function medicineLabel(medicine: FdaMedicine): string {
+  const name = medicine.fda_brandname?.trim() || medicine.fda_genericname;
+  return [name, medicine.fda_dosage_strength].filter(Boolean).join(' ');
+}
 
 function Label({ text, required }: { text: string; required?: boolean }) {
   return (
@@ -51,11 +57,100 @@ export default function ManualEntryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [medicineName, setMedicineName] = useState('');
+  const [selectedMedicine, setSelectedMedicine] = useState<FdaMedicine | null>(null);
+  const [matches, setMatches] = useState<FdaMedicine[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchCompleted, setSearchCompleted] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const [expiry, setExpiry] = useState('');
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [addedOpen, setAddedOpen] = useState(false);
 
-  // TODO: fill these from the medicine picked in the search results.
-  const selected = { genericName: '', brandName: '', strength: '', form: '', manufacturer: '' };
+  useEffect(() => {
+    const query = medicineName.trim();
+    if (selectedMedicine || query.length < 2) return undefined;
+
+    let active = true;
+    const timer = setTimeout(() => {
+      setSearching(true);
+      void apiRequest<MedicineSearchResponse>(
+        `/medicines/search?q=${encodeURIComponent(query)}&limit=8`,
+        'GET',
+      )
+        .then((response) => {
+          if (active) setMatches(response.data);
+        })
+        .catch((error: unknown) => {
+          if (active) {
+            setSearchError(error instanceof Error ? error.message : 'Could not search the medicine registry.');
+          }
+        })
+        .finally(() => {
+          if (active) {
+            setSearching(false);
+            setSearchCompleted(true);
+          }
+        });
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [medicineName, selectedMedicine]);
+
+  const onSelectMedicine = (medicine: FdaMedicine) => {
+    setSelectedMedicine(medicine);
+    setMedicineName(medicineLabel(medicine));
+    setMatches([]);
+    setSearching(false);
+    setSearchCompleted(false);
+    setSearchError('');
+    setFormError('');
+  };
+
+  const onSave = async () => {
+    if (!selectedMedicine) {
+      setFormError('Choose a medicine from the search results.');
+      return;
+    }
+    const expiryDate = mdyToYMD(expiry);
+    if (!expiryDate) {
+      setFormError('Enter a valid expiration date in MM/DD/YYYY format.');
+      return;
+    }
+
+    setSaving(true);
+    setFormError('');
+    try {
+      await addMedicine({
+        ...selectedMedicine,
+        vault_expiry_date: expiryDate,
+        vault_status: 'needs_verification',
+        vault_source: 'manual',
+        vault_confidence: null,
+        vault_note: '',
+      });
+      setAddedOpen(true);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Could not save this medicine to your vault.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetForm = () => {
+    setMedicineName('');
+    setSelectedMedicine(null);
+    setMatches([]);
+    setSearching(false);
+    setSearchCompleted(false);
+    setExpiry('');
+    setFormError('');
+    setSearchError('');
+  };
 
   return (
     <ScrollView
@@ -74,7 +169,15 @@ export default function ManualEntryScreen() {
           <TextInput
             style={styles.input}
             value={medicineName}
-            onChangeText={setMedicineName}
+            onChangeText={(text) => {
+              setMedicineName(text);
+              setSelectedMedicine(null);
+              setMatches([]);
+              setSearching(false);
+              setSearchCompleted(false);
+              setSearchError('');
+              setFormError('');
+            }}
             placeholder="Type to search, e.g. Paracetamol"
             placeholderTextColor={Placeholder}
             autoCorrect={false}
@@ -82,6 +185,37 @@ export default function ManualEntryScreen() {
             accessibilityLabel="Medicine name"
           />
         </View>
+        {searching ? (
+          <View style={styles.searchStatus}>
+            <ActivityIndicator size="small" color={Colors.actionPrimary} />
+            <Text style={styles.searchStatusText}>Searching medicines…</Text>
+          </View>
+        ) : null}
+        {matches.length > 0 && !selectedMedicine ? (
+          <View style={styles.results}>
+            {matches.map((medicine) => (
+              <Pressable
+                key={medicine.fda_id}
+                style={styles.result}
+                onPress={() => onSelectMedicine(medicine)}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${medicineLabel(medicine)}`}
+              >
+                <Text style={styles.resultTitle}>{medicineLabel(medicine)}</Text>
+                <Text style={styles.resultDetail}>
+                  {[medicine.fda_genericname, medicine.fda_dosage_form, medicine.fda_manufacturer]
+                    .filter(Boolean)
+                    .join(' | ')}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+        {searchCompleted && !searching && !searchError && !matches.length
+          && medicineName.trim().length >= 2 && !selectedMedicine ? (
+          <Text style={styles.searchMessage}>No matching medicines found.</Text>
+        ) : null}
+        {searchError ? <Text style={styles.error}>{searchError}</Text> : null}
         <Text style={styles.helper}>Choose your medicine from the list to verify it.</Text>
       </View>
 
@@ -92,15 +226,22 @@ export default function ManualEntryScreen() {
           <TextInput
             style={styles.input}
             value={expiry}
-            onChangeText={(t) => setExpiry(formatDate(t))}
+            onChangeText={(text) => {
+              setExpiry(formatDateInput(text));
+              setFormError('');
+            }}
             placeholder="MM / DD / YYYY"
             placeholderTextColor={Placeholder}
             keyboardType="number-pad"
             maxLength={14}
             accessibilityLabel="Expiration date"
           />
-          {/* TODO: open a date picker */}
-          <Pressable hitSlop={8} accessibilityRole="button" accessibilityLabel="Open calendar">
+          <Pressable
+            hitSlop={8}
+            onPress={() => setDatePickerOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open calendar"
+          >
             <Image source={Assets.icons.calendar} style={styles.calendarIcon} contentFit="contain" />
           </Pressable>
         </View>
@@ -113,40 +254,54 @@ export default function ManualEntryScreen() {
           <Image source={Assets.icons.lockSmall} style={styles.lockSmallIcon} contentFit="contain" />
           <Text style={styles.verifiedHeaderText}>Filled in automatically after you pick a medicine</Text>
         </View>
-        <ReadOnlyField label="Generic Name" value={selected.genericName || undefined} />
+        <ReadOnlyField label="Generic Name" value={selectedMedicine?.fda_genericname || undefined} />
         <View style={styles.row}>
-          <ReadOnlyField label="Brand Name" value={selected.brandName || undefined} />
-          <ReadOnlyField label="Strength" value={selected.strength || undefined} />
+          <ReadOnlyField label="Brand Name" value={selectedMedicine?.fda_brandname || undefined} />
+          <ReadOnlyField label="Strength" value={selectedMedicine?.fda_dosage_strength || undefined} />
         </View>
         <View style={styles.row}>
-          <ReadOnlyField label="Medicine Form" value={selected.form || undefined} />
-          <ReadOnlyField label="Manufacturer" value={selected.manufacturer || undefined} />
+          <ReadOnlyField label="Medicine Form" value={selectedMedicine?.fda_dosage_form || undefined} />
+          <ReadOnlyField label="Manufacturer" value={selectedMedicine?.fda_manufacturer || undefined} />
         </View>
       </View>
 
       {/* Actions */}
-      {/* TODO: actually save the entry to the vault. For now it only shows the Medicine Added overlay. */}
-      <Pressable style={styles.saveButton} onPress={() => setAddedOpen(true)} accessibilityRole="button">
+      {formError ? <Text style={styles.error}>{formError}</Text> : null}
+      <Pressable
+        style={[styles.saveButton, saving && { opacity: 0.6 }]}
+        onPress={() => void onSave()}
+        disabled={saving}
+        accessibilityRole="button"
+      >
         <Image source={Assets.icons.bookmark} style={styles.bookmarkIcon} contentFit="contain" />
-        <Text style={styles.saveText}>Save to Vault</Text>
+        <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save to Vault'}</Text>
       </Pressable>
       <Pressable style={styles.cancelButton} onPress={() => router.back()} accessibilityRole="button">
         <Text style={styles.cancelText}>Cancel</Text>
       </Pressable>
 
+      <CalendarDatePicker
+        visible={datePickerOpen}
+        value={mdyToYMD(expiry)}
+        title="Expiration Date"
+        onSelect={(date) => {
+          setExpiry(formatDateInput(ymdToMDY(date)));
+          setFormError('');
+          setDatePickerOpen(false);
+        }}
+        onClose={() => setDatePickerOpen(false)}
+      />
       <MedicineAddedModal
         visible={addedOpen}
-        medicineName={medicineName}
+        medicineName={selectedMedicine ? medicineLabel(selectedMedicine) : medicineName}
         onViewVault={() => {
           setAddedOpen(false);
           router.navigate('/vault');
         }}
         onClose={() => setAddedOpen(false)}
-        // Add Another here stays on this screen: close the overlay and clear the form for the next entry.
         onAddAnother={() => {
           setAddedOpen(false);
-          setMedicineName('');
-          setExpiry('');
+          resetForm();
         }}
       />
     </ScrollView>
@@ -165,6 +320,20 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
   star: { fontSize: 14, fontWeight: '700', color: RequiredStar },
   helper: { fontSize: 13, color: HelperText },
+  searchStatus: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
+  searchStatusText: { fontSize: 13, color: HelperText },
+  results: {
+    borderWidth: 1,
+    borderColor: InputBorder,
+    borderRadius: 10,
+    backgroundColor: Colors.surfacePrimary,
+    overflow: 'hidden',
+  },
+  result: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: ReadOnlyBorder },
+  resultTitle: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  resultDetail: { marginTop: 3, fontSize: 12, color: HelperText },
+  searchMessage: { fontSize: 13, color: HelperText, paddingVertical: 8 },
+  error: { fontSize: 13, color: Colors.statusDanger },
 
   inputBox: {
     height: 48,

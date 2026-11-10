@@ -465,6 +465,10 @@ def create_vault_item(
     profile_id: str,
     fda_id: int,
     expiry_date: date,
+    vault_note: str = "",
+    vault_status: str = "verified",
+    vault_source: str = "scan",
+    vault_confidence: int | None = None,
 ) -> dict | None:
     """Create an item for an owned profile and return it with medicine details."""
     try:
@@ -477,8 +481,11 @@ def create_vault_item(
             cursor.execute(
                 """
                 WITH inserted AS (
-                    INSERT INTO vault_items (profile_id, fda_id, vault_expiry_date)
-                    VALUES (%s, %s, %s)
+                    INSERT INTO vault_items (
+                        profile_id, fda_id, vault_expiry_date, vault_note,
+                        vault_status, vault_source, vault_confidence
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING *
                 )
                 SELECT inserted.*,
@@ -497,7 +504,15 @@ def create_vault_item(
                 JOIN philippines_fda_medicines AS medicines
                   ON medicines.fda_id = inserted.fda_id
                 """,
-                (profile_id, fda_id, expiry_date),
+                (
+                    profile_id,
+                    fda_id,
+                    expiry_date,
+                    vault_note,
+                    vault_status,
+                    vault_source,
+                    vault_confidence,
+                ),
             )
             item = cursor.fetchone()
         return item

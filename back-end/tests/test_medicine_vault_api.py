@@ -56,6 +56,10 @@ def _vault_row():
         "vault_expiry_date": date(2027, 5, 1),
         "vault_created_at": datetime(2026, 1, 1),
         "vault_updated_at": datetime(2026, 1, 2),
+        "vault_note": "Keep refrigerated",
+        "vault_status": "verified",
+        "vault_source": "scan",
+        "vault_confidence": None,
         "fda_registration_id": "REG-71",
         "fda_approval_id": "APP-71",
         "fda_genericname": "Generic",
@@ -130,19 +134,45 @@ def test_vault_create_requires_fda_id_and_maps_database_row(
         lambda account_id, profile_id: {"profile_id": profile_id},
     )
 
-    def create(account_id, profile_id, fda_id, expiry_date):
+    def create(
+        account_id,
+        profile_id,
+        fda_id,
+        expiry_date,
+        vault_note,
+        vault_status,
+        vault_source,
+        vault_confidence,
+    ):
         calls.update(
             account_id=account_id,
             profile_id=profile_id,
             fda_id=fda_id,
             expiry_date=expiry_date,
+            vault_note=vault_note,
+            vault_status=vault_status,
+            vault_source=vault_source,
+            vault_confidence=vault_confidence,
         )
-        return _vault_row()
+        return {
+            **_vault_row(),
+            "vault_note": vault_note,
+            "vault_status": vault_status,
+            "vault_source": vault_source,
+            "vault_confidence": vault_confidence,
+        }
 
     monkeypatch.setattr(vault.crud_medicine, "create_vault_item", create)
     response = authenticated_client.post(
         "/api/v1/accounts/me/profiles/profile-1/vault",
-        json={"fda_id": 71, "vault_expiry_date": "2027-05-01"},
+        json={
+            "fda_id": 71,
+            "vault_expiry_date": "2027-05-01",
+            "vault_note": "Check the label",
+            "vault_status": "needs_verification",
+            "vault_source": "manual",
+            "vault_confidence": 72,
+        },
     )
 
     assert response.status_code == 201
@@ -151,9 +181,99 @@ def test_vault_create_requires_fda_id_and_maps_database_row(
         "profile_id": "profile-1",
         "fda_id": 71,
         "expiry_date": date(2027, 5, 1),
+        "vault_note": "Check the label",
+        "vault_status": "needs_verification",
+        "vault_source": "manual",
+        "vault_confidence": 72,
     }
     assert response.json()["data"]["fda_id"] == 71
     assert response.json()["data"]["fda_genericname"] == "Generic"
+    assert response.json()["data"]["vault_status"] == "needs_verification"
+    assert response.json()["data"]["vault_source"] == "manual"
+
+
+def test_vault_list_maps_database_metadata(authenticated_client, monkeypatch):
+    from api.v1 import vault
+
+    monkeypatch.setattr(
+        vault.crud_user,
+        "get_profile_by_id",
+        lambda _account_id, profile_id: {"profile_id": profile_id},
+    )
+    monkeypatch.setattr(
+        vault.crud_medicine,
+        "list_vault_items_by_profile",
+        lambda *_args: [_vault_row()],
+    )
+    response = authenticated_client.get(
+        "/api/v1/accounts/me/profiles/profile-1/vault"
+    )
+
+    assert response.status_code == 200
+    item = response.json()["data"][0]
+    assert item["vault_note"] == "Keep refrigerated"
+    assert item["vault_status"] == "verified"
+    assert item["vault_source"] == "scan"
+    assert item["vault_confidence"] is None
+
+
+def test_vault_endpoints_round_trip_with_database(database_records):
+    profile_id = database_records["profile_id"]
+
+    async def authenticated_account():
+        return {
+            "account_id": database_records["account_id"],
+            "email": database_records["email"],
+        }
+
+    app.dependency_overrides[require_session] = authenticated_account
+    try:
+        with TestClient(app) as client:
+            path = f"/api/v1/accounts/me/profiles/{profile_id}/vault"
+            listed = client.get(path)
+            assert listed.status_code == 200
+            assert listed.json()["data"][0]["vault_id"] == database_records["vault_id"]
+
+            created = client.post(
+                path,
+                json={
+                    "fda_id": database_records["fda_id"],
+                    "vault_expiry_date": "2027-05-01",
+                    "vault_note": "Check the label",
+                    "vault_status": "needs_verification",
+                    "vault_source": "manual",
+                    "vault_confidence": 72,
+                },
+            )
+            assert created.status_code == 201
+            item = created.json()["data"]
+            database_records["records"]["vault_ids"].append(item["vault_id"])
+            assert item["vault_note"] == "Check the label"
+            assert item["vault_status"] == "needs_verification"
+            assert item["vault_source"] == "manual"
+            assert item["vault_confidence"] == 72
+
+            listed_after_create = client.get(path)
+            assert listed_after_create.status_code == 200
+            listed_item = next(
+                row
+                for row in listed_after_create.json()["data"]
+                if row["vault_id"] == item["vault_id"]
+            )
+            assert listed_item["vault_note"] == "Check the label"
+            assert listed_item["vault_confidence"] == 72
+
+            item_path = f"{path}/{item['vault_id']}"
+            updated = client.patch(item_path, json={"vault_expiry_date": "2028-01-01"})
+            assert updated.status_code == 200
+            assert updated.json()["data"]["vault_expiry_date"] == "2028-01-01"
+            assert updated.json()["data"]["vault_note"] == "Check the label"
+
+            deleted = client.delete(item_path)
+            assert deleted.status_code == 200
+            assert deleted.json()["data"]["vault_id"] == item["vault_id"]
+    finally:
+        app.dependency_overrides.pop(require_session, None)
 
 
 def test_vault_create_rejects_missing_fda_id(authenticated_client):
@@ -257,6 +377,7 @@ def test_vault_patch_allows_partial_expiry_update(authenticated_client, monkeypa
     assert calls["profile_id"] == "profile-1"
     assert calls["fda_id"] == 71
     assert calls["expiry_date"] == date(2028, 1, 1)
+    assert response.json()["data"]["vault_note"] == "Keep refrigerated"
 
 
 def test_vault_delete_scopes_delete_to_authenticated_account(

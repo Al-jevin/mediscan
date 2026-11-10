@@ -7,14 +7,17 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CalendarDatePicker from '@/components/medicine/CalendarDatePicker';
 import { Colors, Components, Radius, Spacing, Type } from '@/constants/display';
 import { clearNoteDraft, useNoteDraft } from '@/services/noteDraft';
-import { addMedicine } from '@/services/vaultStore';
+import { addMedicine, updateMedicine } from '@/services/vaultStore';
 import type { NewMedicine, VaultMedicine } from '@/types/medicine';
+import { formatDateInput } from '@/utils/date';
 import {
   daysUntilExpiry, formatLongDate, getMedicineForm, isExpired, medicineName,
+  mdyToYMD, ymdToMDY,
 } from '@/utils/medicine';
 import MedicineIcon from './MedicineIcon';
 import Popup from './Popup';
@@ -32,6 +35,10 @@ export default function MedicineDetails(props: Props) {
   const [saving, setSaving] = useState(false);
   const [savedPopup, setSavedPopup] = useState(false);
   const [alreadySaved, setAlreadySaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [editExpiryOpen, setEditExpiryOpen] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [expiry, setExpiry] = useState('');
 
   const note = props.mode === 'saved' ? props.medicine.vault_note : draft;
   const form = getMedicineForm(medicine.fda_dosage_form);
@@ -46,15 +53,51 @@ export default function MedicineDetails(props: Props) {
     }
   };
 
+  const openEditExpiry = () => {
+    if (props.mode !== 'saved') return;
+    setExpiry(ymdToMDY(props.medicine.vault_expiry_date));
+    setSaveError('');
+    setEditExpiryOpen(true);
+  };
+
+  const closeEditExpiry = () => {
+    setEditExpiryOpen(false);
+    setDatePickerOpen(false);
+    setSaveError('');
+  };
+
+  const saveExpiry = async () => {
+    if (props.mode !== 'saved' || saving) return;
+    const expiryDate = mdyToYMD(expiry);
+    if (!expiryDate) {
+      setSaveError('Enter a valid expiration date in MM/DD/YYYY format.');
+      return;
+    }
+
+    setSaving(true);
+    setSaveError('');
+    try {
+      await updateMedicine(props.medicine.vault_id, { vault_expiry_date: expiryDate });
+      setEditExpiryOpen(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Could not update this medicine.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveToVault = async () => {
     if (props.mode !== 'preview' || saving || alreadySaved) return;
     setSaving(true);
+    setSaveError('');
     try {
       const saved = await addMedicine({ ...props.medicine, vault_note: draft });
       clearNoteDraft();
       setAlreadySaved(true);
       setSavedPopup(true);
       props.onSaved?.(saved);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Could not save this medicine to your vault.');
     } finally {
       setSaving(false);
     }
@@ -131,33 +174,117 @@ export default function MedicineDetails(props: Props) {
       </ScrollView>
 
       {/* Bottom buttons */}
-      <View style={[styles.bottom, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <Pressable
-          style={({ pressed }) => [Components.buttonSecondary, styles.btn, pressed && styles.pressed]}
-          onPress={openAddNote}
-          accessibilityRole="button"
-        >
-          <Ionicons name="create-outline" size={20} color={Colors.textPrimary} />
-          <Text style={Components.buttonSecondaryText}>{note ? 'Edit Note' : 'Add Note'}</Text>
-        </Pressable>
-
-        {mode === 'preview' && (
+      <View style={[styles.bottomContainer, { paddingBottom: insets.bottom + Spacing.md }]}>
+        {saveError ? <Text style={styles.saveError}>{saveError}</Text> : null}
+        <View style={styles.bottom}>
           <Pressable
-            style={({ pressed }) => [
-              Components.buttonPrimary, styles.btn, { backgroundColor: Colors.actionPrimary },
-              (saving || alreadySaved) && { opacity: 0.6 }, pressed && styles.pressed,
-            ]}
-            onPress={saveToVault}
-            disabled={saving || alreadySaved}
+            style={({ pressed }) => [Components.buttonSecondary, styles.btn, pressed && styles.pressed]}
+            onPress={openAddNote}
             accessibilityRole="button"
           >
-            <Ionicons name={alreadySaved ? 'checkmark' : 'bookmark-outline'} size={20} color={Colors.onAction} />
-            <Text style={Components.buttonPrimaryText}>
-              {alreadySaved ? 'Saved' : saving ? 'Saving…' : 'Save to Vault'}
-            </Text>
+            <Ionicons name="create-outline" size={20} color={Colors.textPrimary} />
+            <Text style={Components.buttonSecondaryText}>{note ? 'Edit Note' : 'Add Note'}</Text>
           </Pressable>
-        )}
+
+          {mode === 'saved' && (
+            <Pressable
+              style={({ pressed }) => [Components.buttonSecondary, styles.btn, pressed && styles.pressed]}
+              onPress={openEditExpiry}
+              accessibilityRole="button"
+              accessibilityLabel="Edit expiration date"
+            >
+              <Ionicons name="calendar-outline" size={20} color={Colors.textPrimary} />
+              <Text style={Components.buttonSecondaryText}>Edit Expiry</Text>
+            </Pressable>
+          )}
+
+          {mode === 'preview' && (
+            <Pressable
+              style={({ pressed }) => [
+                Components.buttonPrimary, styles.btn, { backgroundColor: Colors.actionPrimary },
+                (saving || alreadySaved) && { opacity: 0.6 }, pressed && styles.pressed,
+              ]}
+              onPress={saveToVault}
+              disabled={saving || alreadySaved}
+              accessibilityRole="button"
+            >
+              <Ionicons name={alreadySaved ? 'checkmark' : 'bookmark-outline'} size={20} color={Colors.onAction} />
+              <Text style={Components.buttonPrimaryText}>
+                {alreadySaved ? 'Saved' : saving ? 'Saving…' : 'Save to Vault'}
+              </Text>
+            </Pressable>
+          )}
+        </View>
       </View>
+
+      <Modal
+        visible={mode === 'saved' && editExpiryOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeEditExpiry}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Edit Expiration Date</Text>
+            <View style={styles.expiryInputRow}>
+              <TextInput
+                value={expiry}
+                onChangeText={(text) => setExpiry(formatDateInput(text))}
+                placeholder="MM / DD / YYYY"
+                keyboardType="number-pad"
+                maxLength={14}
+                accessibilityLabel="Expiration date"
+                style={[styles.modalInput, styles.expiryInput]}
+              />
+              <Pressable
+                onPress={() => {
+                  setSaveError('');
+                  setDatePickerOpen(true);
+                }}
+                style={styles.datePickerButton}
+                accessibilityRole="button"
+                accessibilityLabel="Choose expiration date"
+              >
+                <Ionicons name="calendar-outline" size={20} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
+            {saveError ? <Text style={styles.saveError}>{saveError}</Text> : null}
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={closeEditExpiry}
+                style={Components.buttonSecondary}
+                accessibilityRole="button"
+              >
+                <Text style={Components.buttonSecondaryText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => void saveExpiry()}
+                disabled={saving}
+                style={[
+                  Components.buttonPrimary,
+                  { backgroundColor: Colors.actionPrimary },
+                  saving && { opacity: 0.6 },
+                ]}
+                accessibilityRole="button"
+              >
+                <Text style={Components.buttonPrimaryText}>{saving ? 'Saving…' : 'Save'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <CalendarDatePicker
+        visible={datePickerOpen}
+        value={mdyToYMD(expiry)}
+        title="Expiration Date"
+        onSelect={(date) => {
+          setExpiry(ymdToMDY(date));
+          setSaveError('');
+          setDatePickerOpen(false);
+        }}
+        onClose={() => setDatePickerOpen(false)}
+      />
 
       <Popup
         visible={savedPopup}
@@ -214,10 +341,49 @@ const styles = StyleSheet.create({
   noteTitle: { ...Type.label, color: Colors.textPrimary },
   noteEdit: { ...Type.label, color: Colors.statusSuccess },
   noteText: { ...Type.body, color: Colors.textPrimary },
+  bottomContainer: {
+    paddingHorizontal: Spacing.md + 4,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderDefault,
+    backgroundColor: Colors.surfacePrimary,
+  },
   bottom: {
-    flexDirection: 'row', gap: Spacing.sm + 4, paddingHorizontal: Spacing.md + 4, paddingTop: Spacing.md,
-    borderTopWidth: 1, borderTopColor: Colors.borderDefault, backgroundColor: Colors.surfacePrimary,
+    flexDirection: 'row', gap: Spacing.sm + 4,
   },
   btn: { flex: 1, flexDirection: 'row', gap: Spacing.sm },
   pressed: { opacity: 0.85 },
+  saveError: { ...Type.caption, color: Colors.statusDanger, marginBottom: Spacing.sm },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: Spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  modalCard: {
+    gap: Spacing.md,
+    borderRadius: Radius.md,
+    padding: Spacing.lg,
+    backgroundColor: Colors.surfacePrimary,
+  },
+  modalTitle: { ...Type.h3, color: Colors.textPrimary },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: Colors.borderDefault,
+    borderRadius: Radius.sm,
+    padding: Spacing.md,
+    color: Colors.textPrimary,
+  },
+  expiryInputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  expiryInput: { flex: 1 },
+  datePickerButton: {
+    width: 52,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.borderDefault,
+    borderRadius: Radius.sm,
+  },
+  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },
 });
