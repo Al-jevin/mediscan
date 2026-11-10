@@ -9,7 +9,7 @@ import { useVaultMedicine } from '@/services/vaultStore';
 // Open it with: router.push({ pathname: '/medicine/[id]', params: { id: medicine.vault_id } })
 export default function MedicineDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { ready, medicine } = useVaultMedicine(id);
+  const { ready, error, medicine, retry } = useVaultMedicine(id);
   const router = useRouter();
 
   return (
@@ -17,6 +17,16 @@ export default function MedicineDetailsScreen() {
       <AppHeader title="Medicine Details" back />
       {!ready ? (
         <View style={styles.center}><ActivityIndicator color={Colors.actionPrimary} /></View>
+      ) : error ? (
+        <View style={styles.center}>
+          <Text style={styles.msg}>{error}</Text>
+          <Pressable
+            style={[Components.buttonSecondary, { marginTop: Spacing.md }]}
+            onPress={() => void retry()}
+          >
+            <Text style={Components.buttonSecondaryText}>Retry</Text>
+          </Pressable>
+        </View>
       ) : !medicine ? (
         <View style={styles.center}>
           <Text style={styles.msg}>This medicine is no longer in your vault.</Text>

@@ -3,12 +3,13 @@
 
 // One medicine from the FDA dataset, exactly as the backend sends it.
 export type FdaMedicine = {
+  fda_id: number;
   fda_approval_id: string;
   fda_registration_id: string;
-  fda_brandname: string;
+  fda_brandname: string | null;
   fda_genericname: string;
-  fda_dosage_form: string;
-  fda_dosage_strength: string;
+  fda_dosage_form: string | null;
+  fda_dosage_strength: string | null;
   fda_manufacturer: string | null;
   fda_pharmacologic_category: string | null;
   fda_classification: string | null;
@@ -24,7 +25,7 @@ export type VaultMedicine = FdaMedicine & {
   vault_id: string;                  // local id of this saved item
   vault_expiry_date: string | null;  // 'YYYY-MM-DD'
   vault_status: VerificationStatus;  // scan = verified, manual entry = needs_verification
-  vault_source: MedicineSource;
+  vault_source?: MedicineSource;
   vault_confidence: number | null;   // 0-100, scans only
   vault_note: string;                // personal note ("" if none)
   vault_saved_at: string;            // ISO date-time when it was saved

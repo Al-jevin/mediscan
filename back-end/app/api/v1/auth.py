@@ -20,7 +20,7 @@ from typing import Any
 from uuid import uuid4
 
 from argon2 import PasswordHasher
-from argon2.exceptions import VerificationError
+from argon2.exceptions import InvalidHashError, VerificationError
 from fastapi import Depends, Header, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import field_validator
@@ -337,7 +337,8 @@ async def _hash_password(password: str) -> str:
 def _matches_password(password_hash: str, password: str) -> bool:
     try:
         return _password_hasher.verify(password_hash, password)
-    except VerificationError:
+    except (VerificationError, InvalidHashError):
+        # Seeded test accounts store placeholder text instead of a real hash.
         return False
 
 

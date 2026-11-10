@@ -1,6 +1,6 @@
 // Matches the item structure in Fetch Profile.json & Add Profile.json
 export interface Profile {
-  profile_id: number;
+  profile_id: string; // 16-character hex id from the database
   profile_icon: number; // Integer (1 to 12)
   profile_fullname: string;
   profile_birthdate: string;
@@ -29,7 +29,7 @@ export interface FetchProfileResponse {
   code: number;
   message: string;
   data: {
-    account_id: number;
+    account_id: string;
     email: string;
     profiles: Profile[];
   };

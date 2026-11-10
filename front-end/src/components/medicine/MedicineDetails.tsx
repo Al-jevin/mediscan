@@ -79,9 +79,11 @@ export default function MedicineDetails(props: Props) {
               <StatusBadge kind={medicine.vault_status} showIcon />
               {expired && <StatusBadge kind="expired" showIcon />}
             </View>
-            <Text style={styles.meta}>
-              {medicine.vault_source === 'scan' ? 'Scanned with camera' : 'Entered manually'}
-            </Text>
+            {medicine.vault_source ? (
+              <Text style={styles.meta}>
+                {medicine.vault_source === 'scan' ? 'Scanned with camera' : 'Entered manually'}
+              </Text>
+            ) : null}
             {medicine.vault_confidence !== null && (
               <Text style={styles.confidence}>Confidence: {medicine.vault_confidence}%</Text>
             )}

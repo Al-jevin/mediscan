@@ -180,7 +180,8 @@ export function overviewCounts(list: VaultMedicine[], now = new Date()) {
 
 // "MM/DD/YYYY" typed by the user -> 'YYYY-MM-DD' (null if invalid)
 export function mdyToYMD(text: string): string | null {
-  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text.trim());
+  const normalized = text.trim().replace(/\s*\/\s*/g, '/');
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(normalized);
   if (!m) return null;
   const d = new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]));
   if (d.getMonth() !== Number(m[1]) - 1 || d.getDate() !== Number(m[2])) return null; // e.g. 02/31

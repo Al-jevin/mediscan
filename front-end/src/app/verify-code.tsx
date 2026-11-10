@@ -10,12 +10,11 @@ import { MockAuth } from '@/mock/mockAuth';
 import { Colors, Radius, Spacing } from '@/constants/display';
 
 const CODE_LENGTH = 6;
-const RESEND_SECONDS = 30;
+const RESEND_SECONDS = 60; // the backend ignores resends within 60 seconds of the last code
 
 // "Verify your email" screen (after Sign Up for a NEW account).
 // User opens their email, types the 6-digit code -> backend checks it.
-// Correct -> account is marked verified + backend gives a session -> ask to save login -> Choose Profile.
-// (Mock code: 849201)
+// Correct -> account is marked verified -> logged in -> ask to save login -> Choose Profile.
 export default function VerifyCodeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();

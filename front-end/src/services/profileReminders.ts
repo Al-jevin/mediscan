@@ -7,15 +7,12 @@
 //   under 'mediscan.reminders.v1'). Home only READS it, so the two screens always match.
 //   A reminder belongs to a profile when reminder.member === profile.profile_display_name
 //   (e.g. "Me", "Mama"), which is how the Reminders tab's member filter works too.
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { SAMPLE_REMINDERS, type Reminder } from '@/components/reminderTypes';
+import type { Reminder } from '@/components/reminderTypes';
 import { useProfile } from '@/context/ProfileContext';
-import { MockAuth, type Profile } from '@/mock/mockAuth';
-
-// Same key as src/app/(tabs)/reminders.tsx (keep them in sync).
-export const REMINDERS_STORAGE_KEY = 'mediscan.reminders.v1';
+import { fetchReminders } from '@/services/remindersApi';
+import type { Profile } from '@/types/profile';
 
 export function useCurrentProfile() {
   // Updates right away when the user switches profile or edits their name/avatar
@@ -23,7 +20,7 @@ export function useCurrentProfile() {
 }
 
 export function useLoggedInProfile(): Profile | null {
-  return MockAuth.getActiveProfile();
+  return useProfile().activeProfile;
 }
 
 // "Jane Doe" -> "Jane"
@@ -34,24 +31,39 @@ export function firstName(p: Pick<Profile, 'profile_fullname' | 'profile_display
 
 // Reads the reminders again every time Home comes into view, so edits made on the
 // Reminders tab show up right away.
-export function useSavedReminders(): Reminder[] {
-  const [reminders, setReminders] = useState<Reminder[]>(SAMPLE_REMINDERS);
+export function useSavedReminders(): {
+  reminders: Reminder[];
+  ready: boolean;
+  error: string | null;
+} {
+  const { profiles } = useProfile();
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      AsyncStorage.getItem(REMINDERS_STORAGE_KEY)
-        .then((saved) => {
-          if (!alive || !saved) return;
-          const parsed: unknown = JSON.parse(saved);
-          if (Array.isArray(parsed)) setReminders(parsed as Reminder[]);
+      setReady(false);
+      fetchReminders(profiles)
+        .then((items) => {
+          if (!alive) return;
+          setReminders(items);
+          setError(null);
         })
-        .catch((e) => console.log('[home] could not read reminders', e));
+        .catch((reason: unknown) => {
+          if (!alive) return;
+          setReminders([]);
+          setError(reason instanceof Error ? reason.message : 'Could not load reminders.');
+        })
+        .finally(() => {
+          if (alive) setReady(true);
+        });
       return () => {
         alive = false;
       };
-    }, []),
+    }, [profiles]),
   );
-  return reminders;
+  return { reminders, ready, error };
 }
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];

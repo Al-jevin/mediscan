@@ -1,5 +1,7 @@
 import type { MedicineInfoRow } from '@/components/MedicineInfoCard';
 import { Assets } from '@/constants/assets';
+import { getLatestScan } from '@/services/scanApi';
+import type { FdaMedicine } from '@/types/medicine';
 import multipleResponse from './response_2_multiple.json';
 import emptyResponse from './response_3_empty.json';
 
@@ -13,17 +15,23 @@ export type PossibleMatch = {
   form: string;     // raw dosage form, e.g. "Film-Coated Tablet": shown as an icon and used to auto-fill Edit Medicine
   strength: string; // e.g. "500 mg"
   similarity: number; // 0-100
+  medicine?: FdaMedicine;
 };
 
 export type ScanResult =
   | {
       status: 'verified';
       confidence: number;
-      medicine: { name: string; category: string; form: string }; // form: raw dosage form, shown as an icon
+      medicine: {
+        name: string;
+        category: string;
+        form: string;
+        linkedMedicine?: FdaMedicine;
+      }; // form: raw dosage form, shown as an icon
       info: MedicineInfoRow[];
     }
   | { status: 'needs_verification'; confidence: number; matches: PossibleMatch[] }
-  | { status: 'no_results' };
+  | { status: 'no_results'; detected?: MedicineInfoRow[] }; // detected: what OCR read when nothing matched
 
 // Shape of the medicine search API (see response_2_multiple.json / response_3_empty.json).
 type ApiMedicine = {
@@ -91,11 +99,11 @@ export const mockScanResults: Record<ScanState, ScanResult> = {
   no_results: fromSearchResponse(emptyResponse as ApiResponse),
 };
 
-// Finds a possible match by id (used by Edit Medicine until real scan data is passed around).
+// Finds a possible match by id in the latest real scan, then in the mock (used by Result and Edit Medicine).
 export function findPossibleMatch(id: string | undefined): PossibleMatch | undefined {
-  const result = mockScanResults.needs_verification;
-  if (result.status !== 'needs_verification') return undefined;
-  return result.matches.find((m) => m.id === id);
+  const result = getLatestScan();
+  if (result?.status !== 'needs_verification') return undefined;
+  return result.matches.find((match) => match.id === id);
 }
 
 export const isScanState = (value: unknown): value is ScanState =>

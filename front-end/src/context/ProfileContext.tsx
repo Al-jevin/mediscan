@@ -16,10 +16,10 @@ interface ProfileContextType {
   /** Throws an Error(message) if the save fails. */
   addProfile: (data: AddProfileRequest) => Promise<Profile>;
   /** Throws an Error(message) if the save fails. */
-  updateProfile: (profileId: number, data: EditProfileRequest) => Promise<void>;
-  deleteProfileWithUndo: (profileId: number) => void;
+  updateProfile: (profileId: string, data: EditProfileRequest) => Promise<void>;
+  deleteProfileWithUndo: (profileId: string) => void;
   undoDelete: () => void;
-  pendingDeleteId: number | null;
+  pendingDeleteId: string | null;
   undoSecondsLeft: number;
 }
 
@@ -29,14 +29,14 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const store = useSyncExternalStore(MockAuth.subscribe, MockAuth.getSnapshot, MockAuth.getSnapshot);
 
   // ---- Delete with 15-second undo ----
-  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   // Hidden from lists: the pending one + any whose DELETE is still in flight (no flicker)
-  const [hiddenIds, setHiddenIds] = useState<number[]>([]);
-  const unhide = (id: number) => setHiddenIds((ids) => ids.filter((x) => x !== id));
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  const unhide = (id: string) => setHiddenIds((ids) => ids.filter((x) => x !== id));
   const [undoSecondsLeft, setUndoSecondsLeft] = useState(UNDO_SECONDS);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pendingRef = useRef<number | null>(null);
+  const pendingRef = useRef<string | null>(null);
 
   const clearTimers = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -60,7 +60,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const deleteProfileWithUndo = useCallback(
-    (profileId: number) => {
+    (profileId: string) => {
       if (store.activeProfile?.profile_id === profileId) return; // can't remove the profile in use
       // Only one undo at a time: finish the previous delete first so it isn't lost
       if (pendingRef.current !== null) commitPendingDelete();
@@ -101,7 +101,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return res.data;
   }, []);
 
-  const updateProfile = useCallback(async (profileId: number, data: EditProfileRequest) => {
+  const updateProfile = useCallback(async (profileId: string, data: EditProfileRequest) => {
     const res = await MockAuth.updateProfile(profileId, data);
     if (!res.success) throw new Error(res.message);
   }, []);

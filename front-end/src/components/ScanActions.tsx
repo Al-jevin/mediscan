@@ -16,7 +16,7 @@ type Props = {
   status: ScanState;
   hasSelection?: boolean;     // needs_verification: a possible match is selected
   onViewDetails?: () => void; // verified
-  onSave?: () => void;        // verified, needs_verification (without a selection)
+  onSave?: () => void;        // verified
   onEdit?: () => void;        // needs_verification (with a selection)
   onRedoScan?: () => void;    // needs_verification, no_results
 };
@@ -29,10 +29,12 @@ export default function ScanActions({ status, hasSelection, onViewDetails, onSav
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, Spacing.sm) }]}>
       {status === 'verified' && (
         <>
-          <Pressable style={styles.verifiedPrimary} onPress={onViewDetails} accessibilityRole="button">
-            <Image source={Assets.icons.details} style={styles.icon} contentFit="contain" />
-            <Text style={[styles.text, { color: Colors.surfacePrimary }]}>View Medicine Details</Text>
-          </Pressable>
+          {onViewDetails && (
+            <Pressable style={styles.verifiedPrimary} onPress={onViewDetails} accessibilityRole="button">
+              <Image source={Assets.icons.details} style={styles.icon} contentFit="contain" />
+              <Text style={[styles.text, { color: Colors.surfacePrimary }]}>View Medicine Details</Text>
+            </Pressable>
+          )}
           <Pressable style={styles.verifiedSecondary} onPress={onSave} accessibilityRole="button">
             <Image source={Assets.icons.save} style={styles.icon} contentFit="contain" />
             <Text style={[styles.text, { color: Colors.textPrimary }]}>Save to Vault</Text>
@@ -42,23 +44,10 @@ export default function ScanActions({ status, hasSelection, onViewDetails, onSav
 
       {status === 'needs_verification' && !hasSelection && (
         <>
-          <Text style={styles.hint}>Tap the correct medicine above to edit and save, or save it directly.</Text>
+          <Text style={styles.hint}>Tap the correct medicine above to add its expiration date and save.</Text>
           <Pressable style={[styles.button, { backgroundColor: Amber }]} onPress={onRedoScan} accessibilityRole="button">
             <Image source={Assets.icons.scanWhite} style={styles.icon} contentFit="contain" />
             <Text style={[styles.text, { color: Colors.surfacePrimary }]}>Redo Scan</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.button, { backgroundColor: Colors.onAction, borderWidth: 1, borderColor: Colors.actionPrimary }]}
-            onPress={onSave}
-            accessibilityRole="button"
-          >
-            <Image
-              source={Assets.icons.saveWhite}
-              style={styles.icon}
-              contentFit="contain"
-              tintColor={Colors.actionPrimary}
-            />
-            <Text style={[styles.text, { color: Colors.actionPrimary }]}>Save to Vault</Text>
           </Pressable>
         </>
       )}

@@ -482,10 +482,17 @@ def create_vault_item(
                     RETURNING *
                 )
                 SELECT inserted.*,
+                       medicines.fda_registration_id,
+                       medicines.fda_approval_id,
                        medicines.fda_genericname,
                        medicines.fda_brandname,
                        medicines.fda_dosage_form,
-                       medicines.fda_dosage_strength
+                       medicines.fda_dosage_strength,
+                       medicines.fda_manufacturer,
+                       medicines.fda_pharmacologic_category,
+                       medicines.fda_classification,
+                       medicines.fda_created_at,
+                       medicines.fda_updated_at
                 FROM inserted
                 JOIN philippines_fda_medicines AS medicines
                   ON medicines.fda_id = inserted.fda_id
@@ -509,10 +516,17 @@ def get_vault_item_by_id(
         cursor.execute(
             """
             SELECT items.*,
+                   medicines.fda_registration_id,
+                   medicines.fda_approval_id,
                    medicines.fda_genericname,
                    medicines.fda_brandname,
                    medicines.fda_dosage_form,
-                   medicines.fda_dosage_strength
+                   medicines.fda_dosage_strength,
+                   medicines.fda_manufacturer,
+                   medicines.fda_pharmacologic_category,
+                   medicines.fda_classification,
+                   medicines.fda_created_at,
+                   medicines.fda_updated_at
             FROM vault_items AS items
             JOIN philippines_fda_medicines AS medicines
               ON medicines.fda_id = items.fda_id
@@ -540,10 +554,17 @@ def list_vault_items_by_profile(
         cursor.execute(
             """
             SELECT items.*,
+                   medicines.fda_registration_id,
+                   medicines.fda_approval_id,
                    medicines.fda_genericname,
                    medicines.fda_brandname,
                    medicines.fda_dosage_form,
-                   medicines.fda_dosage_strength
+                   medicines.fda_dosage_strength,
+                   medicines.fda_manufacturer,
+                   medicines.fda_pharmacologic_category,
+                   medicines.fda_classification,
+                   medicines.fda_created_at,
+                   medicines.fda_updated_at
             FROM vault_items AS items
             JOIN philippines_fda_medicines AS medicines
               ON medicines.fda_id = items.fda_id
@@ -589,10 +610,17 @@ def update_vault_item(
                     RETURNING *
                 )
                 SELECT updated.*,
+                       medicines.fda_registration_id,
+                       medicines.fda_approval_id,
                        medicines.fda_genericname,
                        medicines.fda_brandname,
                        medicines.fda_dosage_form,
-                       medicines.fda_dosage_strength
+                       medicines.fda_dosage_strength,
+                       medicines.fda_manufacturer,
+                       medicines.fda_pharmacologic_category,
+                       medicines.fda_classification,
+                       medicines.fda_created_at,
+                       medicines.fda_updated_at
                 FROM updated
                 JOIN philippines_fda_medicines AS medicines
                   ON medicines.fda_id = updated.fda_id

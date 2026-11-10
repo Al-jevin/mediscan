@@ -1,0 +1,37 @@
+# Dependencies and virtual environments
+node_modules/
+.venv/
+
+# Build output and caches
+.expo/
+dist/
+__pycache__/
+*.pyc
+.pytest_cache/
+expo-env.d.ts
+
+# Large data files
+mediscan_full.sql
+DATASET_LUMAKIN.csv
+back-end/app/data/mediscan_dataset.csv
+
+# Lockfiles
+package-lock.json
+
+# Images and other binary assets
+front-end/assets/
+*.png
+*.jpg
+*.jpeg
+*.heic
+*.webp
+*.lnk
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Editor settings
+.idea/
+.vscode/

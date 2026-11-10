@@ -3,7 +3,7 @@ import { useVault } from '@/services/vaultStore';
 import { useLocalSearchParams } from 'expo-router';
 
 export default function VaultScreen() {
-  const { ready, medicines } = useVault();
+  const { ready, error, medicines, retry } = useVault();
   const { filter } = useLocalSearchParams<{ filter?: string }>();
 
   return (
@@ -11,6 +11,8 @@ export default function VaultScreen() {
       scope="vault"
       medicines={medicines}
       ready={ready}
+      error={error}
+      onRetry={() => void retry()}
       initialFilter={filter}
     />
   );

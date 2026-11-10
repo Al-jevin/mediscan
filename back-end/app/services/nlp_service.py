@@ -8,12 +8,14 @@ import re
 from starlette.concurrency import run_in_threadpool
 
 from schemas.ocr import ExtractedEntityResponse
-
-
-_DOSAGE_PATTERN = re.compile(
-    r"\b\d+(?:\.\d+)?\s?(?:mcg|mg|g|ml|iu|%)\b",
-    re.IGNORECASE,
+from services.fda_matcher import (
+    DOSAGE_PATTERN as _DOSAGE_PATTERN,
+    clean_ocr_text,
+    find_dosages,
+    identify_medicine,
 )
+
+
 _FREQUENCY_PATTERN = re.compile(
     r"\b(?:once|twice|three times|four times)\s+daily\b"
     r"|\b(?:once|twice|three times|four times|daily|weekly|"
@@ -21,8 +23,9 @@ _FREQUENCY_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _EXPIRY_PATTERN = re.compile(
-    r"\b(?:exp(?:iry)?|use\s+by)\s*[:\-]?\s*"
-    r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2})\b",
+    r"\b(?:exp(?:iry|iration)?|use\s+by)\.?(?:\s+date)?\s*[:\-.]?\s*"
+    r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}|\d{1,2}[/-]\d{4}"
+    r"|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?[\s-]*\d{4})\b",
     re.IGNORECASE,
 )
 _PACKAGING_WORDS = {
@@ -111,16 +114,6 @@ _CHEMICAL_BLOCK_PATTERN = re.compile(
 )
 
 
-def _dosages_from_text(raw_text: str) -> str | None:
-    """Return all distinct dosage expressions in their source order."""
-    dosages: list[str] = []
-    for match in _DOSAGE_PATTERN.finditer(raw_text):
-        dosage = " ".join(match.group(0).split())
-        if dosage.casefold() not in {item.casefold() for item in dosages}:
-            dosages.append(dosage)
-    return " / ".join(dosages) or None
-
-
 def _medicine_name_from_text(raw_text: str) -> str | None:
     """Extract useful brand and generic medicine names from OCR text."""
     lines = [" ".join(line.split()).strip(" :-") for line in raw_text.splitlines()]
@@ -196,12 +189,15 @@ def _medicine_name_from_text(raw_text: str) -> str | None:
     return brand or generic
 
 def _extract_entities_sync(raw_text: str) -> ExtractedEntityResponse:
+    identity = identify_medicine(raw_text)
+    raw_text = clean_ocr_text(raw_text)
     frequency_match = _FREQUENCY_PATTERN.search(raw_text)
     expiry_match = _EXPIRY_PATTERN.search(raw_text)
 
     return ExtractedEntityResponse(
-        medicine_name=_medicine_name_from_text(raw_text),
-        dosage=_dosages_from_text(raw_text),
+        # The capitalization guess is only a fallback for medicines not in the FDA dataset.
+        medicine_name=identity.display_name if identity else _medicine_name_from_text(raw_text),
+        dosage=" / ".join(find_dosages(raw_text)) or None,
         frequency=frequency_match.group(0) if frequency_match else None,
         expiry_date=expiry_match.group(1) if expiry_match else None,
     )

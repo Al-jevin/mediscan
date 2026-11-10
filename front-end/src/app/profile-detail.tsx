@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   View,
   Text,
   StyleSheet,
@@ -13,10 +14,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { overviewCounts } from '@/utils/medicine'; 
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProfile } from '../context/ProfileContext';
-import { useVault } from '@/services/vaultStore';
-import { SAMPLE_REMINDERS } from '@/components/reminderTypes';
+import { useProfileVault } from '@/services/vaultStore';
+import { useSavedReminders } from '@/services/profileReminders';
+import type { Reminder } from '@/components/reminderTypes';
 import ProfileAvatar from '../components/ProfileAvatar';
 
 interface ReminderItem {
@@ -35,29 +36,17 @@ export default function ProfileDetailScreen() {
   const insets = useSafeAreaInsets();
   const { profileId } = useLocalSearchParams<{ profileId: string }>();
   const { profiles, deleteProfileWithUndo } = useProfile();
-  const { medicines = [] } = useVault();
+  const { medicines = [], error: vaultError, ready: vaultReady } = useProfileVault(profileId);
+  const {
+    reminders: allReminders,
+    error: reminderError,
+    ready: remindersReady,
+  } = useSavedReminders();
 
   // All Hooks declared at top before any early returns
   const [menuVisible, setMenuVisible] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState<ReminderItem | null>(null);
-  const [allReminders, setAllReminders] = useState<any[]>(SAMPLE_REMINDERS);
-
-  useEffect(() => {
-    AsyncStorage.getItem('mediscan.reminders.v1').then((saved) => {
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            setAllReminders(parsed);
-          }
-        } catch {
-          // fallback
-        }
-      }
-    });
-  }, []);
-
   // Find the selected profile
   const profile = profiles.find((p) => p.profile_id.toString() === profileId);
 
@@ -81,7 +70,7 @@ export default function ProfileDetailScreen() {
   const totalCount = counts.total;
   const verifiedCount = counts.verified;
   const needsVerifCount = counts.needsVerification;
-  const expiredCount = counts.expired || counts.expiring;
+  const expiringCount = counts.expiring;
   
   const memberName =
     (profile as any)?.profile_display_name ||
@@ -93,28 +82,16 @@ export default function ProfileDetailScreen() {
   const targetTag = memberName === 'Self' ? 'Me' : memberName;
 
   const memberReminders: ReminderItem[] = allReminders
-    .filter((r) => {
-      const val = r.assignedTo ?? r.member ?? r.members ?? r.assigned;
-      if (Array.isArray(val)) {
-        return val.some((m: any) => String(m).toLowerCase() === targetTag.toLowerCase());
-      }
-      if (typeof val === 'string') {
-        return val
-          .split(',')
-          .map((s: string) => s.trim().toLowerCase())
-          .includes(targetTag.toLowerCase());
-      }
-      return false;
-    })
-    .map((r, index) => ({
-      id: String(r.id || index),
-      medicineName: r.medicine || r.medicineName || 'Medicine',
-      type: r.form || r.type || 'Tablet',
-      dosage: r.dosage || r.strength || '500mg',
-      time: r.time || '8:00 AM',
-      frequency: r.frequency || 'Daily',
-      expiry: r.expiry || r.expiry_date || 'December 25, 2026',
-      notes: r.notes || r.instruction || '',
+    .filter((reminder: Reminder) => reminder.member.toLowerCase() === targetTag.toLowerCase())
+    .map((reminder) => ({
+      id: reminder.id,
+      medicineName: reminder.medicine,
+      type: reminder.category,
+      dosage: reminder.instructions,
+      time: reminder.time,
+      frequency: reminder.frequency,
+      expiry: 'Not tracked',
+      notes: reminder.notes,
     }));
 
   const handleDeletePress = () => {
@@ -205,6 +182,8 @@ export default function ProfileDetailScreen() {
         <View style={styles.sectionHeaderNoViewAll}>
           <Text style={styles.sectionTitle}>Medicine Overview</Text>
         </View>
+        {vaultError ? <Text style={styles.dataError}>{vaultError}</Text> : null}
+        {!vaultReady && !vaultError ? <ActivityIndicator color="#2D6A4F" /> : null}
 
         <View style={styles.overviewCard}>
           {/* Total */}
@@ -256,12 +235,12 @@ export default function ProfileDetailScreen() {
           <TouchableOpacity
             style={styles.overviewCol}
             activeOpacity={0.7}
-            onPress={() => handleStatPress('expired')}
+            onPress={() => handleStatPress('expiring')}
           >
             <View style={[styles.statIconBadge, { backgroundColor: '#FEE2E2' }]}>
               <Ionicons name="calendar" size={18} color="#DC2626" />
             </View>
-            <Text style={[styles.statNum, { color: '#DC2626' }]}>{expiredCount}</Text>
+            <Text style={[styles.statNum, { color: '#DC2626' }]}>{expiringCount}</Text>
             <Text style={styles.statLabel}>Expiring</Text>
           </TouchableOpacity>
         </View>
@@ -274,7 +253,13 @@ export default function ProfileDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        {memberReminders.length === 0 ? (
+        {reminderError ? (
+          <View style={styles.emptyReminderCard}>
+            <Text style={styles.emptyReminderText}>Could not load reminders: {reminderError}</Text>
+          </View>
+        ) : !remindersReady ? (
+          <ActivityIndicator color="#2D6A4F" />
+        ) : memberReminders.length === 0 ? (
           <View style={styles.emptyReminderCard}>
             <Text style={styles.emptyReminderText}>
               No upcoming reminders for {memberName}.
@@ -300,7 +285,7 @@ export default function ProfileDetailScreen() {
                 <Text style={styles.medSub}>
                   {item.type} • {item.dosage}
                 </Text>
-                <Text style={styles.medExpiry}>Expires in {item.expiry}</Text>
+                <Text style={styles.medExpiry}>Expiration: {item.expiry}</Text>
               </View>
               <View style={styles.timeTag}>
                 <Text style={styles.timeText}>{item.time}</Text>
@@ -438,6 +423,7 @@ const styles = StyleSheet.create({
 
   /* Unified Medicine Overview Card */
   sectionHeaderNoViewAll: { marginBottom: 10, marginTop: 4 },
+  dataError: { color: '#B42318', fontSize: 13, marginBottom: 8 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

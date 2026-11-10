@@ -12,7 +12,7 @@ import { resetListQuery, setListQuery, useListQuery, type ListScope } from '@/se
 import {
   commitDelete, deleteWithUndo, UNDO_SECONDS, undoDelete, usePendingDeletes,
 } from '@/services/vaultStore';
-import type { StatusFilter, VaultMedicine } from '@/types/medicine';
+import type { StatusFilter, UrgencyFilter, VaultMedicine } from '@/types/medicine';
 import { activeSheetFilterCount, applyQuery, medicineName } from '@/utils/medicine';
 import CardMenu from './CardMenu';
 import MedicineCard, { type Anchor } from './MedicineCard';
@@ -22,6 +22,8 @@ type Props = {
   scope: ListScope;
   medicines: VaultMedicine[];
   ready: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   initialFilter?: string;
 };
 
@@ -32,7 +34,7 @@ const CHIPS: { key: StatusFilter; label: string; icon?: keyof typeof Ionicons.gl
   { key: 'expired', label: 'Expired', icon: 'ban-outline', color: Colors.statusDanger },
 ];
 
-export default function MedicineList({ scope, medicines, ready, initialFilter }: Props) {
+export default function MedicineList({ scope, medicines, ready, error, onRetry, initialFilter }: Props) {
   const router = useRouter();
   const query = useListQuery(scope);
   const shown = useMemo(() => applyQuery(medicines, query), [medicines, query]);
@@ -42,9 +44,12 @@ export default function MedicineList({ scope, medicines, ready, initialFilter }:
     if (initialFilter) {
       const normalized = initialFilter.toLowerCase();
       let targetStatus: StatusFilter = 'all';
+      let urgency: UrgencyFilter = 'none';
 
       if (normalized.includes('need')) {
         targetStatus = 'needs_verification';
+      } else if (normalized.includes('expiring')) {
+        urgency = 'within30';
       } else if (normalized.includes('expir')) {
         targetStatus = 'expired';
       } else if (normalized.includes('verif')) {
@@ -52,7 +57,7 @@ export default function MedicineList({ scope, medicines, ready, initialFilter }:
       }
 
       // 👈 Use setListQuery with scope and status:
-      setListQuery(scope, { status: targetStatus });
+      setListQuery(scope, { status: targetStatus, urgency });
     }
   }, [initialFilter, scope]);
 
@@ -156,38 +161,49 @@ export default function MedicineList({ scope, medicines, ready, initialFilter }:
       {/* List */}
       {!ready ? (
         <View style={styles.center}><ActivityIndicator color={Colors.actionPrimary} /></View>
-      ) : (
-        <FlatList
-          data={shown}
-          keyExtractor={(m) => m.vault_id}
-          contentContainerStyle={styles.list}
-          keyboardShouldPersistTaps="handled"
-          ItemSeparatorComponent={() => <View style={{ height: Spacing.sm + 4 }} />}
-          renderItem={({ item }) => (
-            <MedicineCard
-              medicine={item}
-              onPress={openDetails}
-              onMenu={(m, anchor) => setMenu({ medicine: m, anchor })}
-            />
-          )}
-          ListEmptyComponent={
-            medicines.length === 0 ? (
-              <EmptyState
-                icon="shield-outline"
-                title="Your vault is empty"
-                message="Tap the + button below to scan a medicine or enter it manually."
-              />
-            ) : (
-              <EmptyState
-                icon="search-outline"
-                title="No medicines found"
-                message="Try a different search, or clear the filters."
-                actionLabel={hasQuery ? 'Clear search & filters' : undefined}
-                onAction={() => resetListQuery(scope, { sort: query.sort })}
-              />
-            )
-          }
+      ) : error && medicines.length === 0 ? (
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="Could not load your vault"
+          message={error}
+          actionLabel="Retry"
+          onAction={onRetry}
         />
+      ) : (
+        <>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          <FlatList
+            data={shown}
+            keyExtractor={(m) => m.vault_id}
+            contentContainerStyle={styles.list}
+            keyboardShouldPersistTaps="handled"
+            ItemSeparatorComponent={() => <View style={{ height: Spacing.sm + 4 }} />}
+            renderItem={({ item }) => (
+              <MedicineCard
+                medicine={item}
+                onPress={openDetails}
+                onMenu={(m, anchor) => setMenu({ medicine: m, anchor })}
+              />
+            )}
+            ListEmptyComponent={
+              medicines.length === 0 ? (
+                <EmptyState
+                  icon="shield-outline"
+                  title="Your vault is empty"
+                  message="Tap the + button below to scan a medicine or enter it manually."
+                />
+              ) : (
+                <EmptyState
+                  icon="search-outline"
+                  title="No medicines found"
+                  message="Try a different search, or clear the filters."
+                  actionLabel={hasQuery ? 'Clear search & filters' : undefined}
+                  onAction={() => resetListQuery(scope, { sort: query.sort })}
+                />
+              )
+            }
+          />
+        </>
       )}
 
       <CardMenu
@@ -306,4 +322,5 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { ...Type.h3, color: Colors.textPrimary, textAlign: 'center' },
   emptyMsg: { ...Type.body, color: Colors.textSecondary, textAlign: 'center', marginTop: Spacing.xs },
+  errorText: { ...Type.caption, color: Colors.statusDanger, paddingHorizontal: Spacing.md + 4 },
 });

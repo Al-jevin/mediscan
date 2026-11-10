@@ -10,7 +10,9 @@ import PossibleMatchCard from '@/components/PossibleMatchCard';
 import { Assets } from '@/constants/assets';
 import { Colors } from '@/constants/display';
 import { findPossibleMatch } from '@/data/mockScanResults';
+import { addMedicine } from '@/services/vaultStore';
 import { formatDateInput } from '@/utils/date';
+import { mdyToYMD } from '@/utils/medicine';
 
 // Edit Medicine screen, opened from Scan Result with the selected possible match (?id=...).
 // The medicine name is auto-filled from that medicine; the expiration date is typed. The header
@@ -21,8 +23,10 @@ export default function EditMedicineScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const match = findPossibleMatch(id);
 
-  const [name, setName] = useState(match?.name ?? '');
+  const name = match?.name ?? '';
   const [expiry, setExpiry] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const [addedOpen, setAddedOpen] = useState(false);
   const [quitOpen, setQuitOpen] = useState(false);
@@ -45,10 +49,34 @@ export default function EditMedicineScreen() {
     repeatLeave.current?.();
   };
 
-  // TODO: actually save the medicine to the vault. For now Save to Vault only shows the Medicine Added overlay.
-  const onSave = () => {
+  const onSave = async () => {
+    const expiryDate = mdyToYMD(expiry);
+    if (!match?.medicine) {
+    setSaveError('This scan result is not linked to a current FDA record. Scan the label again.');
+    return;
+    }
+    if (!expiryDate) {
+    setSaveError('Enter a valid expiration date in MM/DD/YYYY format.');
+    return;
+    }
+    setSaving(true);
+    setSaveError('');
+    try {
+    await addMedicine({
+      ...match.medicine,
+      vault_expiry_date: expiryDate,
+      vault_status: 'needs_verification',
+      vault_source: 'scan',
+      vault_confidence: match.similarity,
+      vault_note: '',
+    });
     setPreventLeave(false);
     setAddedOpen(true);
+    } catch (error) {
+    setSaveError(error instanceof Error ? error.message : 'Could not save this medicine.');
+    } finally {
+    setSaving(false);
+    }
   };
 
   const goToVault = () => {
@@ -73,16 +101,7 @@ export default function EditMedicineScreen() {
         <Text style={styles.required}>Fields marked with * are required.</Text>
 
         <FormField label="Medicine Name" required>
-          <InputBox>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Medicine name"
-              placeholderTextColor={FormColors.placeholder}
-              accessibilityLabel="Medicine name"
-            />
-          </InputBox>
+          <InputBox><Text style={styles.input}>{name}</Text></InputBox>
         </FormField>
 
         <FormField label="Expiration Date" required>
@@ -103,13 +122,19 @@ export default function EditMedicineScreen() {
             </Pressable>
           </InputBox>
         </FormField>
+        {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
       </ScrollView>
 
       {/* Sticky bottom bar */}
       <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-        <Pressable style={styles.saveButton} onPress={onSave} accessibilityRole="button">
+        <Pressable
+          style={[styles.saveButton, saving && { opacity: 0.6 }]}
+          onPress={() => void onSave()}
+          disabled={saving}
+          accessibilityRole="button"
+        >
           <Image source={Assets.icons.bookmark} style={styles.icon} contentFit="contain" />
-          <Text style={styles.saveText}>Save to Vault</Text>
+          <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save to Vault'}</Text>
         </Pressable>
       </View>
 
@@ -130,6 +155,7 @@ const styles = StyleSheet.create({
 
   heading: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
   required: { fontSize: 12, color: FormColors.helper },
+  error: { color: '#B42318', fontSize: 13 },
 
   input: { flex: 1, fontSize: 15, color: Colors.textPrimary, padding: 0 },
   icon: { width: 20, height: 20 },

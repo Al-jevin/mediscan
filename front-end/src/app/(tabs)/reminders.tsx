@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -9,30 +9,27 @@ import {
   Text,
   View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ReminderEditorModal from '@/components/ReminderEditorModal';
-import {
-  FAMILY_MEMBERS,
-  SAMPLE_REMINDERS,
-  type Reminder,
-} from '@/components/reminderTypes';
+import type { Reminder } from '@/components/reminderTypes';
 import { useColors } from '@/hooks/useColors';
-
-
-
-const STORAGE_KEY = 'mediscan.reminders.v1';
+import { useProfile } from '@/context/ProfileContext';
+import { useVault } from '@/services/vaultStore';
+import { createReminder, deleteReminder as deleteReminderRecord, fetchReminders, updateReminder } from '@/services/remindersApi';
+import { overviewCounts } from '@/utils/medicine';
 
 export default function RemindersScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { profiles } = useProfile();
+  const { medicines } = useVault();
   const params = useLocalSearchParams<{ openAdd?: string; member?: string; reminderId?: string; from?: string }>();
   const handledAddParam = useRef('');
   const returnHomeRef = useRef(false); // [Home+Vault] go back to Home when details opened from Home are closed
-  const [reminders, setReminders] = useState<Reminder[]>(SAMPLE_REMINDERS);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState('');
   const [showAll, setShowAll] = useState(false);
@@ -42,65 +39,47 @@ export default function RemindersScreen() {
   const [editorVisible, setEditorVisible] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [editorSession, setEditorSession] = useState(0);
 
-   useEffect(() => {
+  useEffect(() => {
     if (params.member) {
-      // Handles both "Self" and "Me" so mock data matches properly
-      const target = params.member === 'Self' ? 'Me' : params.member;
-      
-      const found = FAMILY_MEMBERS.find(
-        (m: string) => m.toLowerCase() === target.toLowerCase()
-      );
-
-      const finalMember = found || target;
       queueMicrotask(() => {
-        setSelectedMember(finalMember);
-        setPendingMember(finalMember);
+        setSelectedMember(params.member!);
+        setPendingMember(params.member!);
       });
     }
   }, [params.member]);
-  
-  useEffect(() => {
-    let isMounted = true;
-    AsyncStorage.getItem(STORAGE_KEY)
+
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      setLoaded(false);
+      fetchReminders(profiles)
         .then((saved) => {
           if (!isMounted) return;
-        if (saved) {
-          const parsed: unknown = JSON.parse(saved);
-          if (
-            Array.isArray(parsed) &&
-            parsed.every(
-              (item) =>
-                typeof item === 'object' &&
-                item !== null &&
-                typeof (item as Reminder).id === 'string' &&
-                typeof (item as Reminder).medicine === 'string',
-            )
-          ) {
-            setReminders(parsed as Reminder[]);
-          } else {
-            setStorageError('Saved reminders could not be read. Sample reminders are shown.');
-          }
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setStorageError('Saved reminders could not be loaded. Changes will stay on this screen.');
-        }
-      })
-      .finally(() => {
-        if (isMounted) setLoaded(true);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+          setReminders(saved);
+          setStorageError('');
+        })
+        .catch((error: unknown) => {
+          if (!isMounted) return;
+          setReminders([]);
+          setStorageError(error instanceof Error ? error.message : 'Could not load reminders.');
+        })
+        .finally(() => {
+          if (isMounted) setLoaded(true);
+        });
+      return () => {
+        isMounted = false;
+      };
+    }, [profiles]),
+  );
 
   useEffect(() => {
     const addRequest = params.openAdd;
     if (addRequest && addRequest !== handledAddParam.current) {
       handledAddParam.current = addRequest;
       setEditingReminder(null);
+      setEditorSession((session) => session + 1);
       setEditorVisible(true);
       router.setParams({ openAdd: undefined });
     }
@@ -109,35 +88,30 @@ export default function RemindersScreen() {
   // [Home+Vault] Opened from Home > Upcoming Reminders:
   //   member     -> show only that profile's reminders (logged-in profile)
   //   reminderId -> also open that reminder's details right away
+  const { member: requestedMember, reminderId: requestedReminderId, from: requestedFrom } = params;
   useEffect(() => {
     if (!loaded) return;
-    const { member, reminderId, from } = params;
-    if (!member && !reminderId) return;
-    if (member) {
-      setSelectedMember(member);
-      setPendingMember(member);
-      setShowAll(true);
+    if (!requestedMember && !requestedReminderId) return;
+    if (requestedMember) {
+      queueMicrotask(() => {
+        setSelectedMember(requestedMember);
+        setPendingMember(requestedMember);
+        setShowAll(true);
+      });
     }
-    if (reminderId) {
-      const found = reminders.find((item) => item.id === reminderId);
+    if (requestedReminderId) {
+      const found = reminders.find((item) => item.id === requestedReminderId);
       if (found) {
-        setEditingReminder(found);
-        setEditorVisible(true);
-        returnHomeRef.current = from === 'home';
+        returnHomeRef.current = requestedFrom === 'home';
+        queueMicrotask(() => {
+          setEditingReminder(found);
+          setEditorSession((session) => session + 1);
+          setEditorVisible(true);
+        });
       }
     }
     router.setParams({ member: undefined, reminderId: undefined, from: undefined });
-  }, [loaded, params.member, params.reminderId, params.from, reminders]);
-
-  const persist = async (next: Reminder[]) => {
-    setReminders(next);
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      setStorageError('');
-    } catch {
-      setStorageError('Could not save reminders on this device. Your current changes are still visible.');
-    }
-  };
+  }, [loaded, requestedMember, requestedReminderId, requestedFrom, reminders]);
 
   const visibleReminders = useMemo(() => {
     const filtered =
@@ -149,40 +123,67 @@ export default function RemindersScreen() {
 
   const openNewReminder = () => {
     setEditingReminder(null);
+    setEditorSession((session) => session + 1);
     setEditorVisible(true);
   };
 
   const openReminder = (reminder: Reminder) => {
     setEditingReminder(reminder);
+    setEditorSession((session) => session + 1);
     setEditorVisible(true);
   };
 
-  const saveReminder = (reminder: Reminder) => {
+  const saveReminder = async (reminder: Reminder) => {
     const isEditing = reminders.some((item) => item.id === reminder.id);
-    const next = isEditing
-      ? reminders.map((item) => (item.id === reminder.id ? reminder : item))
-      : [reminder, ...reminders];
-    void persist(next);
+    try {
+      const saved = isEditing
+        ? (await updateReminder(reminder), reminder)
+        : await createReminder(reminder);
+      setReminders((current) =>
+        isEditing
+          ? current.map((item) => item.id === saved.id ? saved : item)
+          : [saved, ...current],
+      );
+      setStorageError('');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save this reminder.';
+      setStorageError(message);
+      throw error;
+    }
     setEditorVisible(false);
     setEditingReminder(null);
     returnHomeRef.current = false;
     setSuccessMessage(isEditing ? 'Changes saved' : 'Reminder added');
   };
 
-  const deleteReminder = (id: string) => {
-    void persist(reminders.filter((item) => item.id !== id));
+  const deleteReminder = async (id: string) => {
+    const reminder = reminders.find((item) => item.id === id);
+    if (!reminder) return;
+    try {
+      await deleteReminderRecord(reminder);
+      setReminders((current) => current.filter((item) => item.id !== id));
+      setStorageError('');
+    } catch (error) {
+      setStorageError(error instanceof Error ? error.message : 'Could not delete this reminder.');
+      return;
+    }
     setEditorVisible(false);
     setEditingReminder(null);
     returnHomeRef.current = false;
     setSuccessMessage('Reminder deleted');
   };
 
-  const toggleReminder = (id: string) => {
-    void persist(
-      reminders.map((item) =>
-        item.id === id ? { ...item, enabled: !item.enabled } : item,
-      ),
-    );
+  const toggleReminder = async (id: string) => {
+    const reminder = reminders.find((item) => item.id === id);
+    if (!reminder) return;
+    const updated = { ...reminder, enabled: !reminder.enabled };
+    try {
+      await updateReminder(updated);
+      setReminders((current) => current.map((item) => item.id === id ? updated : item));
+      setStorageError('');
+    } catch (error) {
+      setStorageError(error instanceof Error ? error.message : 'Could not update this reminder.');
+    }
   };
 
  const goBack = () => {
@@ -195,6 +196,8 @@ export default function RemindersScreen() {
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const todayCount = reminders.filter((item) => item.enabled).length;
+  const medicineCounts = overviewCounts(medicines);
+  const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
     <SafeAreaView
@@ -282,7 +285,7 @@ export default function RemindersScreen() {
 
           <View style={styles.summaryRow}>
             <SummaryCard
-              count="2"
+              count={String(medicineCounts.expired)}
               label="Expired"
               sublabel="Medicines"
               icon="ban-outline"
@@ -291,7 +294,7 @@ export default function RemindersScreen() {
               foreground={colors.expiredForeground}
             />
             <SummaryCard
-              count="2"
+              count={String(medicineCounts.expiring)}
               label="Expiring"
               sublabel="Medicines"
               icon="alert-circle-outline"
@@ -322,7 +325,7 @@ export default function RemindersScreen() {
           <View style={styles.listHeading}>
             <View>
               <Text style={[styles.listTitle, { color: colors.foreground }]}>
-                Today - Aug 13
+                Today - {todayLabel}
               </Text>
               {selectedMember !== 'All Members' ? (
                 <Text style={[styles.filterCaption, { color: colors.mutedForeground }]}>
@@ -382,7 +385,7 @@ export default function RemindersScreen() {
       )}
 
       <ReminderEditorModal
-        key={editingReminder?.id ?? 'new-reminder'}
+        key={`${editingReminder?.id ?? 'new-reminder'}-${editorSession}`}
         visible={editorVisible}
         reminder={editingReminder}
         onClose={() => {
@@ -408,6 +411,7 @@ export default function RemindersScreen() {
           setFilterVisible(false);
         }}
         colors={colors}
+        members={profiles.map((profile) => profile.profile_display_name)}
         bottomInset={insets.bottom}
       />
 
@@ -627,6 +631,7 @@ type FilterModalProps = {
   onClose: () => void;
   onApply: () => void;
   colors: ReturnType<typeof useColors>;
+  members: string[];
   bottomInset: number;
 };
 
@@ -637,9 +642,10 @@ function FilterModal({
   onClose,
   onApply,
   colors,
+  members,
   bottomInset,
 }: FilterModalProps) {
-  const people = ['All Members', ...FAMILY_MEMBERS];
+  const people = ['All Members', ...members];
 
   return (
     <Modal

@@ -1,5 +1,4 @@
 # AI Context & Configs
-.copilotignore
 endpoints.md
 
 # Local Environment & Database initialization
@@ -7,6 +6,22 @@ docker-compose.yml
 .env
 .env.*
 !.env.example
+/front-end/.env
+
+# Secrets & Credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*service-account*.json
+*credentials*.json
+
+# Database dumps (may contain user data); schema-only file stays tracked
+*.sql
+*.dump
+!01-schema.sql
 
 # Python Cache
 __pycache__/
@@ -15,3 +30,5 @@ back-end/app/api/responses
 *.pyc
 
 copilot-instructions.md
+.venv/
+HANDOFF.md

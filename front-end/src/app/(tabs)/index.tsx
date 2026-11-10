@@ -20,10 +20,14 @@ import { getMedicineForm, overviewCounts } from '@/utils/medicine';
 export default function HomeScreen() {
   useFirstLaunchPermissions();
   const router = useRouter();
-  const { ready, medicines } = useVault();
+  const { ready, error, medicines, retry } = useVault();
   const profile = useLoggedInProfile(); // the profile picked on Choose Profile
   const name = firstName(profile);
-  const savedReminders = useSavedReminders();
+  const {
+    reminders: savedReminders,
+    ready: remindersReady,
+    error: remindersError,
+  } = useSavedReminders();
 
   const counts = useMemo(() => overviewCounts(medicines), [medicines]);
   const recent = useMemo(
@@ -71,6 +75,13 @@ export default function HomeScreen() {
       <SectionHeader title="Medicine Overview" />
       {!ready ? (
         <ActivityIndicator color={Colors.actionPrimary} style={{ marginVertical: Spacing.lg }} />
+      ) : error ? (
+        <View style={styles.loadError}>
+          <Text style={styles.empty}>Could not load medicines: {error}</Text>
+          <Pressable onPress={() => void retry()} accessibilityRole="button">
+            <Text style={styles.viewAll}>Retry</Text>
+          </Pressable>
+        </View>
       ) : (
         <View style={styles.stats}>
           <StatCard
@@ -104,7 +115,11 @@ export default function HomeScreen() {
 
       {/* Upcoming Reminders (for the logged-in profile) */}
       <SectionHeader title="Upcoming Reminders" onViewAll={() => openReminders()} />
-      {reminders.length === 0 ? (
+      {!remindersReady ? (
+        <ActivityIndicator color={Colors.actionPrimary} style={{ marginVertical: Spacing.md }} />
+      ) : remindersError ? (
+        <EmptyLine text={`Could not load reminders: ${remindersError}`} />
+      ) : reminders.length === 0 ? (
         <EmptyLine text={`No upcoming reminders for ${name}.`} />
       ) : (
         <View style={styles.list}>
@@ -191,4 +206,5 @@ const styles = StyleSheet.create({
   remTime: { alignItems: 'flex-end', gap: 2, maxWidth: '40%' },
   remTimeText: { ...Type.caption, color: Colors.textPrimary, textAlign: 'right' },
   empty: { ...Type.body, color: Colors.textSecondary, paddingHorizontal: Spacing.md + 4 },
+  loadError: { gap: Spacing.xs },
 });

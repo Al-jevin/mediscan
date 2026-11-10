@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -11,18 +11,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useColors } from '@/hooks/useColors';
-import {
-  FAMILY_MEMBERS,
-  MEDICINES,
-  type Reminder,
-  type ReminderFrequency,
-} from '@/components/reminderTypes';
+import { type Reminder, type ReminderFrequency } from '@/components/reminderTypes';
+import { useProfile } from '@/context/ProfileContext';
+import { useVault } from '@/services/vaultStore';
 
 type Props = {
   visible: boolean;
   reminder: Reminder | null;
   onClose: () => void;
-  onSave: (reminder: Reminder) => void;
+  onSave: (reminder: Reminder) => void | Promise<void>;
   onDelete: (id: string) => void;
 };
 
@@ -37,15 +34,20 @@ export default function ReminderEditorModal({
 }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { activeProfile, profiles } = useProfile();
+  const { medicines } = useVault();
   const [medicine, setMedicine] = useState(reminder?.medicine ?? '');
   const [time, setTime] = useState(reminder?.time ?? '10:00 AM');
   const [frequency, setFrequency] = useState<ReminderFrequency>(
     reminder?.frequency ?? 'Daily',
   );
   const [startDate, setStartDate] = useState(
-    reminder?.startDate ?? 'Aug 13, 2026',
+    reminder?.startDate ??
+      new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
   );
-  const [member, setMember] = useState(reminder?.member ?? 'Me');
+  const [member, setMember] = useState(
+    reminder?.member ?? activeProfile?.profile_display_name ?? profiles[0]?.profile_display_name ?? '',
+  );
   const [notes, setNotes] = useState(reminder?.notes ?? '');
   const [medicinePickerOpen, setMedicinePickerOpen] = useState(false);
   const [medicineSearch, setMedicineSearch] = useState('');
@@ -53,17 +55,40 @@ export default function ReminderEditorModal({
   const [memberOpen, setMemberOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const selectedMedicine = MEDICINES.find((item) => item.name === medicine);
+  const availableMedicines = useMemo(() => {
+    const items = medicines.map((item) => ({
+      fda_id: item.fda_id,
+      name: item.fda_brandname?.trim() || item.fda_genericname,
+      category: item.fda_dosage_form || 'Medicine',
+      instructions: item.fda_dosage_strength || '',
+    }));
+    if (reminder?.fda_id && !items.some((item) => item.fda_id === reminder.fda_id)) {
+      items.unshift({
+        fda_id: reminder.fda_id,
+        name: reminder.medicine,
+        category: reminder.category,
+        instructions: reminder.instructions,
+      });
+    }
+    return items;
+  }, [medicines, reminder]);
+  const selectedMedicine = availableMedicines.find((item) => item.name === medicine);
+  const memberNames = reminder?.member
+    ? [reminder.member]
+    : activeProfile
+      ? [activeProfile.profile_display_name]
+      : [];
   const filteredMedicines = useMemo(
     () =>
-      MEDICINES.filter((item) =>
+      availableMedicines.filter((item) =>
         item.name.toLowerCase().includes(medicineSearch.trim().toLowerCase()),
       ),
-    [medicineSearch],
+    [availableMedicines, medicineSearch],
   );
 
-  const save = () => {
+  const save = async () => {
     if (!medicine.trim()) {
       setValidationMessage('Choose a medicine before saving.');
       return;
@@ -72,24 +97,40 @@ export default function ReminderEditorModal({
       setValidationMessage('Enter a reminder time before saving.');
       return;
     }
+    if (!selectedMedicine) {
+      setValidationMessage('Choose a medicine from your vault.');
+      return;
+    }
+    const selectedProfile = profiles.find(
+      (profile) => profile.profile_display_name.toLowerCase() === member.trim().toLowerCase(),
+    );
+    if (!selectedProfile) {
+      setValidationMessage('Choose a profile before saving.');
+      return;
+    }
 
-    const medicineDetails = selectedMedicine ?? {
-      name: medicine.trim(),
-      category: 'Medicine',
-      instructions: '',
-    };
-    onSave({
-      id: reminder?.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      medicine: medicineDetails.name,
-      category: medicineDetails.category,
-      instructions: medicineDetails.instructions,
-      time: time.trim(),
-      frequency,
-      startDate: startDate.trim(),
-      member,
-      notes: notes.trim(),
-      enabled: reminder?.enabled ?? true,
-    });
+    setSaving(true);
+    setValidationMessage('');
+    try {
+      await onSave({
+        id: reminder?.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        profile_id: selectedProfile.profile_id,
+        fda_id: selectedMedicine.fda_id,
+        medicine: selectedMedicine.name,
+        category: selectedMedicine.category,
+        instructions: selectedMedicine.instructions,
+        time: time.trim(),
+        frequency,
+        startDate: startDate.trim(),
+        member: selectedProfile.profile_display_name,
+        notes: notes.trim(),
+        enabled: reminder?.enabled ?? true,
+      });
+    } catch (error) {
+      setValidationMessage(error instanceof Error ? error.message : 'Could not save this reminder.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const sheetBackground = { backgroundColor: colors.card };
@@ -291,7 +332,7 @@ export default function ReminderEditorModal({
             </View>
             {memberOpen ? (
               <View style={styles.memberOptions}>
-                {FAMILY_MEMBERS.map((person) => (
+                {memberNames.map((person) => (
                   <Pressable
                     key={person}
                     testID={`member-${person.toLowerCase()}`}
@@ -348,10 +389,11 @@ export default function ReminderEditorModal({
             <Pressable
               accessibilityRole="button"
               testID="save-reminder"
-              onPress={save}
+              onPress={() => void save()}
+              disabled={saving}
               style={({ pressed }) => [
                 styles.primaryButton,
-                { backgroundColor: colors.primary, opacity: pressed ? 0.86 : 1 },
+                { backgroundColor: colors.primary, opacity: saving ? 0.6 : pressed ? 0.86 : 1 },
               ]}
             >
               <Ionicons
@@ -360,7 +402,7 @@ export default function ReminderEditorModal({
                 color={colors.primaryForeground}
               />
               <Text style={[styles.primaryButtonText, { color: colors.primaryForeground }]}>
-                {reminder ? 'Save Changes' : 'Add Reminder'}
+                {saving ? 'Saving…' : reminder ? 'Save Changes' : 'Add Reminder'}
               </Text>
             </Pressable>
 

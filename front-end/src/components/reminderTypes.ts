@@ -2,6 +2,8 @@
 
 export type Reminder = {
   id: string;
+  profile_id?: string;
+  fda_id?: number;
   medicine: string;
   category: string;
   instructions: string;

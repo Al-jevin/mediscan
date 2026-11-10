@@ -1,0 +1,21 @@
+# AI Context & Configs
+endpoints.md
+
+# Local Environment & Database initialization
+docker-compose.yml
+.env
+.env.*
+!.env.example
+
+# Python Cache
+__pycache__/
+back-end/app/__pycache__/
+back-end/app/api/responses
+*.pyc
+
+copilot-instructions.md
+.venv/
+HANDOFF.md
+.vscode
+.idea
+

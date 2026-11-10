@@ -5,8 +5,8 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
-  Image,
   Linking,
   Pressable,
   StyleSheet,
@@ -14,86 +14,46 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// ---- MOCK BACKEND (replace when the API is ready) ----
-const USE_MOCK = true; // change to false when the API is ready
-
-type ScanState = "verified" | "needs_verification" | "no_results";
-
-// Each scan shows the next scenario: verified -> needs_verification -> no_results -> repeat
-const MOCK_STATES: ScanState[] = ["verified", "needs_verification", "no_results"];
-let mockIndex = 0;
-
-async function scanImage(base64: string): Promise<ScanState> {
-  if (USE_MOCK) {
-    await new Promise((r) => setTimeout(r, 1000)); // fake waiting time
-    console.log("MOCK: pretending to send", Math.round(base64.length / 1024), "KB");
-
-    const state = MOCK_STATES[mockIndex];
-    mockIndex = (mockIndex + 1) % MOCK_STATES.length;
-    console.log("MOCK result:", state);
-    return state;
-  }
-
-  const response = await fetch("https://PLACEHOLDER-URL/api/scan", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image: base64 }),
-  });
-
-  if (!response.ok) throw new Error("Server error: " + response.status);
-
-  const data = await response.json();
-  return data.status; // adjust to match the real API response format
-}
-// ---- END MOCK BACKEND ----
+import { scanLabel } from "@/services/scanApi";
 
 export default function CameraScreen() {
   const router = useRouter();
   const cameraRef = useRef<CameraView>(null);
 
   const [permission, requestPermission] = useCameraPermissions();
-  const [mediaPermission, requestMediaPermission] = ImagePicker.useMediaLibraryPermissions();
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [base64Image, setBase64Image] = useState<string | null>(null);
   const [facing, setFacing] = useState<CameraType>("back");
   const [torchOn, setTorchOn] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Single place where every image ends up (camera or gallery)
   const handleImage = async (uri: string) => {
     try {
       setIsProcessing(true);
 
-      // Step 1: resize + compress, and Step 2: convert to base64
+      // Step 1: resize + compress
       const result = await manipulateAsync(
         uri,
         [{ resize: { width: 1600 } }], // bigger so small text stays sharp
-        { compress: 0.85, format: SaveFormat.JPEG, base64: true } // light compression
+        { compress: 0.85, format: SaveFormat.JPEG } // light compression
       );
 
-      if (!result.base64) throw new Error("No base64 returned");
+      console.log("Processed:", result.width, "x", result.height);
 
-      setSelectedImage(result.uri);
-      setBase64Image(result.base64);
+      // Step 2: send to the OCR endpoint
+      const scan = await scanLabel(result.uri);
+      console.log("Image scan result:", scan.status);
 
-      // Checks
-      const sizeKB = Math.round((result.base64.length * 0.75) / 1024);
-      console.log("Processed:", result.width, "x", result.height, "~", sizeKB, "KB");
-      console.log("Base64 starts with:", result.base64.substring(0, 20));
-
-      // Step 3: send to backend (mock for now)
-      const state = await scanImage(result.base64);
-      console.log("Image scan result:", state);
-
-      // Step 4: open the Scan Result screen with the matching scenario
-      router.push({ pathname: "/result", params: { state } });
+      // Step 3: open the Scan Result screen, which reads the latest scan
+      router.push("/result");
     } catch (e) {
       console.log("Processing failed:", e);
-      Alert.alert("Error", "Could not process or send the image. Please try again.");
+      Alert.alert(
+        "Scan failed",
+        e instanceof Error ? e.message : "Could not process or send the image. Please try again."
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -118,7 +78,7 @@ export default function CameraScreen() {
     try {
       setIsCapturing(true);
       const photo = await cameraRef.current.takePictureAsync({ quality: 1 });
-      if (photo?.uri) handleImage(photo.uri);
+      if (photo?.uri) await handleImage(photo.uri);
     } catch (e) {
       console.log("Capture failed:", e);
       Alert.alert("Error", "Could not take the photo. Please try again.");
@@ -127,38 +87,35 @@ export default function CameraScreen() {
     }
   };
 
-  // Gallery: ask permission first, then open picker (one photo only)
+  // Open the system image picker (one photo only)
   const onPickFromGallery = async () => {
-    let perm = mediaPermission;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsMultipleSelection: false,
+        quality: 1,
+      });
 
-    if (!perm?.granted) {
-      if (perm?.canAskAgain !== false) {
-        perm = await requestMediaPermission();
-      }
+      if (result.canceled || !result.assets?.length) return;
+
+      await handleImage(result.assets[0].uri);
+    } catch (e) {
+      console.log("Image picker failed:", e);
+      Alert.alert("Error", "Could not open the image picker. Please try again.");
     }
-
-    if (!perm?.granted) {
-      Alert.alert(
-        "Gallery access needed",
-        "Allow photo access so you can choose an existing photo to scan.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Open settings", onPress: () => Linking.openSettings() },
-        ]
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: false,
-      quality: 1,
-    });
-
-    if (result.canceled || !result.assets?.length) return;
-
-    handleImage(result.assets[0].uri);
   };
+
+  if (isProcessing) {
+    return (
+      <SafeAreaView style={styles.processingScreen}>
+        <ActivityIndicator size="large" color="#1F5C4D" />
+        <Text style={styles.processingTitle}>Scanning your medicine</Text>
+        <Text style={styles.processingBody}>
+          Analyzing the label. This may take a little while.
+        </Text>
+      </SafeAreaView>
+    );
+  }
 
   // 1) Camera permission status still loading
   if (!permission) return <View style={styles.permWrap} />;
@@ -177,6 +134,15 @@ export default function CameraScreen() {
           <Text style={styles.permBtnText}>
             {permission.canAskAgain ? "Allow camera" : "Open settings"}
           </Text>
+        </Pressable>
+        <Pressable
+          style={styles.permUploadButton}
+          onPress={onPickFromGallery}
+          accessibilityRole="button"
+          accessibilityLabel="Upload an image to scan instead"
+        >
+          <Ionicons name="images-outline" size={20} color="#1F5C4D" />
+          <Text style={styles.permUploadText}>Upload image instead</Text>
         </Pressable>
         <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
           <Text style={styles.permLink}>Go back</Text>
@@ -227,15 +193,18 @@ export default function CameraScreen() {
           </View>
         </View>
 
-        {/* Bottom: gallery / capture / flip */}
+        {/* Bottom: upload / capture / flip */}
         <View style={styles.bottom}>
           <View style={styles.controls}>
-            <Pressable style={styles.thumb} onPress={onPickFromGallery} disabled={isProcessing}>
-              {selectedImage ? (
-                <Image source={{ uri: selectedImage }} style={styles.thumbImg} />
-              ) : (
-                <Ionicons name="images-outline" size={24} color="#fff" />
-              )}
+            <Pressable
+              style={styles.uploadButton}
+              onPress={onPickFromGallery}
+              disabled={isCapturing || isProcessing}
+              accessibilityRole="button"
+              accessibilityLabel="Upload an image to scan"
+            >
+              <Ionicons name="images-outline" size={24} color="#fff" />
+              <Text style={styles.uploadText}>Upload image</Text>
             </Pressable>
 
             <Pressable
@@ -267,10 +236,15 @@ const styles = StyleSheet.create({
 
   // Permission screen
   permWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, backgroundColor: "#fff" },
+  processingScreen: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, backgroundColor: "#fff" },
+  processingTitle: { fontSize: 20, fontWeight: "700", color: "#1F5C4D", marginTop: 20 },
+  processingBody: { fontSize: 14, color: "#555", textAlign: "center", marginTop: 8 },
   permTitle: { fontSize: 18, fontWeight: "600", marginTop: 16 },
   permBody: { fontSize: 14, color: "#555", textAlign: "center", marginTop: 8 },
   permBtn: { backgroundColor: "#1F5C4D", paddingVertical: 12, paddingHorizontal: 24, borderRadius: 24, marginTop: 20 },
   permBtnText: { color: "#fff", fontWeight: "600" },
+  permUploadButton: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 18, padding: 8 },
+  permUploadText: { color: "#1F5C4D", fontWeight: "600" },
   permLink: { color: "#1F5C4D", fontWeight: "500" },
 
   // Top bar
@@ -287,9 +261,9 @@ const styles = StyleSheet.create({
 
   // Bottom
   bottom: { paddingBottom: 24 },
-  controls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 36 },
-  thumb: { width: 44, height: 44, borderRadius: 8, borderWidth: 2, borderColor: "#fff", overflow: "hidden", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.35)" },
-  thumbImg: { width: "100%", height: "100%" },
+  controls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 28 },
+  uploadButton: { width: 84, alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 6 },
+  uploadText: { color: "#fff", fontSize: 12, fontWeight: "600" },
   captureOuter: { width: 76, height: 76, borderRadius: 38, backgroundColor: "#E8F1EE", alignItems: "center", justifyContent: "center" },
   captureInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: "#1F5C4D", alignItems: "center", justifyContent: "center" },
 });

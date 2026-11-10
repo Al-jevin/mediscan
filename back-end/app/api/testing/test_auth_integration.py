@@ -75,6 +75,27 @@ def test_auth_routes_require_valid_input_and_bearer_sessions() -> None:
         assert malformed.status_code == 401
 
 
+def test_local_expo_web_origin_passes_cors_preflight() -> None:
+    client = TestClient(app)
+    headers = {
+        "Origin": "http://localhost:8081",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type",
+    }
+
+    response = client.options(f"{AUTH_BASE}/register", headers=headers)
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:8081"
+
+    disallowed = client.options(
+        f"{AUTH_BASE}/register",
+        headers={**headers, "Origin": "https://example.com"},
+    )
+    assert disallowed.status_code == 400
+    assert "access-control-allow-origin" not in disallowed.headers
+
+
 @pytest.mark.skipif(
     not _real_auth_enabled(),
     reason="Set RUN_REAL_AUTH_TESTS=true to run Brevo/database integration flow.",
