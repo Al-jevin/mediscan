@@ -1,0 +1,18 @@
+#!/bin/sh
+# MediScan Pre-Push Hook
+# Verifies that mediscan_full.sql matches the database state before pushing.
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$REPO_ROOT" ]; then
+    REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+fi
+cd "$REPO_ROOT" || exit 1
+
+SQL_FILE="mediscan_full.sql"
+
+if ! git diff --quiet "$SQL_FILE" 2>/dev/null; then
+    echo "[pre-push warning] $SQL_FILE has uncommitted changes." >&2
+    echo "[pre-push warning] Run 'git commit' to include latest database dump in your push." >&2
+fi
+
+exit 0

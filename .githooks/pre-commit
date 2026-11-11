@@ -1,0 +1,83 @@
+#!/bin/sh
+# MediScan Pre-Commit Hook
+# Automatically dumps the latest PostgreSQL database to mediscan_full.sql
+# and stages it so that every commit and push includes the updated database.
+
+echo "Running pre-commit hook: Dumping latest PostgreSQL database..."
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$REPO_ROOT" ]; then
+    REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+fi
+cd "$REPO_ROOT" || exit 1
+
+SQL_FILE="mediscan_full.sql"
+
+# Read DB connection settings from .env if present, fallback to defaults
+DB_USER="${DB_USER:-mediscan_admin}"
+DB_PASS="${DB_PASS:-mediscan_P@ssw0rd}"
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-5432}"
+DB_NAME="${DB_NAME:-mediscan_db}"
+
+if [ -f ".env" ]; then
+    ENV_PASS=$(grep -E '^DB_PASSWORD=' .env | cut -d '=' -f2- | tr -d '\r"')
+    ENV_USER=$(grep -E '^DB_USER=' .env | cut -d '=' -f2- | tr -d '\r"')
+    ENV_NAME=$(grep -E '^DB_NAME=' .env | cut -d '=' -f2- | tr -d '\r"')
+    ENV_HOST=$(grep -E '^DB_HOST=' .env | cut -d '=' -f2- | tr -d '\r"')
+    ENV_PORT=$(grep -E '^DB_PORT=' .env | cut -d '=' -f2- | tr -d '\r"')
+
+    [ -n "$ENV_PASS" ] && DB_PASS="$ENV_PASS"
+    [ -n "$ENV_USER" ] && DB_USER="$ENV_USER"
+    [ -n "$ENV_NAME" ] && DB_NAME="$ENV_NAME"
+    [ -n "$ENV_HOST" ] && DB_HOST="$ENV_HOST"
+    [ -n "$ENV_PORT" ] && DB_PORT="$ENV_PORT"
+fi
+
+export PGPASSWORD="$DB_PASS"
+
+# Helper to find and run pg_dump across PATH, Windows installs, and WSL
+run_pg_dump() {
+    # 1. Native PATH
+    if command -v pg_dump >/dev/null 2>&1; then
+        pg_dump -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" --clean --if-exists -f "$SQL_FILE"
+        return $?
+    fi
+
+    # 2. Windows standard install paths
+    for p in "/c/Program Files/PostgreSQL"/*/bin/pg_dump.exe "/c/Program Files (x86)/PostgreSQL"/*/bin/pg_dump.exe; do
+        if [ -f "$p" ]; then
+            "$p" -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" --clean --if-exists -f "$SQL_FILE"
+            return $?
+        fi
+    done
+
+    # 3. WSL
+    if command -v wsl >/dev/null 2>&1; then
+        if wsl which pg_dump >/dev/null 2>&1; then
+            wsl env PGPASSWORD="$PGPASSWORD" pg_dump -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" --clean --if-exists -f "$SQL_FILE"
+            return $?
+        fi
+    fi
+
+    echo "Error: Neither pg_dump nor WSL pg_dump was found in PATH or standard locations." >&2
+    return 127
+}
+
+if ! run_pg_dump; then
+    echo "Error: pg_dump failed. Is the database running and reachable at ${DB_HOST}:${DB_PORT}? Commit aborted." >&2
+    unset PGPASSWORD
+    exit 1
+fi
+
+unset PGPASSWORD
+
+if [ -f "$SQL_FILE" ]; then
+    git add "$SQL_FILE"
+    echo "Success: $SQL_FILE extracted and staged for commit."
+else
+    echo "Error: Expected $SQL_FILE to be generated, but file not found. Commit aborted." >&2
+    exit 1
+fi
+
+exit 0

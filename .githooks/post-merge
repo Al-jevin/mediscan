@@ -1,0 +1,90 @@
+#!/bin/sh
+# MediScan Post-Merge Hook
+# Automatically populates the local PostgreSQL database after a git pull / merge.
+
+echo "Running post-merge hook: Checking for database updates..."
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$REPO_ROOT" ]; then
+    REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+fi
+cd "$REPO_ROOT" || exit 1
+
+SQL_FILE="mediscan_full.sql"
+
+if [ ! -f "$SQL_FILE" ]; then
+    echo "$SQL_FILE not found. Skipping database update."
+    exit 0
+fi
+
+# If triggered by a git pull / merge, check if mediscan_full.sql was actually updated
+if [ -n "$1" ] && git rev-parse -q --verify ORIG_HEAD >/dev/null 2>&1; then
+    if ! git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | grep -E -q '(^|/)mediscan_full\.sql$'; then
+        echo "$SQL_FILE was not changed in this pull. Local database is already up to date."
+        exit 0
+    fi
+    echo "$SQL_FILE was updated in this pull. Populating the local database..."
+else
+    echo "Populating the local database with $SQL_FILE..."
+fi
+
+# Read DB connection settings from .env if present, fallback to defaults
+DB_USER="${DB_USER:-mediscan_admin}"
+DB_PASS="${DB_PASS:-mediscan_P@ssw0rd}"
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-5432}"
+DB_NAME="${DB_NAME:-mediscan_db}"
+
+if [ -f ".env" ]; then
+    ENV_PASS=$(grep -E '^DB_PASSWORD=' .env | cut -d '=' -f2- | tr -d '\r"')
+    ENV_USER=$(grep -E '^DB_USER=' .env | cut -d '=' -f2- | tr -d '\r"')
+    ENV_NAME=$(grep -E '^DB_NAME=' .env | cut -d '=' -f2- | tr -d '\r"')
+    ENV_HOST=$(grep -E '^DB_HOST=' .env | cut -d '=' -f2- | tr -d '\r"')
+    ENV_PORT=$(grep -E '^DB_PORT=' .env | cut -d '=' -f2- | tr -d '\r"')
+
+    [ -n "$ENV_PASS" ] && DB_PASS="$ENV_PASS"
+    [ -n "$ENV_USER" ] && DB_USER="$ENV_USER"
+    [ -n "$ENV_NAME" ] && DB_NAME="$ENV_NAME"
+    [ -n "$ENV_HOST" ] && DB_HOST="$ENV_HOST"
+    [ -n "$ENV_PORT" ] && DB_PORT="$ENV_PORT"
+fi
+
+export PGPASSWORD="$DB_PASS"
+
+# Helper to find and run psql across PATH, Windows installs, and WSL
+run_psql() {
+    # 1. Native PATH
+    if command -v psql >/dev/null 2>&1; then
+        psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -q -f "$SQL_FILE"
+        return $?
+    fi
+
+    # 2. Windows standard install paths
+    for p in "/c/Program Files/PostgreSQL"/*/bin/psql.exe "/c/Program Files (x86)/PostgreSQL"/*/bin/psql.exe; do
+        if [ -f "$p" ]; then
+            "$p" -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -q -f "$SQL_FILE"
+            return $?
+        fi
+    done
+
+    # 3. WSL
+    if command -v wsl >/dev/null 2>&1; then
+        if wsl which psql >/dev/null 2>&1; then
+            wsl env PGPASSWORD="$PGPASSWORD" psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -q -f "$SQL_FILE"
+            return $?
+        fi
+    fi
+
+    echo "Error: Neither psql nor WSL psql was found in PATH or standard locations." >&2
+    return 127
+}
+
+if ! run_psql; then
+    echo "Error: Database update failed. Is the database running and reachable at ${DB_HOST}:${DB_PORT}?" >&2
+    unset PGPASSWORD
+    exit 1
+fi
+
+unset PGPASSWORD
+echo "Success: Database successfully populated with updates from $SQL_FILE."
+exit 0

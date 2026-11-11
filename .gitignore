@@ -19,9 +19,7 @@ docker-compose.yml
 *credentials*.json
 
 # Database dumps (may contain user data); schema-only file stays tracked
-*.sql
-*.dump
-!01-schema.sql
+
 
 # Python Cache
 __pycache__/
