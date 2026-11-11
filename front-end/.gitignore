@@ -30,3 +30,5 @@ Thumbs.db
 
 /package-lock.json
 /reminders.github.tsx
+
+venv
