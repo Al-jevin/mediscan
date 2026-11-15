@@ -15,11 +15,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  SAVED_MEDICINES_KEY,
-  type SavedMedicine,
-} from '@/components/reminderTypes';
 import { useColors } from '@/hooks/useColors';
+import { commitDelete, deleteWithUndo, updateMedicine, useVault } from '@/services/vaultStore';
+import { getMedicineForm, isExpired, isExpiringWithin, medicineName, parseDate, toYMD } from '@/utils/medicine';
 
 type MedicineStatus = 'Needs Verification' | 'Expired' | 'Expiring' | 'Verified';
 type FilterStatus = 'All' | Exclude<MedicineStatus, 'Verified'>;
@@ -43,6 +41,7 @@ type AlertPreferences = {
   snoozedUntil: Record<string, number>;
 };
 
+// Archive + snooze settings are saved on this phone only
 const ALERT_PREFERENCES_KEY = 'mediscan.alert-preferences.v1';
 const DAY_MS = 86_400_000;
 const MEDICINE_FORMS: MedicineForm[] = ['Tablet', 'Capsule', 'Syrup', 'Drops', 'Inhaler'];
@@ -52,81 +51,7 @@ const EMPTY_PREFERENCES: AlertPreferences = {
   expiryOverrides: {},
   snoozedUntil: {},
 };
-
-const SAMPLE_MEDICINES: MedicineItem[] = [
-  {
-    id: 'sample-paracetamol',
-    name: 'Paracetamol Biogesic',
-    category: 'Tablet',
-    expiryDate: 'December 25, 2026',
-    status: 'Verified',
-    iconColor: '#D9EAF4',
-  },
-  {
-    id: 'sample-ibuprofen',
-    name: 'Ibuprofen Advil',
-    category: 'Capsule',
-    expiryDate: 'March 12, 2025',
-    status: 'Expired',
-    iconColor: '#D9E6E2',
-  },
-  {
-    id: 'sample-amoxicillin',
-    name: 'Amoxicillin Moxatag',
-    category: 'Tablet',
-    expiryDate: 'July 9, 2024',
-    status: 'Expired',
-    iconColor: '#F5E7D8',
-  },
-  {
-    id: 'sample-cetirizine',
-    name: 'Cetirizine Zyrtec',
-    category: 'Tablet',
-    expiryDate: 'January 15, 2027',
-    status: 'Verified',
-    iconColor: '#ECE7E1',
-  },
-  {
-    id: 'sample-metformin',
-    name: 'Metformin Glucophage',
-    category: 'Tablet',
-    expiryDate: 'October 3, 2025',
-    status: 'Verified',
-    iconColor: '#E5E9E8',
-  },
-  {
-    id: 'sample-loratadine',
-    name: 'Loratadine Claritin',
-    category: 'Syrup',
-    expiryDate: 'May 30, 2026',
-    status: 'Expiring',
-    iconColor: '#EDE6F1',
-  },
-  {
-    id: 'sample-accupril',
-    name: 'Accupril',
-    category: 'Tablet',
-    expiryDate: 'November 17, 2026',
-    status: 'Expiring',
-    iconColor: '#F5E2CF',
-  },
-  {
-    id: 'sample-omeprazole',
-    name: 'Omeprazole',
-    category: 'Capsule',
-    expiryDate: '',
-    status: 'Needs Verification',
-    iconColor: '#E3E8F1',
-  },
-  {
-    id: 'sample-vitamin',
-    name: 'Vitamin D3',
-    category: 'Softgel',
-    expiryDate: '',
-    status: 'Needs Verification',
-    iconColor: '#F1E7D5',
-  },
-];
+const ICON_COLORS = ['#D9EAF4', '#D9E6E2', '#F5E7D8', '#ECE7E1', '#E5E9E8', '#EDE6F1', '#F5E2CF', '#E3E8F1'];
 
 const FILTERS: FilterStatus[] = [
   'All',
@@ -140,25 +65,41 @@ export default function UpcomingAlertsScreen() {
   const insets = useSafeAreaInsets();
   const [currentTime, setCurrentTime] = useState<number | null>(null);
 
-useEffect(() => {
-  const updateTime = () => setCurrentTime(Date.now());
+  useEffect(() => {
+    const updateTime = () => setCurrentTime(Date.now());
+    updateTime();
+    const interval = setInterval(updateTime, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
-  updateTime();
-
-  const interval = setInterval(updateTime, 60_000);
-
-  return () => clearInterval(interval);
-}, []);
-  const [medicines, setMedicines] = useState<MedicineItem[]>(() =>
-    SAMPLE_MEDICINES.map((item) => ({
-      ...item,
-      status: getStatusFromExpiry(item.expiryDate),
-    })),
+  // Real medicines from the Vault (backend)
+  const vault = useVault();
+  const medicines = useMemo<MedicineItem[]>(
+    () =>
+      vault.medicines.map((item, index) => {
+        const expiry = parseDate(item.vault_expiry_date);
+        let status: MedicineStatus = 'Verified';
+        if (!expiry) status = 'Needs Verification';
+        else if (isExpired(item)) status = 'Expired';
+        else if (isExpiringWithin(item, 30)) status = 'Expiring';
+        else if (item.vault_status === 'needs_verification') status = 'Needs Verification';
+        return {
+          id: item.vault_id,
+          name: medicineName(item),
+          category: item.fda_dosage_form || 'Medicine',
+          expiryDate: expiry ? formatLongDate(expiry) : '',
+          status,
+          iconColor: ICON_COLORS[index % ICON_COLORS.length],
+        };
+      }),
+    [vault.medicines],
   );
+  const loadingCustom = !vault.ready;
+
   const [alertPreferences, setAlertPreferences] =
     useState<AlertPreferences>(EMPTY_PREFERENCES);
-  const [loadingCustom, setLoadingCustom] = useState(true);
-  const [storageError, setStorageError] = useState('');
+  const [localError, setLocalError] = useState('');
+  const storageError = localError || vault.error || '';
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterStatus>('All');
   const [sortBy, setSortBy] = useState<SortBy>('expiry');
@@ -182,67 +123,15 @@ useEffect(() => {
   const [deleteMedicine, setDeleteMedicine] = useState<MedicineItem | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
+  // Load archive + snooze settings saved on this phone
   useEffect(() => {
     let isMounted = true;
-    AsyncStorage.multiGet([SAVED_MEDICINES_KEY, ALERT_PREFERENCES_KEY])
-      .then((entries) => {
-        if (!isMounted) return;
-        const savedMedicinesValue = entries[0]?.[1];
-        const preferencesValue = entries[1]?.[1];
-        const preferences = parseAlertPreferences(preferencesValue);
-        setAlertPreferences(preferences);
-
-        const parsed: unknown = savedMedicinesValue
-          ? JSON.parse(savedMedicinesValue)
-          : [];
-        if (!Array.isArray(parsed)) {
-          throw new Error('Saved medicines are not a list.');
-        }
-        const custom = parsed
-          .filter(
-            (item): item is SavedMedicine =>
-              typeof item === 'object' &&
-              item !== null &&
-              typeof (item as SavedMedicine).id === 'string' &&
-              typeof (item as SavedMedicine).name === 'string' &&
-              typeof (item as SavedMedicine).category === 'string',
-          )
-          .map((item) => ({
-            id: item.id,
-            name: item.name,
-            category: item.category,
-            expiryDate: item.expiryDate ?? '',
-            status: getStatusFromExpiry(item.expiryDate ?? ''),
-            iconColor: '#EAF1EE',
-          }));
-        const customNames = new Set(custom.map((item) => item.name.toLowerCase()));
-        const allMedicines = [
-          ...custom,
-          ...SAMPLE_MEDICINES.filter(
-            (item) => !customNames.has(item.name.toLowerCase()),
-          ),
-        ];
-        const deletedIds = new Set(preferences.deletedIds);
-        setMedicines(
-          allMedicines
-            .filter((item) => !deletedIds.has(item.id))
-            .map((item) => {
-              const expiryDate = preferences.expiryOverrides[item.id] ?? item.expiryDate;
-              return {
-                ...item,
-                expiryDate,
-                status: getStatusFromExpiry(expiryDate),
-              };
-            }),
-        );
+    AsyncStorage.getItem(ALERT_PREFERENCES_KEY)
+      .then((value) => {
+        if (isMounted) setAlertPreferences(parseAlertPreferences(value));
       })
       .catch(() => {
-        if (isMounted) {
-          setStorageError('Saved medicines could not be loaded. Showing sample medicines.');
-        }
-      })
-      .finally(() => {
-        if (isMounted) setLoadingCustom(false);
+        if (isMounted) setLocalError('Your archive and snooze settings could not be loaded.');
       });
     return () => {
       isMounted = false;
@@ -258,8 +147,10 @@ useEffect(() => {
         medicine.name.toLowerCase().includes(normalizedQuery) ||
         medicine.category.toLowerCase().includes(normalizedQuery);
       const matchesStatus = filter === 'All' || medicine.status === filter;
+      // "Film-Coated Tablet" counts as "Tablet"
       const matchesForm =
-        selectedForms.length === 0 || selectedForms.includes(medicine.category as MedicineForm);
+        selectedForms.length === 0 ||
+        selectedForms.includes(getMedicineForm(medicine.category) as MedicineForm);
       const matchesUrgency = medicineMatchesUrgency(
         medicine,
         urgency,
@@ -324,33 +215,8 @@ useEffect(() => {
   const persistPreferences = (next: AlertPreferences) => {
     setAlertPreferences(next);
     AsyncStorage.setItem(ALERT_PREFERENCES_KEY, JSON.stringify(next)).catch(() => {
-      setStorageError('Your alert changes could not be saved. Please try again.');
+      setLocalError('Your alert changes could not be saved. Please try again.');
     });
-  };
-
-  const updateSavedMedicine = (
-    medicineId: string,
-    updater: (medicine: SavedMedicine) => SavedMedicine | null,
-  ) => {
-    AsyncStorage.getItem(SAVED_MEDICINES_KEY)
-      .then((stored) => {
-        if (!stored) return;
-        const parsed: unknown = JSON.parse(stored);
-        if (!Array.isArray(parsed)) return;
-        const updated = parsed
-          .filter(
-            (item): item is SavedMedicine =>
-              typeof item === 'object' &&
-              item !== null &&
-              typeof (item as SavedMedicine).id === 'string',
-          )
-          .map((item) => (item.id === medicineId ? updater(item) : item))
-          .filter((item): item is SavedMedicine => item !== null);
-        return AsyncStorage.setItem(SAVED_MEDICINES_KEY, JSON.stringify(updated));
-      })
-      .catch(() => {
-        setStorageError('A medicine change could not be saved to your vault.');
-      });
   };
 
   const beginFilterSheet = () => {
@@ -406,33 +272,20 @@ useEffect(() => {
     setActionMedicine(null);
   };
 
-  const saveExpiryDate = () => {
+  // Saves the new expiry date to the backend
+  const saveExpiryDate = async () => {
     if (!editingMedicine) return;
     const parsedDate = parseDateInput(editExpiryText);
     if (!parsedDate) {
       setEditExpiryError('Enter a valid date in MM/DD/YYYY format.');
       return;
     }
-    const formatted = formatLongDate(parsedDate);
-    setMedicines((current) =>
-      current.map((item) =>
-        item.id === editingMedicine.id
-          ? { ...item, expiryDate: formatted, status: getStatusFromExpiry(formatted) }
-          : item,
-      ),
-    );
-    persistPreferences({
-      ...alertPreferences,
-      expiryOverrides: {
-        ...alertPreferences.expiryOverrides,
-        [editingMedicine.id]: formatted,
-      },
-    });
-    updateSavedMedicine(editingMedicine.id, (item) => ({
-      ...item,
-      expiryDate: formatted,
-    }));
-    setEditingMedicine(null);
+    try {
+      await updateMedicine(editingMedicine.id, { vault_expiry_date: toYMD(parsedDate) });
+      setEditingMedicine(null);
+    } catch (error) {
+      setEditExpiryError(error instanceof Error ? error.message : 'Could not save the new date.');
+    }
   };
 
   const snoozeAlert = (medicine: MedicineItem) => {
@@ -454,11 +307,10 @@ useEffect(() => {
     setActionMedicine(null);
   };
 
+  // Deletes from the backend right away (the user already confirmed)
   const removeMedicine = (medicine: MedicineItem) => {
-    const deletedIds = [...new Set([...alertPreferences.deletedIds, medicine.id])];
-    persistPreferences({ ...alertPreferences, deletedIds });
-    setMedicines((current) => current.filter((item) => item.id !== medicine.id));
-    updateSavedMedicine(medicine.id, () => null);
+    deleteWithUndo(medicine.id);
+    void commitDelete(medicine.id);
     setDeleteMedicine(null);
   };
 
@@ -843,7 +695,6 @@ useEffect(() => {
     </SafeAreaView>
   );
 }
-
 function FiltersSheet({
   visible,
   selectedForms,
@@ -1531,7 +1382,6 @@ function MedicineDetailsModal({
     </Modal>
   );
 }
-
 function compareExpiry(left: string, right: string) {
   const leftTime = parseDateInput(left)?.getTime() ?? Number.NaN;
   const rightTime = parseDateInput(right)?.getTime() ?? Number.NaN;
