@@ -41,7 +41,7 @@ export default function RemindersScreen() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState('');
-  const [showAll, setShowAll] = useState(true);
+  const [showAll, setShowAll] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [selectedMember, setSelectedMember] = useState('All Members');
   const [pendingMember, setPendingMember] = useState('All Members');
@@ -150,7 +150,7 @@ export default function RemindersScreen() {
   );
 
   const visibleReminders = useMemo(
-    () => (showAll ? filteredReminders : filteredReminders.slice(0, 2)),
+    () => (showAll ? filteredReminders : filteredReminders.slice(0, 4)),
     [filteredReminders, showAll],
   );
 
@@ -288,16 +288,18 @@ export default function RemindersScreen() {
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
               Upcoming Alerts
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              testID="toggle-all-reminders"
-              onPress={() => router.navigate('/upcoming-alerts' as never)}
-              hitSlop={8}
-            >
-              <Text style={[styles.viewAll, { color: colors.primary }]}>
-                See All
-              </Text>
-            </Pressable>
+            {filteredCount > 4 ? (
+              <Pressable
+                accessibilityRole="button"
+                testID="toggle-all-reminders"
+                onPress={() => setShowAll((value) => !value)}
+                hitSlop={8}
+              >
+                <Text style={[styles.viewAll, { color: colors.primary }]}>
+                  {showAll ? 'Show Less' : 'View All'}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
 
           <View style={styles.summaryRow}>

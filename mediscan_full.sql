@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict QqX2AmcZeD3ulPyWbeoeoYLAjeh1kl7CzskDZl2AD3Xq8898OdY0rviGy2ZyWGG
+\restrict 9cXaKe6iJxJgjclTjyt0pNc91OamNKLnPmgjPIWUh3ruTcltWz97zAZg0PgGBT0
 
 -- Dumped from database version 18.7
 -- Dumped by pg_dump version 18.7
@@ -511,6 +511,10 @@ COPY public.medication_logs (log_id, schedule_id, profile_id, log_scheduled_time
 --
 
 COPY public.medication_schedules (schedule_id, profile_id, fda_id, sched_is_active, sched_frequency_type, sched_reminder_time, sched_start_date, sched_end_date, sched_notes, sched_created_at, sched_updated_at) FROM stdin;
+399	5a69c6ae2be3fec5	48101	t	daily	{10:00:00}	2026-11-16	\N	\N	2026-11-16 01:17:47.266312	2026-11-16 01:17:47.266312
+400	5a69c6ae2be3fec5	43855	t	daily	{10:00:00}	2026-11-16	\N	\N	2026-11-16 01:19:37.096346	2026-11-16 01:19:37.096346
+401	5a69c6ae2be3fec5	46807	t	daily	{10:00:00}	2026-11-16	\N	\N	2026-11-16 01:19:43.40412	2026-11-16 01:23:56.352938
+402	5a69c6ae2be3fec5	35120	t	daily	{10:00:00}	2026-11-16	\N	\N	2026-11-16 01:24:01.22742	2026-11-16 01:24:01.22742
 \.
 
 
@@ -31543,6 +31547,7 @@ c553cb5dc22c1eb6	31882017-2018-4b8f-8cbd-453624302ae4	t	Updated Frontend	updated
 9bc2c7a685c836d0	58f42e71-9f36-4309-bacb-5d14c233ae31	f	Combined	combined	2	1990-01-01	2026-10-23 09:19:31.040325	2026-10-23 09:19:31.040325
 bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated	3	1992-03-04	2026-10-23 09:19:31.049025	2026-10-23 09:19:31.378935
 5a69c6ae2be3fec5	1fbb9c3f-e535-409a-b7f4-ca98c2ea4dc6	f	Nicole	Cute	1	2005-10-07	2026-11-15 23:34:27.925338	2026-11-15 23:34:27.925338
+623ec1ca34bdbe16	1fbb9c3f-e535-409a-b7f4-ca98c2ea4dc6	f	Angelo	Kuya	3	2003-10-11	2026-11-16 01:18:03.865763	2026-11-16 01:18:03.865763
 \.
 
 
@@ -31553,7 +31558,7 @@ bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
 37a9a98c-875b-433e-8fc2-fe34d170307d	917ef719-c1ce-46c5-9f37-207a05a23395	85fee27ac9a3f36ac6ebda4a0bcf7f9c81258e690180e864e033ddef1be0bf9c	2026-11-07 12:13:27.734336	2026-11-14 12:13:27.729537
 2872b39c-8f65-4098-b8e0-e0685d8e6118	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	6b91fc2ba03829b9b63f430d52f1e2e9a1483e3ccbc5de5001943b1aebb2f3b2	2026-11-15 03:59:36.788784	2026-11-22 03:59:36.7857
-4cf583d2-52ac-464b-acba-a6924ae41c73	1fbb9c3f-e535-409a-b7f4-ca98c2ea4dc6	1ead243fb8fdf7401a7e2ab27ea63f7b67904111accf60536e00f875ae9a0c91	2026-11-15 23:34:06.680795	2026-11-22 15:34:06.678834
+83d3b9d9-ec99-4d05-a834-34617a43bfe0	1fbb9c3f-e535-409a-b7f4-ca98c2ea4dc6	2669ec547d4e3701de34079e898fda19dac7b9ce40a1b88afa2a4d69053fb5bf	2026-11-16 01:15:44.710211	2026-11-22 17:15:44.705416
 \.
 
 
@@ -62533,6 +62538,9 @@ COPY public.test_philippine_fda_medicines (fda_id, fda_registration_id, fda_appr
 
 COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_created_at, vault_updated_at, vault_note, vault_status, vault_source, vault_confidence) FROM stdin;
 398	5a69c6ae2be3fec5	48101	2029-10-07	2026-11-15 23:36:33.693758	2026-11-15 23:36:33.693758		verified	scan	95
+399	5a69c6ae2be3fec5	46807	2030-10-11	2026-11-16 01:16:55.31566	2026-11-16 01:16:55.31566		needs_verification	manual	\N
+400	5a69c6ae2be3fec5	35120	2031-11-05	2026-11-16 01:17:17.105621	2026-11-16 01:17:17.105621		needs_verification	manual	\N
+401	5a69c6ae2be3fec5	43855	2005-10-05	2026-11-16 01:17:37.450479	2026-11-16 01:17:37.450479		needs_verification	manual	\N
 \.
 
 
@@ -62547,7 +62555,7 @@ SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 396, true);
 -- Name: medication_schedules_schedule_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 398, true);
+SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 402, true);
 
 
 --
@@ -62561,7 +62569,7 @@ SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62545, t
 -- Name: vault_items_vault_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 398, true);
+SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 401, true);
 
 
 --
@@ -62823,5 +62831,5 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict QqX2AmcZeD3ulPyWbeoeoYLAjeh1kl7CzskDZl2AD3Xq8898OdY0rviGy2ZyWGG
+\unrestrict 9cXaKe6iJxJgjclTjyt0pNc91OamNKLnPmgjPIWUh3ruTcltWz97zAZg0PgGBT0
 
