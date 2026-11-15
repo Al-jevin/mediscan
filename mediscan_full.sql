@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict gCNvtrEdVkqmCYSX8k1lDEgAaSOi1h515ppejifCjPlLMD5jgezzdG9KJxbkyzx
+\restrict 3Zids3nf4nrJDLmPEqmzrV8tfyXgsOd7aCSihwI5Y7eULJ5Ap8AdO9XwoExBbKm
 
 -- Dumped from database version 18.7
 -- Dumped by pg_dump version 18.7
@@ -31559,7 +31559,7 @@ bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
 37a9a98c-875b-433e-8fc2-fe34d170307d	917ef719-c1ce-46c5-9f37-207a05a23395	85fee27ac9a3f36ac6ebda4a0bcf7f9c81258e690180e864e033ddef1be0bf9c	2026-11-07 12:13:27.734336	2026-11-14 12:13:27.729537
 2872b39c-8f65-4098-b8e0-e0685d8e6118	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	6b91fc2ba03829b9b63f430d52f1e2e9a1483e3ccbc5de5001943b1aebb2f3b2	2026-11-15 03:59:36.788784	2026-11-22 03:59:36.7857
-86865821-1279-4a96-82e8-b45fc01cee85	1fbb9c3f-e535-409a-b7f4-ca98c2ea4dc6	f5266963a112ba365a4a2d62d6c02a56e84d46cf53bc95a6726e0ad7124c3001	2026-11-16 01:32:52.222697	2026-11-22 17:32:52.214789
+383a10a2-5688-4e29-84e9-7c2bbabcf5eb	1fbb9c3f-e535-409a-b7f4-ca98c2ea4dc6	e6085efa8b3f88ccd69d202075c32c3cc59f4667edfb3119051e4bb6e2dae801	2026-11-16 01:47:11.917921	2026-11-22 17:47:11.912047
 \.
 
 
@@ -62833,5 +62833,5 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict gCNvtrEdVkqmCYSX8k1lDEgAaSOi1h515ppejifCjPlLMD5jgezzdG9KJxbkyzx
+\unrestrict 3Zids3nf4nrJDLmPEqmzrV8tfyXgsOd7aCSihwI5Y7eULJ5Ap8AdO9XwoExBbKm
 
