@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict uZOeCnmzsOIvYS6eENFC5BifvTsqoMII3EXd61mNhNr5I6uosF5u4j2NQENZGUX
+\restrict WCgZmNhxtYeWqP5CzY44fhhBQwAMa4hNH6RUjxEWSfEwev1fs8BkJ9PwUl1vyPH
 
--- Dumped from database version 18.6
--- Dumped by pg_dump version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
+-- Dumped from database version 18.7
+-- Dumped by pg_dump version 18.7
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -475,6 +475,7 @@ c9012295-48d6-4f97-a8e3-ab5ae9f9c0fe	combined-c2c146db81db41dab7b7779e6030c6d6@e
 82e30038-7b3c-4c61-9c00-f19761491c46	frontend-updated-9a08cffbcc7a4653832a6211a5e47e7e@example.test	frontend-test-hash	t	t	2026-10-23 09:19:31.022791	2026-10-23 09:19:31.38687
 58f42e71-9f36-4309-bacb-5d14c233ae31	combined-9a08cffbcc7a4653832a6211a5e47e7e@example.test	combined-hash	f	t	2026-10-23 09:19:31.040325	2026-10-23 09:19:31.394699
 8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	ccchua1290@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$4Zc9ccb3WfJrOlMHkhTJmw$Zk6uoUGv3lrX/yROf0f3DWs3w7fUW6AnS/ZNkUN6iB8	t	f	2026-11-15 03:59:19.650975	2026-11-15 03:59:36.692526
+1fbb9c3f-e535-409a-b7f4-ca98c2ea4dc6	gatbontonicoleannhm@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$SSXaa6EWIgoGdWZWNZFD+g$DdKbgV18Bvk/MJgrK9id6v61soShI1HfAN8vKlRhnfU	t	f	2026-11-15 23:33:46.659763	2026-11-15 23:34:06.478785
 \.
 
 
@@ -493,6 +494,7 @@ COPY public.alembic_version (version_num) FROM stdin;
 COPY public.email_verifications (verification_id, account_id, purpose, code_hash, attempts, expires_at, created_at, consumed_at) FROM stdin;
 0a5d3de4-e98f-4e91-a2ca-b326868145da	917ef719-c1ce-46c5-9f37-207a05a23395	verify_email	54110b326a11a853505a715b156cfb78ffc32e59f8ef653b5ce0ad99cae0d12f	0	2026-11-07 02:39:52.430788	2026-11-07 02:29:52.422718	2026-11-07 02:30:07.960923
 3ecc02c0-63cc-4dd5-87ca-c841785c05a6	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	verify_email	d4691f9d253e91e0633945e1321c8f1c1a34c1d03631cf6efdec62b9ced9db2a	0	2026-11-15 04:09:19.656896	2026-11-15 03:59:19.650975	2026-11-15 03:59:36.692526
+82a535f9-ede2-465b-88ca-52e458525012	1fbb9c3f-e535-409a-b7f4-ca98c2ea4dc6	verify_email	ba5c69373fa650bc3ad84c15d91c6012d5be553e043deb6bec6b0982bc82a864	0	2026-11-15 15:43:46.683794	2026-11-15 23:33:46.659763	2026-11-15 23:34:06.478785
 \.
 
 
@@ -31540,6 +31542,7 @@ e5392e666b0c880c	eff3caab-0228-4543-a8d0-ddf7617a2703	f	Combined	combined	2	1990
 c553cb5dc22c1eb6	31882017-2018-4b8f-8cbd-453624302ae4	t	Updated Frontend	updated	3	1992-03-04	2026-11-07 09:41:50.271825	2026-11-07 09:41:50.998901
 9bc2c7a685c836d0	58f42e71-9f36-4309-bacb-5d14c233ae31	f	Combined	combined	2	1990-01-01	2026-10-23 09:19:31.040325	2026-10-23 09:19:31.040325
 bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated	3	1992-03-04	2026-10-23 09:19:31.049025	2026-10-23 09:19:31.378935
+5a69c6ae2be3fec5	1fbb9c3f-e535-409a-b7f4-ca98c2ea4dc6	f	Nicole	Cute	1	2005-10-07	2026-11-15 23:34:27.925338	2026-11-15 23:34:27.925338
 \.
 
 
@@ -31550,6 +31553,7 @@ bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
 37a9a98c-875b-433e-8fc2-fe34d170307d	917ef719-c1ce-46c5-9f37-207a05a23395	85fee27ac9a3f36ac6ebda4a0bcf7f9c81258e690180e864e033ddef1be0bf9c	2026-11-07 12:13:27.734336	2026-11-14 12:13:27.729537
 2872b39c-8f65-4098-b8e0-e0685d8e6118	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	6b91fc2ba03829b9b63f430d52f1e2e9a1483e3ccbc5de5001943b1aebb2f3b2	2026-11-15 03:59:36.788784	2026-11-22 03:59:36.7857
+4cf583d2-52ac-464b-acba-a6924ae41c73	1fbb9c3f-e535-409a-b7f4-ca98c2ea4dc6	1ead243fb8fdf7401a7e2ab27ea63f7b67904111accf60536e00f875ae9a0c91	2026-11-15 23:34:06.680795	2026-11-22 15:34:06.678834
 \.
 
 
@@ -62528,6 +62532,7 @@ COPY public.test_philippine_fda_medicines (fda_id, fda_registration_id, fda_appr
 --
 
 COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_created_at, vault_updated_at, vault_note, vault_status, vault_source, vault_confidence) FROM stdin;
+398	5a69c6ae2be3fec5	48101	2029-10-07	2026-11-15 23:36:33.693758	2026-11-15 23:36:33.693758		verified	scan	95
 \.
 
 
@@ -62542,7 +62547,7 @@ SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 396, true);
 -- Name: medication_schedules_schedule_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 397, true);
+SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 398, true);
 
 
 --
@@ -62556,7 +62561,7 @@ SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62545, t
 -- Name: vault_items_vault_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 397, true);
+SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 398, true);
 
 
 --
@@ -62818,5 +62823,5 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict uZOeCnmzsOIvYS6eENFC5BifvTsqoMII3EXd61mNhNr5I6uosF5u4j2NQENZGUX
+\unrestrict WCgZmNhxtYeWqP5CzY44fhhBQwAMa4hNH6RUjxEWSfEwev1fs8BkJ9PwUl1vyPH
 

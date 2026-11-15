@@ -1,3 +1,4 @@
+import { useAppSettings } from '@/services/appSettings';
 import { Ionicons } from "@expo/vector-icons";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
@@ -19,6 +20,7 @@ import { scanLabel } from "@/services/scanApi";
 export default function CameraScreen() {
   const router = useRouter();
   const cameraRef = useRef<CameraView>(null);
+  const [appSettings, appSettingsReady] = useAppSettings();
 
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -105,6 +107,7 @@ export default function CameraScreen() {
     }
   };
 
+  // Scanning in progress
   if (isProcessing) {
     return (
       <SafeAreaView style={styles.processingScreen}>
@@ -113,6 +116,23 @@ export default function CameraScreen() {
         <Text style={styles.processingBody}>
           Analyzing the label. This may take a little while.
         </Text>
+      </SafeAreaView>
+    );
+  }
+
+  // 0) Camera Access turned off in Settings > Privacy
+  if (appSettingsReady && !appSettings.cameraEnabled) {
+    return (
+      <SafeAreaView style={styles.permWrap}>
+        <Ionicons name="camera-outline" size={48} color="#444" />
+        <Text style={styles.permTitle}>Camera access is off</Text>
+        <Text style={styles.permBody}>Turn on Camera Access in Settings &gt; Privacy to scan medicines.</Text>
+        <Pressable style={styles.permBtn} onPress={() => router.push('/settings' as any)}>
+          <Text style={styles.permBtnText}>Open Settings</Text>
+        </Pressable>
+        <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <Text style={styles.permLink}>Go back</Text>
+        </Pressable>
       </SafeAreaView>
     );
   }

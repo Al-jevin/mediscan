@@ -46,7 +46,7 @@ export default function ReminderEditorModal({
       new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
   );
   const [member, setMember] = useState(
-    reminder?.member ?? activeProfile?.profile_display_name ?? profiles[0]?.profile_display_name ?? '',
+    reminder?.members?.[0] ?? activeProfile?.profile_display_name ?? profiles[0]?.profile_display_name ?? '',
   );
   const [notes, setNotes] = useState(reminder?.notes ?? '');
   const [medicinePickerOpen, setMedicinePickerOpen] = useState(false);
@@ -75,11 +75,12 @@ export default function ReminderEditorModal({
     return items;
   }, [medicines, reminder]);
   const selectedMedicine = availableMedicines.find((item) => item.name === medicine);
-  const memberNames = reminder?.member
-    ? [reminder.member]
+  const memberNames = reminder?.members?.[0]
+    ? [reminder.members[0]]
     : activeProfile
       ? [activeProfile.profile_display_name]
       : [];
+  const membersLabel = member || 'Select';
   const filteredMedicines = useMemo(
     () =>
       availableMedicines.filter((item) =>
@@ -122,7 +123,7 @@ export default function ReminderEditorModal({
         time: time.trim(),
         frequency,
         startDate: startDate.trim(),
-        member: selectedProfile.profile_display_name,
+        members: [selectedProfile.profile_display_name],
         notes: notes.trim(),
         enabled: reminder?.enabled ?? true,
       });
@@ -210,7 +211,7 @@ export default function ReminderEditorModal({
                 <Text style={[styles.medicineDescription, { color: colors.mutedForeground }]}>
                   {selectedMedicine?.category ?? 'Tap to select a medicine'}
                   {selectedMedicine?.instructions
-                    ? ` ┬╖ ${selectedMedicine.instructions}`
+                    ? ` · ${selectedMedicine.instructions}`
                     : ''}
                 </Text>
               </View>
@@ -320,8 +321,11 @@ export default function ReminderEditorModal({
                 onPress={() => setMemberOpen((open) => !open)}
                 style={[styles.selectField, borderColor]}
               >
-                <Text style={[styles.selectText, { color: colors.foreground }]}>
-                  {member}
+                <Text
+                  numberOfLines={1}
+                  style={[styles.selectText, { color: colors.foreground }]}
+                >
+                  {membersLabel}
                 </Text>
                 <Ionicons
                   name={memberOpen ? 'chevron-up' : 'chevron-down'}
@@ -423,11 +427,11 @@ export default function ReminderEditorModal({
         </View>
 
         {medicinePickerOpen ? (
-        <View style={styles.pickerLayer}>
+          <View style={styles.pickerLayer}>
             <Pressable
               accessibilityLabel="Close medicine list"
               onPress={() => setMedicinePickerOpen(false)}
-            style={[styles.pickerBackdrop, { backgroundColor: colors.overlay }]}
+              style={[styles.pickerBackdrop, { backgroundColor: colors.overlay }]}
             />
             <View
               style={[
@@ -504,7 +508,7 @@ export default function ReminderEditorModal({
                           {item.name}
                         </Text>
                         <Text style={[styles.medicineDescription, { color: colors.mutedForeground }]}>
-                          {item.category} ┬╖ {item.instructions}
+                          {item.category} · {item.instructions}
                         </Text>
                       </View>
                       <Ionicons
@@ -673,17 +677,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   optionText: { fontSize: 11, fontWeight: '600' },
-  memberOptions: { gap: 6, paddingVertical: 8 },
+  memberOptions: { gap: 8, paddingVertical: 8 },
   memberOption: {
-    minHeight: 38,
+    width: '100%',
+    minHeight: 44,
     borderWidth: 1,
     borderRadius: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  memberText: { fontSize: 12, fontWeight: '600' },
+  memberText: { fontSize: 13, fontWeight: '600' },
   notesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
