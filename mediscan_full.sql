@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict oKbpf5m7taSZfThbvfcHLjZeMsYixIGHjyQ9NSTHx8C4prQwptAk5x7vKMGyFyq
+\restrict wnq15fjQIT5cmLMHwoXE1h4cf6DOIDM7dTUVZuP9pNQOcq0lP7P7GHrclu5IDqI
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
@@ -461,7 +461,6 @@ c11994ed-b10c-4b0f-a868-0d867eb81ba8	frontend-updated-a16f9c9896bd43ca87baff1106
 6643b4c9-e924-4c93-bc6d-6746b50227fb	frontend-updated-d297d9e25c0d4fb0b1f6e7cc92e4f2bb@example.test	frontend-test-hash	t	t	2026-10-23 08:30:48.837935	2026-10-23 08:30:49.166666
 822dbea5-8a79-4657-b831-cae4be439e57	combined-d297d9e25c0d4fb0b1f6e7cc92e4f2bb@example.test	combined-hash	f	t	2026-10-23 08:30:48.854985	2026-10-23 08:30:49.174028
 15f4c271-5f65-4d6c-bcb9-723b7b52d7dc	frontend-updated-773c4902e15142c5ac6403ff5bd13da1@example.test	frontend-test-hash	t	t	2026-10-23 09:18:01.468733	2026-10-23 09:18:01.807684
-341e6a9b-86b4-49d6-9486-c7ad8d7dfaa6	ccchua1290@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$8A+ERboaGuB9lJCSQ4RLMQ$aberTREO3a8addZhfOW3Zs5eacx0BLDz31RymyKBrXk	t	f	2026-10-23 08:44:08.316364	2026-10-23 08:46:01.854972
 eff3caab-0228-4543-a8d0-ddf7617a2703	combined-773c4902e15142c5ac6403ff5bd13da1@example.test	combined-hash	f	t	2026-10-23 09:18:01.48194	2026-10-23 09:18:01.815844
 ecaab2e7-97bc-458a-8ddb-e68f0530bda5	frontend-updated-0eb8e6dcfbdd44819316059ff97732dd@example.test	frontend-test-hash	t	t	2026-11-07 09:39:16.013684	2026-11-07 09:39:16.624977
 64199015-e127-4bf5-9050-cf883344892b	combined-0eb8e6dcfbdd44819316059ff97732dd@example.test	combined-hash	f	t	2026-11-07 09:39:16.044075	2026-11-07 09:39:16.643067
@@ -475,6 +474,7 @@ c9012295-48d6-4f97-a8e3-ab5ae9f9c0fe	combined-c2c146db81db41dab7b7779e6030c6d6@e
 309aefeb-0379-469d-868e-a55bfe776031	combined-3926a7a1f31b4b35af1be680256e4155@example.test	combined-hash	f	t	2026-11-07 09:46:44.981971	2026-11-07 09:46:45.756974
 82e30038-7b3c-4c61-9c00-f19761491c46	frontend-updated-9a08cffbcc7a4653832a6211a5e47e7e@example.test	frontend-test-hash	t	t	2026-10-23 09:19:31.022791	2026-10-23 09:19:31.38687
 58f42e71-9f36-4309-bacb-5d14c233ae31	combined-9a08cffbcc7a4653832a6211a5e47e7e@example.test	combined-hash	f	t	2026-10-23 09:19:31.040325	2026-10-23 09:19:31.394699
+8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	ccchua1290@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$4Zc9ccb3WfJrOlMHkhTJmw$Zk6uoUGv3lrX/yROf0f3DWs3w7fUW6AnS/ZNkUN6iB8	t	f	2026-11-15 03:59:19.650975	2026-11-15 03:59:36.692526
 \.
 
 
@@ -491,8 +491,8 @@ COPY public.alembic_version (version_num) FROM stdin;
 --
 
 COPY public.email_verifications (verification_id, account_id, purpose, code_hash, attempts, expires_at, created_at, consumed_at) FROM stdin;
-b50a3d5c-4f87-4779-b647-ba33a874d37d	341e6a9b-86b4-49d6-9486-c7ad8d7dfaa6	verify_email	d3aac1ac5e66081929099dc35d49a5c12a54f4b12a60cbe1453467a8f5d1cd1a	0	2026-10-23 08:54:08.31875	2026-10-23 08:44:08.316364	2026-10-23 08:46:01.854972
 0a5d3de4-e98f-4e91-a2ca-b326868145da	917ef719-c1ce-46c5-9f37-207a05a23395	verify_email	54110b326a11a853505a715b156cfb78ffc32e59f8ef653b5ce0ad99cae0d12f	0	2026-11-07 02:39:52.430788	2026-11-07 02:29:52.422718	2026-11-07 02:30:07.960923
+3ecc02c0-63cc-4dd5-87ca-c841785c05a6	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	verify_email	d4691f9d253e91e0633945e1321c8f1c1a34c1d03631cf6efdec62b9ced9db2a	0	2026-11-15 04:09:19.656896	2026-11-15 03:59:19.650975	2026-11-15 03:59:36.692526
 \.
 
 
@@ -31549,6 +31549,7 @@ bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated
 
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
 37a9a98c-875b-433e-8fc2-fe34d170307d	917ef719-c1ce-46c5-9f37-207a05a23395	85fee27ac9a3f36ac6ebda4a0bcf7f9c81258e690180e864e033ddef1be0bf9c	2026-11-07 12:13:27.734336	2026-11-14 12:13:27.729537
+2872b39c-8f65-4098-b8e0-e0685d8e6118	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	6b91fc2ba03829b9b63f430d52f1e2e9a1483e3ccbc5de5001943b1aebb2f3b2	2026-11-15 03:59:36.788784	2026-11-22 03:59:36.7857
 \.
 
 
@@ -62817,5 +62818,5 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict oKbpf5m7taSZfThbvfcHLjZeMsYixIGHjyQ9NSTHx8C4prQwptAk5x7vKMGyFyq
+\unrestrict wnq15fjQIT5cmLMHwoXE1h4cf6DOIDM7dTUVZuP9pNQOcq0lP7P7GHrclu5IDqI
 
