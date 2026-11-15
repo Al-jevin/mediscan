@@ -150,7 +150,7 @@ export default function RemindersScreen() {
   );
 
   const visibleReminders = useMemo(
-    () => (showAll ? filteredReminders : filteredReminders.slice(0, 4)),
+    () => (showAll ? filteredReminders : filteredReminders.slice(0, 3)),
     [filteredReminders, showAll],
   );
 
@@ -288,7 +288,7 @@ export default function RemindersScreen() {
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
               Upcoming Alerts
             </Text>
-            {filteredCount > 4 ? (
+            {filteredCount > 3 ? (
               <Pressable
                 accessibilityRole="button"
                 testID="toggle-all-reminders"
