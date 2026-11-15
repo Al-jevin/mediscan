@@ -14,7 +14,40 @@ Ensure the following are installed before starting:
 
 ---
 
-## 1. Environment Variables Setup
+## 1. Git Identity & Authentication Setup (WSL2 & Windows)
+
+WSL2 Ubuntu maintains its own isolated `~/.gitconfig` separately from Windows and GitHub Desktop (`C:\Users\<user>\.gitconfig`). Even if you are already signed into GitHub Desktop on Windows, commits made in WSL2 will appear as `"Your Name"` (unlinked to your GitHub profile) and `git push` will ask for a password unless you configure WSL2 Git first.
+
+### Option A: WSL2 (Ubuntu)
+1. **Set your commit name and GitHub-linked email** (use the exact email on your GitHub account or your `@users.noreply.github.com` address shown in GitHub Desktop under **File → Options → Git**):
+   ```bash
+   git config --global --replace-all user.name "Your Full Name"
+   git config --global --replace-all user.email "your-github-email@example.com"
+   ```
+   Verify inside the repository folder that no local `.git/config` override is blocking your global identity:
+   ```bash
+   git config user.name && git config user.email
+   ```
+   *(If `user.name` still outputs `"Your Name"`, run `git config --local --unset-all user.name && git config --local --unset-all user.email` inside the repo root.)*
+
+2. **Link WSL2 Git to GitHub** so `git push` authenticates without prompting for a password (pick one):
+   - **Share your Windows GitHub login (fastest):**
+     ```bash
+     GCM=$(find "/mnt/c/Program Files/Git" -name "git-credential-manager.exe" 2>/dev/null | head -n 1)
+     [ -n "$GCM" ] && git config --global credential.helper "$(printf '%q' "$GCM")"
+     ```
+   - **Or authenticate directly via GitHub CLI (`gh`):**
+     ```bash
+     sudo apt update && sudo apt install -y gh && gh auth login
+     ```
+     Select **`GitHub.com`** → **`HTTPS`** → **`Yes`** → **`Login with a web browser`**.
+
+### Option B: Windows (GitHub Desktop / PowerShell)
+- Sign in to **GitHub Desktop** (**File → Options → Accounts**) and confirm your name and `@users.noreply.github.com` email are populated under **File → Options → Git**.
+
+---
+
+## 2. Environment Variables Setup
 
 Do **not** commit `.env` files to the repository. Create local `.env` files from the templates below and fill in any private API keys shared by the team lead.
 
@@ -36,7 +69,7 @@ ENABLE_CRUD_TEST_API=true
 
 ---
 
-## 2. Database & Automated Git Hooks Setup
+## 3. Database & Automated Git Hooks Setup
 
 This repository uses tracked Git hooks in `.githooks/` (compatible with both WSL/Linux/macOS and Git for Windows) to keep `mediscan_db` synchronized across the team:
 - **`pre-commit`:** Automatically dumps your local PostgreSQL database to `mediscan_full.sql` (in the repository root) and stages it before every commit.
@@ -72,7 +105,7 @@ $env:PGPASSWORD="mediscan_P@ssw0rd"; psql -U mediscan_admin -h localhost -d medi
 
 ---
 
-## 3. Running the Backend (FastAPI)
+## 4. Running the Backend (FastAPI)
 
 Navigate to `back-end/`, create a virtual environment, install dependencies, and start Uvicorn bound to all network interfaces (`0.0.0.0`):
 
@@ -105,7 +138,7 @@ New-NetFirewallRule -DisplayName "FastAPI WSL" -Direction Inbound -LocalPort 800
 
 ---
 
-## 4. Running the Frontend (Expo)
+## 5. Running the Frontend (Expo)
 
 Works identically in both **WSL2** and **Windows PowerShell**:
 
@@ -120,11 +153,12 @@ npx expo start -c
 
 ---
 
-## 5. Team Collaboration & Git Workflow Rules
+## 6. Team Collaboration & Git Workflow Rules
 
 - **Never push directly to `main`.** Create a feature branch (`feat/<task>`, `fix/<task>`, or `docs/<task>`) linked to your assigned GitHub Issue.
 - **Respect file ownership boundaries.** Only modify the files explicitly assigned in your GitHub Issue to prevent merge conflicts.
 - **Commit local DB changes before pulling.** Because `post-merge` overwrites `mediscan_db` with the incoming `mediscan_full.sql` on `git pull`, always commit your local schema/data changes before pulling updates from `main`.
+- **Do not commit edits to `.githooks/*` via GitHub Desktop.** Committing hook files through Windows Git/GitHub Desktop resets their executable mode (`100755` to `100644`) on NTFS. If any hook script is modified, stage and commit it from WSL after running `git update-index --chmod=+x .githooks/*`.
 
 ---
 
