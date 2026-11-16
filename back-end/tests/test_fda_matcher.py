@@ -6,8 +6,14 @@ APP_DIRECTORY = Path(__file__).resolve().parents[1] / "app"
 if str(APP_DIRECTORY) not in sys.path:
     sys.path.insert(0, str(APP_DIRECTORY))
 
-from services.fda_matcher import find_dosages, find_fda_matches, identify_medicine
-from services.nlp_service import extract_entities
+from services.fda_matcher import (
+    find_dosages,
+    find_fda_matches,
+    identify_medicine,
+    score_suggestions_for_safety,
+)
+from services.nlp_service import extract_entities, strip_packaging_distractors
+from schemas.ocr import LinkedMedicineResponse
 
 
 # Real OCR output from a phone photo of a browser showing a Biogesic box.
@@ -120,3 +126,42 @@ def test_dosage_repairs_and_expiry_formats():
         ("EXP 01/02/2027", "01/02/2027"),
     ]:
         assert asyncio.run(extract_entities(text)).expiry_date == expected
+
+
+def test_dosage_extraction_handles_liquids_combinations_and_packaging_distractors():
+    text = "DR-XY39670 LOT ABC123 100 Tablets EXP 12/2027 100 mg/5 mL"
+    clean_text = strip_packaging_distractors(text)
+
+    assert find_dosages(clean_text) == ["100 mg / 5 mL"]
+    assert find_dosages("500 mg / 125 mg") == ["500 mg / 125 mg"]
+    assert asyncio.run(extract_entities(text)).dosage == "100 mg / 5 mL"
+
+
+def test_safety_scoring_caps_conflicting_and_missing_dosage():
+    suggestion = LinkedMedicineResponse(
+        fda_id=1,
+        fda_registration_id="REG-1",
+        fda_approval_id="APP-1",
+        fda_genericname="Paracetamol",
+        fda_dosage_strength="500 mg",
+        match_score=0.98,
+    )
+
+    matching, matching_score, _, matching_tier = score_suggestions_for_safety(
+        [suggestion], "Biogesic 500 mg", 0.95, 0.95
+    )
+    conflicting, conflict_score, _, conflict_tier = score_suggestions_for_safety(
+        [suggestion], "Biogesic 250 mg", 0.95, 0.95
+    )
+    missing, missing_score, _, missing_tier = score_suggestions_for_safety(
+        [suggestion], "Biogesic", 0.95, 0.95
+    )
+
+    assert matching_tier == "high"
+    assert matching[0].trust_score == matching_score
+    assert conflict_tier == "low"
+    assert conflict_score <= 0.64
+    assert conflicting[0].trust_tier == "low"
+    assert missing_tier == "medium"
+    assert missing_score <= 0.79
+    assert missing[0].trust_tier == "medium"

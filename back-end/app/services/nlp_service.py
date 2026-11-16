@@ -96,6 +96,16 @@ _BOILERPLATE_PATTERN = re.compile(
     r"\b(?:manufactured|distributed|marketed|registered|packed)\s+by\b",
     re.IGNORECASE,
 )
+_DOSAGE_DISTRACTORS = re.compile(
+    r"\b(?:DR|DRP|HRP|VR|VRP)-[A-Z0-9-]+\b"
+    r"|\b(?:LOT|BATCH|B/N|BN)\s*[:#.-]?\s*[A-Z0-9-]+\b"
+    r"|\b(?:EXP|MFG|EXPIRY)\s*[:.-]?\s*"
+    r"(?:\d{2}[/-]\d{2,4}|[A-Z]{3}\s*\d{2,4})\b"
+    r"|\b\d+\s*(?:tablets?|capsules?|tabs?|caps?|sachets?|ampoules?|vials?)\b"
+    r"|\b(?:keep\s+out\s+of\s+reach\s+of\s+children|"
+    r"store\s+at\s+temperatures?|manufactured\s+by)\b",
+    re.IGNORECASE,
+)
 _ACTIVE_INGREDIENT_PATTERN = re.compile(
     r"\b(?:"
     + "|".join(
@@ -188,16 +198,23 @@ def _medicine_name_from_text(raw_text: str) -> str | None:
         return f"{brand} {generic}"
     return brand or generic
 
+
+def strip_packaging_distractors(text: str) -> str:
+    """Remove packaging numbers and warnings before extracting dosage tokens."""
+    return _DOSAGE_DISTRACTORS.sub(" ", text)
+
+
 def _extract_entities_sync(raw_text: str) -> ExtractedEntityResponse:
     identity = identify_medicine(raw_text)
     raw_text = clean_ocr_text(raw_text)
     frequency_match = _FREQUENCY_PATTERN.search(raw_text)
     expiry_match = _EXPIRY_PATTERN.search(raw_text)
+    dosage_text = strip_packaging_distractors(raw_text)
 
     return ExtractedEntityResponse(
         # The capitalization guess is only a fallback for medicines not in the FDA dataset.
         medicine_name=identity.display_name if identity else _medicine_name_from_text(raw_text),
-        dosage=" / ".join(find_dosages(raw_text)) or None,
+        dosage=" / ".join(find_dosages(dosage_text)) or None,
         frequency=frequency_match.group(0) if frequency_match else None,
         expiry_date=expiry_match.group(1) if expiry_match else None,
     )

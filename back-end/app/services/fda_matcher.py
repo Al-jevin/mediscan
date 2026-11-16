@@ -18,8 +18,11 @@ from services.search_service import (
 )
 
 
+_AMOUNT_UNIT = r"\d[\dOo,]*(?:\.\d+)?\s*(?:mcg|mg|ml|iu|g)"
 DOSAGE_PATTERN = re.compile(
-    r"\b\d[\dOo,]*(?:\.\d+)?\s?(?:mcg|mg|ml|iu|g)\b|\b\d+(?:\.\d+)?\s?%",
+    rf"(?<![A-Za-z0-9]){_AMOUNT_UNIT}"
+    rf"(?:\s*/\s*{_AMOUNT_UNIT})*"
+    r"|\b\d+(?:\.\d+)?\s?%",
     re.IGNORECASE,
 )
 _GLUED_DOSAGE_PATTERN = re.compile(
@@ -44,10 +47,69 @@ def find_dosages(text: str) -> list[str]:
     """Return distinct dosages in source order, repairing "5OO mg" to "500 mg"."""
     dosages: dict[str, str] = {}
     for match in DOSAGE_PATTERN.finditer(text):
-        number, unit = re.match(r"(.*?\d?[\dOo,.]*)\s*([A-Za-z%]+)$", match.group(0)).groups()
-        dosage = f"{re.sub('[Oo]', '0', number)} {unit}".replace(" %", "%")
-        dosages.setdefault(_normalize_strength(dosage), dosage)
+        dosage = re.sub(r"[Oo]", "0", match.group(0))
+        dosage = re.sub(
+            r"(\d)(?=(?:mcg|mg|ml|iu|g)\b)", r"\1 ", dosage, flags=re.IGNORECASE
+        )
+        dosage = re.sub(r"\s*/\s*", " / ", dosage)
+        dosage = re.sub(r"(?<=\d)\s+(?=[A-Za-z])", " ", dosage)
+        key = canonicalize_dosage(dosage)
+        dosages.setdefault(key, dosage)
     return list(dosages.values())
+
+
+def canonicalize_dosage(dosage: str | None) -> str:
+    """Normalize spaces, case, and thousands separators before strength comparison."""
+    if not dosage:
+        return ""
+    value = dosage.casefold().replace(",", "")
+    value = re.sub(r"\s*/\s*", "/", value)
+    value = re.sub(r"\s+", "", value)
+    return re.sub(r"[^a-z0-9./+%]", "", value)
+
+
+def score_suggestions_for_safety(
+    suggestions: list[LinkedMedicineResponse],
+    raw_text: str,
+    ocr_confidence: float,
+    dosage_confidence: float,
+) -> tuple[list[LinkedMedicineResponse], float, float, str]:
+    """Attach composite trust scores and hard-cap uncertain or conflicting doses."""
+    dosages = find_dosages(raw_text)
+    canonical_dosages = {canonicalize_dosage(item) for item in dosages}
+    best_trust, best_dosage_confidence = 0.0, dosage_confidence
+    best_tier = "low"
+    scored: list[LinkedMedicineResponse] = []
+    for suggestion in suggestions:
+        catalog_dosage = canonicalize_dosage(suggestion.fda_dosage_strength)
+        dosage_matched = bool(catalog_dosage and catalog_dosage in canonical_dosages)
+        dosage_conflict = bool(canonical_dosages and catalog_dosage and not dosage_matched)
+        raw_score = (
+            0.40 * ocr_confidence
+            + 0.40 * suggestion.match_score
+            + 0.20 * float(dosage_matched)
+        )
+        if dosage_conflict:
+            raw_score = max(0.0, raw_score - 0.25)
+            raw_score = min(raw_score, 0.64)
+        elif not dosage_matched or dosage_confidence < 0.85:
+            raw_score = min(raw_score, 0.79)
+        tier = "high" if raw_score >= 0.85 else "medium" if raw_score >= 0.65 else "low"
+        scored.append(
+            suggestion.model_copy(
+                update={
+                    "trust_score": round(raw_score, 4),
+                    "trust_tier": tier,
+                }
+            )
+        )
+        if raw_score > best_trust:
+            best_trust, best_dosage_confidence, best_tier = (
+                raw_score,
+                dosage_confidence if dosage_matched else 0.0,
+                tier,
+            )
+    return scored, best_trust, best_dosage_confidence, best_tier
 
 
 def _key(text: str | None) -> str:

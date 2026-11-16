@@ -48,11 +48,31 @@ class LinkedMedicineResponse(BaseModel):
     match_score: float = Field(ge=0, le=1)
     confidence_percentage: int = Field(default=0, ge=0, le=100)
     confidence_level: Literal["max", "high", "medium", "low"] = "low"
+    trust_score: float | None = Field(default=None, ge=0, le=1)
+    trust_tier: Literal["high", "medium", "low"] | None = None
     accuracy_guidance: str = Field(
         default="Use a clear, well-lit photo showing the full brand or generic name and dosage.",
         min_length=1,
         max_length=500,
     )
+
+
+class ScanTelemetry(BaseModel):
+    """Auditable OCR, confidence, and latency details for one scan."""
+
+    raw_ocr_text: str = ""
+    grounded_text: str = ""
+    clahe_applied: bool = False
+    roi_fallback_used: bool = False
+    ocr_confidence: float = Field(default=0, ge=0, le=1)
+    dosage_confidence: float = Field(default=0, ge=0, le=1)
+    fda_match_score: float = Field(default=0, ge=0, le=1)
+    trust_score: float = Field(default=0, ge=0, le=1)
+    trust_tier: Literal["high", "medium", "low"] = "low"
+    preprocess_ms: int = Field(default=0, ge=0)
+    ocr_ms: int = Field(default=0, ge=0)
+    grounding_ms: int = Field(default=0, ge=0)
+    total_latency_ms: int = Field(default=0, ge=0)
 
 
 class OCRResponse(BaseModel):
@@ -65,3 +85,4 @@ class OCRResponse(BaseModel):
     message: str = Field(min_length=1, max_length=500)
     entities: ExtractedEntityResponse
     suggested_medicines: list[LinkedMedicineResponse] = Field(default_factory=list)
+    telemetry: ScanTelemetry = Field(default_factory=ScanTelemetry)
