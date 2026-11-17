@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import SaveLoginDialog from '@/components/SaveLoginDialog';
 import { MockAuth } from '@/mock/mockAuth';
 import { isValidEmail, MIN_PASSWORD } from '@/lib/validation';
 import { Colors, Radius, Spacing } from '@/constants/display';
+import TermsConsentModal from '../components/TermsConsentModal';
 
 // Sign Up ("Sign in" button sa Log In screen).
 //
@@ -29,6 +30,7 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [askSave, setAskSave] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
 
   const onSignUp = async () => {
     setError(null);
@@ -64,6 +66,34 @@ export default function SignUpScreen() {
     router.replace('/choose-profile');
   };
 
+  const handleSignUpClick = () => {
+    if (!email.trim() || !password.trim() || !confirm.trim()) {
+      Alert.alert('Required Fields', 'Please fill in all fields.');
+      return;
+    }
+    if (password !== confirm) {
+      Alert.alert('Password Mismatch', 'Passwords do not match.');
+      return;
+    }
+    setShowConsentModal(true);
+  };
+
+  const handleAcceptTerms = async () => {
+    setShowConsentModal(false);
+
+    // Calls your teammate's original signup logic
+    onSignUp();
+  };
+
+  const handleRejectTerms = () => {
+    setShowConsentModal(false);
+    Alert.alert(
+      'Terms Required',
+      'You must accept the Philippine-Compliant Terms of Service and Medical Disclaimer to create a MediScan account.'
+    );
+  };
+
+
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <StatusBar style="light" />
@@ -72,7 +102,7 @@ export default function SignUpScreen() {
 
         <View style={styles.body}>
           <Text style={styles.title}>Create your account</Text>
-          <Text style={styles.subtitle}>Sign up to start keeping your family's medicines organized.</Text>
+          <Text style={styles.subtitle}>Sign up to start keeping your family&apos;s medicines organized.</Text>
 
           <FormError message={error} />
 
@@ -102,7 +132,7 @@ export default function SignUpScreen() {
             onSubmitEditing={onSignUp}
           />
 
-          <Pressable style={[styles.primaryBtn, loading && styles.disabled]} onPress={onSignUp} disabled={loading}>
+          <Pressable style={[styles.primaryBtn, loading && styles.disabled]} onPress={handleSignUpClick} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Sign Up</Text>}
           </Pressable>
 
@@ -121,6 +151,12 @@ export default function SignUpScreen() {
       </ScrollView>
 
       <SaveLoginDialog visible={askSave} onAnswer={onAnswerSave} />
+       <TermsConsentModal
+        visible={showConsentModal}
+        onAccept={handleAcceptTerms}
+        onReject={handleRejectTerms}
+      />
+
     </KeyboardAvoidingView>
   );
 }
