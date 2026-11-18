@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict HzzlWZEajjbHDn6weUMQ9RvhowM6xIZPQKNpv0ezaXwmWZdGIg71qdineP9Zodf
+\restrict nwzBRGsAGkBzU2neEfA2PFJhNKnnOfxWlwJRilVSa7ognScMq34lPyimTW2O1f4
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -31565,7 +31565,7 @@ b71c4e7c36b2340f	6d72a08b-2ecc-4c86-9960-6503f8791604	t	Updated Frontend	updated
 --
 
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
-466f41ec-6d39-4408-a065-91b53c4edab0	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	a8d1147baeb4022dbed0c9bc17fef543093e8e1ed730f63fb9554366183df44d	2026-11-18 12:48:43.235802	2026-11-25 12:48:43.226987
+0dea22de-1694-4cab-979e-a57294bd076c	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	439549f98aec69745d760fbc1b51219c295c81c8627c5f7a5d725547fd2328eb	2026-11-18 13:34:48.238842	2026-11-25 13:34:48.23406
 \.
 
 
@@ -62552,28 +62552,28 @@ COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_
 -- Name: medication_logs_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 485, true);
+SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 519, true);
 
 
 --
 -- Name: medication_schedules_schedule_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 486, true);
+SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 520, true);
 
 
 --
 -- Name: philippines_fda_medicines_fda_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62639, true);
+SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62675, true);
 
 
 --
 -- Name: vault_items_vault_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 497, true);
+SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 535, true);
 
 
 --
@@ -62835,5 +62835,5 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict HzzlWZEajjbHDn6weUMQ9RvhowM6xIZPQKNpv0ezaXwmWZdGIg71qdineP9Zodf
+\unrestrict nwzBRGsAGkBzU2neEfA2PFJhNKnnOfxWlwJRilVSa7ognScMq34lPyimTW2O1f4
 
