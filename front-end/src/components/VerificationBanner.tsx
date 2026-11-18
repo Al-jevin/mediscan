@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { Assets } from '@/constants/assets';
 import { Colors, Radius, Spacing, Type } from '@/constants/display';
 import type { ScanState } from '@/data/mockScanResults';
+import type { ConfidenceTier } from '@/services/scanApi';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
 const SubtleText = '#7E7B77';
@@ -35,8 +36,8 @@ const variants = {
     icon: Assets.icons.warningRed,
     iconSize: { width: 90, height: 89 },
     title: Red,
-    badgeBg: undefined,
-    badgeText: undefined,
+    badgeBg: Colors.statusDangerSoft,
+    badgeText: Colors.statusDanger,
   },
 } as const;
 
@@ -45,11 +46,26 @@ type Props = {
   title: string;         // e.g. "Verified Medicine"
   subtitle?: string;     // e.g. "High confidence match" (not shown for no_results)
   confidence?: number;   // 0-100 (not shown for no_results)
+  confidenceLabel?: string;
+  confidenceTier?: ConfidenceTier | null;
 };
 
 // Banner at the top of the Scan Result screen. Looks different for each state.
-export default function VerificationBanner({ status, title, subtitle, confidence }: Props) {
-  const v = variants[status];
+export default function VerificationBanner({
+  status,
+  title,
+  subtitle,
+  confidence,
+  confidenceLabel = 'Confidence',
+  confidenceTier,
+}: Props) {
+  const colorStatus: ScanState =
+    status === 'no_results' || confidenceTier === 'low'
+      ? 'no_results'
+      : status === 'needs_verification' || confidenceTier === 'medium'
+        ? 'needs_verification'
+        : 'verified';
+  const v = variants[colorStatus];
 
   return (
     <View
@@ -64,7 +80,7 @@ export default function VerificationBanner({ status, title, subtitle, confidence
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {confidence !== undefined && v.badgeBg ? (
         <View style={[styles.confidence, { backgroundColor: v.badgeBg }]}>
-          <Text style={[styles.confidenceText, { color: v.badgeText }]}>Confidence: {confidence}%</Text>
+          <Text style={[styles.confidenceText, { color: v.badgeText }]}>{confidenceLabel}: {confidence}%</Text>
         </View>
       ) : null}
     </View>

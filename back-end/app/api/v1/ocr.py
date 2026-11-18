@@ -91,7 +91,7 @@ async def extract_label(
     nlp_started = perf_counter()
     extracted_data = await extract_entities(raw_text)
     nlp_ms = round((perf_counter() - nlp_started) * 1000)
-    print(f"\n--- NLP JSON RESULT ---\n{extracted_data}\n")
+    print(f"\n--- NLP JSON RESULT ---\n{extracted_data}\n", flush=True)
 
     db_match_started = perf_counter()
     # The dataset matcher tolerates OCR misreads and returns alternatives, so it goes first.
@@ -204,6 +204,28 @@ async def extract_label(
         total_ms=total_ms,
         total_latency_ms=total_ms,
     )
+    match_summary = (
+        f"{linked_medicine.confidence_percentage}% "
+        f"(score {linked_medicine.match_score:.3f})"
+        if linked_medicine
+        else "No match"
+    )
+    print(
+        "\n--- SCAN TELEMETRY ---\n"
+        f"Stage: {telemetry.stage}\n"
+        f"OCR confidence: {ocr_result.confidence:.0%}\n"
+        f"Dosage OCR confidence: {dosage_confidence:.0%}\n"
+        f"FDA match: {match_summary}\n"
+        f"Trust: {trust_score:.0%} ({confidence_tier.upper()})\n"
+        f"Dosage match: {dosage_match_status}\n"
+        f"Safety cap: {safety_cap_reason or 'None'}\n"
+        f"Preprocessing: {', '.join(preprocessing) or 'None'}\n"
+        "Latency (ms): "
+        f"preprocess={ocr_result.preprocess_ms}, "
+        f"ocr={ocr_result.ocr_ms}, nlp={nlp_ms}, "
+        f"db_match={db_match_ms}, total={total_ms}\n",
+        flush=True,
+    )
     if linked_medicine:
         print(
             "\n--- SUGGESTED MEDICINE ---\n"
@@ -212,14 +234,16 @@ async def extract_label(
             f"Accuracy: {linked_medicine.confidence_percentage}% "
             f"({linked_medicine.confidence_level.upper()})\n"
             f"Trust: {trust_score:.2f} ({confidence_tier.upper()})\n"
-            f"Guidance: {linked_medicine.accuracy_guidance}\n"
+            f"Guidance: {linked_medicine.accuracy_guidance}\n",
+            flush=True,
         )
     else:
         print(
             "\n--- SUGGESTED MEDICINE ---\n"
             "No match found\n"
             "Accuracy: 0% (LOW)\n"
-            "Guidance: Use a clear, well-lit photo showing the full brand or generic name and dosage.\n"
+            "Guidance: Use a clear, well-lit photo showing the full brand or generic name and dosage.\n",
+            flush=True,
         )
     return OCRResponse(
         success=True,

@@ -15,7 +15,7 @@ from schemas.ocr import ExtractedEntityResponse, LinkedMedicineResponse
 from services.vision import OCRLine, OCRResult
 
 
-def test_extract_label_returns_database_medicine_identifier(monkeypatch):
+def test_extract_label_returns_database_medicine_identifier(monkeypatch, capsys):
     async def fake_extract_ocr_result(_image_bytes):
         lines = (
             OCRLine("BIOGESIC PARACETAMOL", 0.95, (), 0, "primary_header"),
@@ -50,6 +50,7 @@ def test_extract_label_returns_database_medicine_identifier(monkeypatch):
         fda_dosage_strength="500 mg",
         match_type="exact",
         match_score=1.0,
+        confidence_percentage=100,
     )
     database_row = {
         "fda_id": 9284,
@@ -87,6 +88,7 @@ def test_extract_label_returns_database_medicine_identifier(monkeypatch):
     assert payload["suggested_medicines"][0]["fda_id"] == 9284
     assert payload["suggested_medicines"][0]["fda_brandname"] == "Biogesic"
     assert payload["trust_score"] == 0.98
+    assert payload["telemetry"]["fda_match_score"] == 1.0
     assert payload["confidence_tier"] == "high"
     assert payload["dosage_match_status"] == "matched"
     assert payload["safety_cap_reason"] is None
@@ -98,6 +100,11 @@ def test_extract_label_returns_database_medicine_identifier(monkeypatch):
     assert payload["telemetry"]["latency_ms"]["preprocess_ms"] == 4
     assert payload["telemetry"]["latency_ms"]["ocr_ms"] == 12
     assert payload["telemetry"]["latency_ms"]["total_ms"] > 0
+    terminal_output = capsys.readouterr().out
+    assert "--- SCAN TELEMETRY ---" in terminal_output
+    assert "OCR confidence: 95%" in terminal_output
+    assert "Trust: 98% (HIGH)" in terminal_output
+    assert "Dosage match: matched" in terminal_output
 
 
 def test_extract_label_caps_trust_on_dosage_conflict(monkeypatch):
@@ -130,6 +137,7 @@ def test_extract_label_caps_trust_on_dosage_conflict(monkeypatch):
         fda_dosage_strength="500 mg",
         match_type="fuzzy",
         match_score=0.98,
+        confidence_percentage=98,
     )
     database_row = {
         "fda_id": 9284,

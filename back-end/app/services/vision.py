@@ -221,7 +221,7 @@ def _extract_text_sync(image_bytes: bytes) -> OCRResult:
     secondary = tuple(
         line.text for line in selected_lines if line.zone == "secondary_body"
     )
-    print(f"\n--- RAW OCR OUTPUT ---\n{readable_text or 'No text detected'}\n")
+    print(f"\n--- RAW OCR OUTPUT ---\n{readable_text or 'No text detected'}\n", flush=True)
     return OCRResult(
         text=readable_text,
         lines=selected_lines,

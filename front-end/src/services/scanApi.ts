@@ -8,27 +8,36 @@ import { MockAuth } from '@/mock/mockAuth';
 
 // Shape of POST /api/v1/ocr/extract-label (back-end/app/schemas/ocr.py). Only the fields the app reads.
 type OcrMedicine = FdaMedicine & {
+  match_score?: number;
   confidence_percentage: number;
+  trust_score?: number | null;
+  trust_tier?: 'high' | 'medium' | 'low' | null;
 };
 type OcrEntities = {
   medicine_name: string | null;
   dosage: string | null;
+  frequency: string | null;
   expiry_date: string | null;
 };
 
 export type ScanTelemetry = {
+  stage?: 0 | 1 | 2 | null;
+  raw_ocr_text?: string;
+  grounded_text?: string;
   trust_score?: number | null;
   confidence_tier?: 'high' | 'medium' | 'low' | null;
   trust_tier?: 'high' | 'medium' | 'low' | null;
   dosage_match_status?: string | null;
   safety_cap_reason?: string | null;
-  stage?: number | null;
   applied_preprocessing?: string[] | null;
   quarantined_distractors?: string[] | null;
   primary_header_lines?: string[] | null;
   secondary_body_lines?: string[] | null;
   clahe_applied?: boolean | null;
   roi_fallback_used?: boolean | null;
+  ocr_confidence?: number | null;
+  dosage_confidence?: number | null;
+  fda_match_score?: number | null;
   preprocess_ms?: number | null;
   ocr_ms?: number | null;
   nlp_ms?: number | null;
@@ -36,11 +45,24 @@ export type ScanTelemetry = {
   db_match_ms?: number | null;
   total_ms?: number | null;
   total_latency_ms?: number | null;
+  latency_ms?: {
+    preprocess_ms?: number | null;
+    ocr_ms?: number | null;
+    nlp_ms?: number | null;
+    db_match_ms?: number | null;
+    total_ms?: number | null;
+  } | null;
 };
+
+export type ConfidenceTier = 'high' | 'medium' | 'low';
 
 type OcrResponse = {
   entities: OcrEntities;
   suggested_medicines: OcrMedicine[];
+  trust_score?: number | null;
+  confidence_tier?: 'high' | 'medium' | 'low' | null;
+  dosage_match_status?: string | null;
+  safety_cap_reason?: string | null;
   telemetry?: ScanTelemetry;
 };
 
@@ -49,6 +71,38 @@ const REQUEST_TIMEOUT_MS = 90_000; // PaddleOCR on a CPU can take a while
 const VERIFIED_MIN_CONFIDENCE = 90;
 const NEEDS_VERIFICATION_MIN_CONFIDENCE = 65;
 const MAX_POSSIBLE_MATCHES = 4;
+
+export function getConfidenceTier(telemetry: ScanTelemetry): ConfidenceTier | null {
+  const trustScore = telemetry.trust_score;
+  if (typeof trustScore === 'number' && Number.isFinite(trustScore)) {
+    if (trustScore >= 0.85) return 'high';
+    if (trustScore >= 0.65) return 'medium';
+    return 'low';
+  }
+
+  const reportedTier = telemetry.confidence_tier ?? telemetry.trust_tier;
+  switch (reportedTier?.toLowerCase()) {
+    case 'high':
+      return 'high';
+    case 'medium':
+      return 'medium';
+    case 'low':
+      return 'low';
+    default:
+      break;
+  }
+
+  const dosageStatus = telemetry.dosage_match_status?.toLowerCase();
+  if (dosageStatus === 'mismatch' || dosageStatus === 'dosage_conflict') return 'low';
+  if (
+    dosageStatus === 'not_detected' ||
+    dosageStatus === 'missing_dosage' ||
+    dosageStatus === 'unverified'
+  ) {
+    return 'medium';
+  }
+  return null;
+}
 
 // The latest real scan, read by the Scan Result and Edit Medicine screens. Kept here rather than in route
 // params because medicine names can contain "%" (e.g. "5% Dextrose"), which is unsafe in a URL.
@@ -65,10 +119,21 @@ function displayName(medicine: OcrMedicine): string {
   return [medicine.fda_brandname || medicine.fda_genericname, medicine.fda_dosage_strength].filter(Boolean).join(' ');
 }
 
-function toScanResult({ entities, suggested_medicines }: OcrResponse): ScanResult {
-  const candidates = suggested_medicines.filter((m) => m.confidence_percentage >= NEEDS_VERIFICATION_MIN_CONFIDENCE);
+function getFdaMatchPercentage(medicine: OcrMedicine): number {
+  const score = medicine.match_score;
+  return typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 1
+    ? Math.round(score * 100)
+    : medicine.confidence_percentage;
+}
+
+function toScanResult(response: OcrResponse): ScanResult {
+  const { entities, suggested_medicines } = response;
+  const candidates = suggested_medicines.filter(
+    (medicine) => getFdaMatchPercentage(medicine) >= NEEDS_VERIFICATION_MIN_CONFIDENCE,
+  );
   const best = candidates[0];
-  const confidence = best?.confidence_percentage ?? 0;
+  const confidence = best ? getFdaMatchPercentage(best) : 0;
+  const safetyTier = getConfidenceTier(toScanTelemetry(response));
 
   if (!best) {
     return {
@@ -84,7 +149,10 @@ function toScanResult({ entities, suggested_medicines }: OcrResponse): ScanResul
   const form = best.fda_dosage_form ?? '';
   const strength = best.fda_dosage_strength ?? '';
 
-  if (confidence < VERIFIED_MIN_CONFIDENCE) {
+  if (
+    confidence < VERIFIED_MIN_CONFIDENCE ||
+    (safetyTier !== null && safetyTier !== 'high')
+  ) {
     return {
       status: 'needs_verification',
       confidence,
@@ -94,7 +162,7 @@ function toScanResult({ entities, suggested_medicines }: OcrResponse): ScanResul
         category: m.fda_genericname,
         form: m.fda_dosage_form ?? '',
         strength: m.fda_dosage_strength ?? '',
-        similarity: m.confidence_percentage,
+        similarity: getFdaMatchPercentage(m),
         medicine: m,
       })),
     };
@@ -102,7 +170,9 @@ function toScanResult({ entities, suggested_medicines }: OcrResponse): ScanResul
 
   // The same product can be registered by several makers, so only name one when the matches agree.
   const manufacturerIsCertain = candidates.every(
-    (m) => m.confidence_percentage < confidence || m.fda_manufacturer === best.fda_manufacturer,
+    (m) =>
+      getFdaMatchPercentage(m) < confidence ||
+      m.fda_manufacturer === best.fda_manufacturer,
   );
 
   return {
@@ -120,6 +190,47 @@ function toScanResult({ entities, suggested_medicines }: OcrResponse): ScanResul
       !!form && { icon: Assets.icons.medicineType, label: 'Medicine Type', value: form },
       !!strength && { icon: Assets.icons.strength, label: 'Strength', value: strength },
     ]),
+  };
+}
+
+function toScanTelemetry(response: OcrResponse): ScanTelemetry {
+  const telemetry = response.telemetry ?? {};
+  const best =
+    response.suggested_medicines.find(
+      (medicine) => getFdaMatchPercentage(medicine) >= NEEDS_VERIFICATION_MIN_CONFIDENCE,
+    ) ?? response.suggested_medicines[0];
+  const fdaMatchScore = best
+    ? getFdaMatchPercentage(best) / 100
+    : telemetry.fda_match_score ?? null;
+  const trustScore =
+    response.trust_score ?? telemetry.trust_score ?? best?.trust_score ?? null;
+  const confidenceTier =
+    response.confidence_tier ??
+    telemetry.confidence_tier ??
+    telemetry.trust_tier ??
+    best?.trust_tier ??
+    (trustScore === null
+      ? null
+      : trustScore >= 0.85
+        ? 'high'
+        : trustScore >= 0.65
+          ? 'medium'
+          : 'low');
+
+  const mappedTelemetry: ScanTelemetry = {
+    ...telemetry,
+    trust_score: trustScore,
+    fda_match_score: fdaMatchScore,
+    confidence_tier: confidenceTier,
+    trust_tier: telemetry.trust_tier ?? best?.trust_tier ?? confidenceTier,
+    dosage_match_status:
+      response.dosage_match_status ?? telemetry.dosage_match_status ?? null,
+    safety_cap_reason:
+      response.safety_cap_reason ?? telemetry.safety_cap_reason ?? null,
+  };
+  return {
+    ...mappedTelemetry,
+    confidence_tier: getConfidenceTier(mappedTelemetry),
   };
 }
 
@@ -159,7 +270,7 @@ export async function scanLabel(imageUri: string): Promise<ScanResult> {
     }
 
     const ocrResponse = responseBody as OcrResponse;
-    latestScanTelemetry = ocrResponse.telemetry ?? null;
+    latestScanTelemetry = toScanTelemetry(ocrResponse);
     latestScan = toScanResult(ocrResponse);
     return latestScan;
   } catch (error) {

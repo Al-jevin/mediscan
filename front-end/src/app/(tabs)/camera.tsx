@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { scanLabel } from "@/services/scanApi";
+import { getLatestScanTelemetry, scanLabel } from "@/services/scanApi";
 
 export default function CameraScreen() {
   const router = useRouter();
@@ -44,7 +44,8 @@ export default function CameraScreen() {
 
       // Step 2: send to the OCR endpoint
       const scan = await scanLabel(result.uri);
-      console.log("Image scan result:", scan.status);
+      console.log("Image scan result:", scan);
+      console.log("Scan telemetry:", getLatestScanTelemetry());
 
       // Step 3: open the Scan Result screen, which reads the latest scan and telemetry.
       router.push("/result");

@@ -16,9 +16,9 @@ import MedicineInfoCard from '@/components/MedicineInfoCard';
 import PossibleMatches from '@/components/PossibleMatches';
 import ScanActions from '@/components/ScanActions';
 import VerificationBanner from '@/components/VerificationBanner';
-import { Colors, Spacing, Type } from '@/constants/display';
+import { Colors, Radius, Spacing, Type } from '@/constants/display';
 import { findPossibleMatch, isScanState, mockScanResults } from '@/data/mockScanResults';
-import { getLatestScan, getLatestScanTelemetry } from '@/services/scanApi';
+import { getConfidenceTier, getLatestScan, getLatestScanTelemetry } from '@/services/scanApi';
 import type { ScanTelemetry } from '@/services/scanApi';
 import { addMedicine } from '@/services/vaultStore';
 import { formatDateInput } from '@/utils/date';
@@ -36,6 +36,25 @@ export default function ResultScreen() {
   const realScan = isScanState(state) ? null : getLatestScan();
   const telemetry = realScan ? getLatestScanTelemetry() : null;
   const result = realScan ?? (isScanState(state) ? mockScanResults[state] : null);
+  const confidenceTier = telemetry ? getConfidenceTier(telemetry) : null;
+  const trustScore = telemetry?.trust_score;
+  const fallbackFdaMatchPercentage =
+    result && result.status !== 'no_results' ? result.confidence : undefined;
+  const telemetryFdaMatchScore = telemetry?.fda_match_score;
+  const fdaMatchPercentage =
+    typeof telemetryFdaMatchScore === 'number' &&
+    Number.isFinite(telemetryFdaMatchScore) &&
+    telemetryFdaMatchScore >= 0 &&
+    telemetryFdaMatchScore <= 1
+      ? Math.round(telemetryFdaMatchScore * 100)
+      : fallbackFdaMatchPercentage;
+  const telemetryConfidence = confidenceTier
+    ? `${confidenceTier[0].toUpperCase()}${confidenceTier.slice(1)} safety confidence${
+        typeof trustScore === 'number' && Number.isFinite(trustScore)
+          ? ` (${Math.round(trustScore * 100)}%)`
+          : ''
+      }`
+    : null;
 
   // Needs Verification: at most one possible match is selected. Tapping the selected one again deselects it.
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -123,8 +142,10 @@ export default function ResultScreen() {
             <VerificationBanner
               status="verified"
               title="Verified Medicine"
-              subtitle="High confidence match"
-              confidence={result.confidence}
+              subtitle={telemetryConfidence ?? 'High confidence match'}
+              confidence={fdaMatchPercentage}
+              confidenceLabel="FDA match"
+              confidenceTier={confidenceTier}
             />
             <View style={styles.label}>
               <MedicineIcon form={getMedicineForm(result.medicine.form)} size={96} />
@@ -142,8 +163,14 @@ export default function ResultScreen() {
             <VerificationBanner
               status="needs_verification"
               title="Needs Verification"
-              subtitle="Moderate confidence match"
-              confidence={result.confidence}
+              subtitle={
+                telemetryConfidence
+                  ? `${telemetryConfidence} · FDA match still needs verification`
+                  : 'Moderate confidence match'
+              }
+              confidence={fdaMatchPercentage}
+              confidenceLabel="FDA match"
+              confidenceTier={confidenceTier}
             />
             <PossibleMatches
               matches={result.matches}
@@ -239,20 +266,21 @@ function ScanTelemetryDrawer({ telemetry }: { telemetry: ScanTelemetry }) {
     typeof telemetry.trust_score === 'number' && Number.isFinite(telemetry.trust_score)
       ? telemetry.trust_score
       : null;
-  const tier =
-    trustScore === null
-      ? telemetry.confidence_tier ?? telemetry.trust_tier ?? null
-      : trustScore >= 0.85
-        ? 'high'
-        : trustScore >= 0.65
-          ? 'medium'
-          : 'low';
+  const tier = getConfidenceTier(telemetry);
   const tierStyle =
     tier === 'high'
       ? styles.telemetryHigh
       : tier === 'medium'
         ? styles.telemetryMedium
         : styles.telemetryLow;
+  const tierTextStyle =
+    tier === 'high'
+      ? styles.telemetryHighText
+      : tier === 'medium'
+        ? styles.telemetryMediumText
+        : styles.telemetryLowText;
+  const fdaMatchScore = formatTelemetryPercent(telemetry.fda_match_score);
+  const formattedTrustScore = formatTelemetryPercent(trustScore);
   const latencyRows: [string, number | null | undefined][] = [
     ['Preprocessing', telemetry.latency_ms?.preprocess_ms ?? telemetry.preprocess_ms],
     ['OCR', telemetry.latency_ms?.ocr_ms ?? telemetry.ocr_ms],
@@ -260,81 +288,99 @@ function ScanTelemetryDrawer({ telemetry }: { telemetry: ScanTelemetry }) {
     ['Database match', telemetry.latency_ms?.db_match_ms ?? telemetry.db_match_ms],
     ['Total', telemetry.latency_ms?.total_ms ?? telemetry.total_ms ?? telemetry.total_latency_ms],
   ];
-  const appliedPreprocessing =
-    telemetry.applied_preprocessing ??
-    [
+  const appliedPreprocessing = Array.from(
+    new Set([
+      ...(telemetry.applied_preprocessing ?? []),
       ...(telemetry.clahe_applied ? ['CLAHE'] : []),
       ...(telemetry.roi_fallback_used ? ['ROI fallback'] : []),
-    ];
+    ]),
+  );
   const hasPreprocessingTelemetry =
-    telemetry.applied_preprocessing !== undefined ||
+    telemetry.applied_preprocessing != null ||
     telemetry.clahe_applied !== undefined ||
     telemetry.roi_fallback_used !== undefined;
 
-  const valueOrNotReported = (value: string | null | undefined) =>
-    value?.trim() ? value : 'Not reported';
   const renderLines = (label: string, lines: string[] | null | undefined) => (
     <View style={styles.telemetrySection}>
-      <Text style={styles.telemetryLabel}>{label}</Text>
+      <Text style={styles.telemetryGroupTitle}>{label}</Text>
       {lines?.length ? (
-        lines.map((line, index) => (
-          <Text key={`${label}-${index}`} style={styles.telemetryValue}>
-            {line}
-          </Text>
-        ))
+        <View style={styles.telemetryTextList}>
+          {lines.map((line, index) => (
+            <Text key={`${label}-${index}`} style={styles.telemetryTextValue}>
+              {line}
+            </Text>
+          ))}
+        </View>
       ) : (
-        <Text style={styles.telemetryValue}>Not reported</Text>
+        <Text style={styles.telemetryMuted}>Not reported</Text>
       )}
     </View>
   );
+
+  const formatStatus = (value: string | null | undefined) =>
+    value
+      ? value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+      : 'Not reported';
+  const safetyCap =
+    telemetry.safety_cap_reason === undefined
+      ? 'Not reported'
+      : telemetry.safety_cap_reason?.trim() || 'None';
 
   return (
     <View style={styles.telemetryDrawer}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded }}
+        accessibilityLabel={`Scan telemetry. FDA match ${fdaMatchScore}; safety trust ${formattedTrustScore}. ${expanded ? 'Hide' : 'Show'} details`}
         onPress={() => setExpanded((isExpanded) => !isExpanded)}
         style={styles.telemetryToggle}
       >
         <View style={styles.telemetryToggleText}>
           <Text style={styles.telemetryTitle}>Scan telemetry</Text>
-          <Text style={styles.telemetryHint}>{expanded ? 'Hide details' : 'Show pipeline details'}</Text>
+          <Text style={styles.telemetryHint}>
+            {expanded
+              ? 'Tap to hide details'
+              : `FDA match ${fdaMatchScore} · Safety trust ${formattedTrustScore}`}
+          </Text>
         </View>
-        <Text style={styles.telemetryToggleIcon}>{expanded ? '−' : '+'}</Text>
+        <View style={styles.telemetryToggleRight}>
+          <View style={[styles.telemetryBadge, tierStyle]}>
+            <Text style={[styles.telemetryBadgeText, tierTextStyle]}>{tier ?? 'Not reported'}</Text>
+          </View>
+          <Text style={styles.telemetryToggleIcon}>{expanded ? '−' : '+'}</Text>
+        </View>
       </Pressable>
 
       {expanded && (
         <View style={styles.telemetryContent}>
           <View style={styles.telemetrySummary}>
-            <View style={styles.telemetryMetric}>
-              <Text style={styles.telemetryLabel}>Trust score</Text>
-              <Text style={styles.telemetryValue}>
-                {trustScore === null ? 'Not reported' : `${Math.round(trustScore * 100)}%`}
-              </Text>
+            <View style={styles.telemetryMetricCard}>
+              <Text style={styles.telemetryLabel}>FDA match</Text>
+              <Text style={styles.telemetryScoreValue}>{fdaMatchScore}</Text>
+              <Text style={styles.telemetryHint}>Catalog similarity</Text>
             </View>
-            <View style={styles.telemetryMetric}>
-              <Text style={styles.telemetryLabel}>Confidence tier</Text>
+            <View style={styles.telemetryMetricCard}>
+              <Text style={styles.telemetryLabel}>Safety trust</Text>
+              <Text style={styles.telemetryScoreValue}>{formattedTrustScore}</Text>
               <View style={[styles.telemetryBadge, tierStyle]}>
-                <Text style={styles.telemetryBadgeText}>{tier ?? 'Not reported'}</Text>
+                <Text style={[styles.telemetryBadgeText, tierTextStyle]}>
+                  {tier ?? 'Not reported'}
+                </Text>
               </View>
             </View>
           </View>
 
-          <TelemetryRow label="Stage" value={telemetry.stage ?? null} suffix="" />
-          <TelemetryRow
-            label="Dosage match"
-            value={valueOrNotReported(telemetry.dosage_match_status)}
-            suffix=""
-          />
-          <TelemetryRow
-            label="Safety cap"
-            value={valueOrNotReported(telemetry.safety_cap_reason) === 'Not reported'
-              ? 'None reported'
-              : valueOrNotReported(telemetry.safety_cap_reason)}
-            suffix=""
-          />
+          <View style={styles.telemetrySection}>
+            <Text style={styles.telemetryGroupTitle}>Safety checks</Text>
+            <TelemetryRow label="Dosage match" value={formatStatus(telemetry.dosage_match_status)} />
+            <TelemetryRow label="Safety cap" value={safetyCap} />
+          </View>
 
           <View style={styles.telemetrySection}>
+            <Text style={styles.telemetryGroupTitle}>Image processing</Text>
+            <TelemetryRow label="Pipeline stage" value={telemetry.stage === undefined ? 'Not reported' : `Stage ${telemetry.stage}`} />
+            <TelemetryRow label="OCR confidence" value={formatTelemetryPercent(telemetry.ocr_confidence)} />
+            <TelemetryRow label="Dosage OCR confidence" value={formatTelemetryPercent(telemetry.dosage_confidence)} />
             <Text style={styles.telemetryLabel}>Applied preprocessing</Text>
             {appliedPreprocessing.length ? (
               <View style={styles.telemetryChips}>
@@ -345,10 +391,22 @@ function ScanTelemetryDrawer({ telemetry }: { telemetry: ScanTelemetry }) {
                 ))}
               </View>
             ) : (
-              <Text style={styles.telemetryValue}>
+              <Text style={styles.telemetryMuted}>
                 {hasPreprocessingTelemetry ? 'No preprocessing reported as applied' : 'Not reported'}
               </Text>
             )}
+          </View>
+
+          <View style={styles.telemetrySection}>
+            <Text style={styles.telemetryGroupTitle}>OCR text</Text>
+            <Text style={styles.telemetryLabel}>Raw output</Text>
+            <Text style={styles.telemetryTextValue}>
+              {telemetry.raw_ocr_text?.trim() || 'Not reported'}
+            </Text>
+            <Text style={styles.telemetryLabel}>Grounded text</Text>
+            <Text style={styles.telemetryTextValue}>
+              {telemetry.grounded_text?.trim() || 'Not reported'}
+            </Text>
           </View>
 
           {renderLines('Quarantined distractors', telemetry.quarantined_distractors)}
@@ -356,12 +414,12 @@ function ScanTelemetryDrawer({ telemetry }: { telemetry: ScanTelemetry }) {
           {renderLines('Secondary body lines', telemetry.secondary_body_lines)}
 
           <View style={styles.telemetrySection}>
-            <Text style={styles.telemetryLabel}>Latency</Text>
+            <Text style={styles.telemetryGroupTitle}>Pipeline latency</Text>
             {latencyRows.map(([label, milliseconds]) => (
               <TelemetryRow
                 key={label}
                 label={label}
-                value={milliseconds ?? null}
+                value={milliseconds ?? 'Not reported'}
                 suffix={typeof milliseconds === 'number' ? ' ms' : ''}
               />
             ))}
@@ -375,25 +433,30 @@ function ScanTelemetryDrawer({ telemetry }: { telemetry: ScanTelemetry }) {
 function TelemetryRow({
   label,
   value,
-  suffix,
+  suffix = '',
 }: {
   label: string;
-  value: string | number | null;
-  suffix: string;
+  value: string | number;
+  suffix?: string;
 }) {
-  const displayValue =
-    value === null
-      ? 'Not reported'
-      : typeof value === 'number'
-        ? value.toLocaleString()
-        : value;
-
   return (
     <View style={styles.telemetryRow}>
-      <Text style={styles.telemetryLabel}>{label}</Text>
-      <Text style={styles.telemetryValue}>{displayValue}{displayValue === 'Not reported' ? '' : suffix}</Text>
+      <Text style={styles.telemetryRowLabel}>{label}</Text>
+      <Text style={styles.telemetryValue}>
+        {typeof value === 'number' ? value.toLocaleString() : value}
+        {suffix}
+      </Text>
     </View>
   );
+}
+
+function formatTelemetryPercent(value: number | null | undefined): string {
+  return typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= 1
+    ? `${Math.round(value * 100)}%`
+    : 'Not reported';
 }
 
 const styles = StyleSheet.create({
@@ -469,10 +532,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.sm,
   },
-  telemetryToggleText: { gap: 2 },
+  telemetryToggleText: { flex: 1, gap: 2 },
   telemetryTitle: { ...Type.label, fontWeight: '700', color: Colors.textPrimary },
   telemetryHint: { ...Type.caption, color: Colors.textSecondary },
+  telemetryToggleRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   telemetryToggleIcon: { ...Type.h3, color: Colors.textSecondary },
   telemetryContent: {
     borderTopWidth: 1,
@@ -480,22 +545,61 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.md,
   },
-  telemetrySummary: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.lg },
-  telemetryMetric: { gap: Spacing.xs },
+  telemetrySummary: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  telemetryMetricCard: {
+    flex: 1,
+    minWidth: 125,
+    gap: Spacing.xs,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfaceSecondary,
+    padding: Spacing.md,
+  },
+  telemetryScoreValue: { ...Type.h2, color: Colors.textPrimary },
   telemetryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: Spacing.md,
+    paddingVertical: Spacing.xs,
   },
-  telemetrySection: { gap: Spacing.xs },
+  telemetrySection: {
+    gap: Spacing.sm,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfaceSecondary,
+    padding: Spacing.md,
+  },
+  telemetryGroupTitle: { ...Type.label, fontWeight: '700', color: Colors.textPrimary },
   telemetryLabel: { ...Type.caption, color: Colors.textSecondary },
-  telemetryValue: { ...Type.caption, color: Colors.textPrimary, flexShrink: 1 },
-  telemetryBadge: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  telemetryBadgeText: { ...Type.caption, fontWeight: '700', color: Colors.textPrimary },
+  telemetryRowLabel: { ...Type.caption, color: Colors.textSecondary, width: '38%' },
+  telemetryValue: {
+    ...Type.body,
+    color: Colors.textPrimary,
+    flex: 1,
+    textAlign: 'right',
+  },
+  telemetryMuted: { ...Type.body, color: Colors.textSecondary },
+  telemetryTextList: { gap: Spacing.xs },
+  telemetryTextValue: {
+    ...Type.body,
+    color: Colors.textPrimary,
+    lineHeight: 22,
+    backgroundColor: Colors.surfacePrimary,
+    borderRadius: Radius.sm,
+    padding: Spacing.sm,
+  },
+  telemetryBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  telemetryBadgeText: { ...Type.caption, fontWeight: '700' },
   telemetryHigh: { backgroundColor: Colors.statusSuccessSoft },
   telemetryMedium: { backgroundColor: Colors.statusWarningSoft },
   telemetryLow: { backgroundColor: Colors.statusDangerSoft },
+  telemetryHighText: { color: Colors.statusSuccess },
+  telemetryMediumText: { color: Colors.statusWarning },
+  telemetryLowText: { color: Colors.statusDanger },
   telemetryChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   telemetryChip: {
     borderRadius: 999,
