@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { scanLabel } from "@/services/scanApi";
+import { getLatestScanId, scanLabel } from "@/services/scanApi";
 
 export default function CameraScreen() {
   const router = useRouter();
@@ -46,8 +46,11 @@ export default function CameraScreen() {
       const scan = await scanLabel(result.uri);
       console.log("Image scan result:", scan.status);
 
-      // Step 3: open the Scan Result screen, which reads the latest scan and telemetry.
-      router.push("/result");
+      const scanId = getLatestScanId();
+      if (!scanId) throw new Error("The scan completed without a result snapshot.");
+
+      // Step 3: identify this scan so an existing result route displays the matching result and telemetry.
+      router.push({ pathname: "/result", params: { scanId } });
     } catch (e) {
       console.log("Processing failed:", e);
       Alert.alert(
