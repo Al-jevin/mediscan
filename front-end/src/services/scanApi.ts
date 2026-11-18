@@ -18,8 +18,6 @@ type OcrEntities = {
   expiry_date: string | null;
 };
 
-export type ConfidenceTier = 'high' | 'medium' | 'low';
-
 export type ScanTelemetry = {
   stage?: 0 | 1 | 2 | null;
   raw_ocr_text?: string;
@@ -54,11 +52,6 @@ export type ScanTelemetry = {
   } | null;
 };
 
-export type ScanSnapshot = {
-  result: ScanResult;
-  telemetry: ScanTelemetry;
-};
-
 type OcrResponse = {
   entities: OcrEntities;
   suggested_medicines: OcrMedicine[];
@@ -77,44 +70,8 @@ const MAX_POSSIBLE_MATCHES = 4;
 
 let latestScan: ScanResult | null = null;
 let latestScanTelemetry: ScanTelemetry | null = null;
-let latestScanId: string | null = null;
-let nextScanId = 0;
-const scanSnapshots = new Map<string, ScanSnapshot>();
 export const getLatestScan = () => latestScan;
 export const getLatestScanTelemetry = () => latestScanTelemetry;
-export const getLatestScanId = () => latestScanId;
-export const getScanSnapshot = (scanId: string) => scanSnapshots.get(scanId) ?? null;
-
-export function getConfidenceTier(telemetry: ScanTelemetry): ConfidenceTier | null {
-  const dosageStatus = telemetry.dosage_match_status?.toLowerCase();
-  if (dosageStatus === 'mismatch' || dosageStatus === 'dosage_conflict') return 'low';
-  if (
-    dosageStatus === 'not_detected' ||
-    dosageStatus === 'missing_dosage' ||
-    dosageStatus === 'unverified'
-  ) {
-    return 'medium';
-  }
-
-  const trustScore = telemetry.trust_score;
-  if (typeof trustScore === 'number' && Number.isFinite(trustScore)) {
-    if (trustScore >= 0.85) return 'high';
-    if (trustScore >= 0.65) return 'medium';
-    return 'low';
-  }
-
-  const reportedTier = telemetry.confidence_tier ?? telemetry.trust_tier;
-  switch (reportedTier?.toLowerCase()) {
-    case 'high':
-      return 'high';
-    case 'medium':
-      return 'medium';
-    case 'low':
-      return 'low';
-    default:
-      return null;
-  }
-}
 
 function toInfoRows(rows: (MedicineInfoRow | false)[]): MedicineInfoRow[] {
   return rows.filter((row): row is MedicineInfoRow => row !== false);
@@ -200,7 +157,7 @@ function toScanTelemetry(response: OcrResponse): ScanTelemetry {
           ? 'medium'
           : 'low');
 
-  const mappedTelemetry: ScanTelemetry = {
+  return {
     ...telemetry,
     trust_score: trustScore,
     confidence_tier: confidenceTier,
@@ -209,10 +166,6 @@ function toScanTelemetry(response: OcrResponse): ScanTelemetry {
       response.dosage_match_status ?? telemetry.dosage_match_status ?? null,
     safety_cap_reason:
       response.safety_cap_reason ?? telemetry.safety_cap_reason ?? null,
-  };
-  return {
-    ...mappedTelemetry,
-    confidence_tier: getConfidenceTier(mappedTelemetry),
   };
 }
 
@@ -251,12 +204,8 @@ export async function scanLabel(imageUri: string): Promise<ScanResult> {
 
     const ocrResponse = responseBody as OcrResponse;
     const result = toScanResult(ocrResponse);
-    const telemetry = toScanTelemetry(ocrResponse);
-    const scanId = `${Date.now()}-${++nextScanId}`;
     latestScan = result;
-    latestScanTelemetry = telemetry;
-    latestScanId = scanId;
-    scanSnapshots.set(scanId, { result, telemetry });
+    latestScanTelemetry = toScanTelemetry(ocrResponse);
     return result;
   } catch (error) {
     if (controller.signal.aborted) {

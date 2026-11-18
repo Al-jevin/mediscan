@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict AJ0NMShS7FvTeK8wM6dRgjGVGUxA8UZBqaaaMFIuym6EZIa4A7vEVO9uIqmWIeG
+\restrict 2uVRE2KMQbSZsvB5jZNiyDyQj0yF8b9yh9IkP7fJzIOpc5ZFkXibv1qCXMsTcKB
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -62528,7 +62528,6 @@ COPY public.test_philippine_fda_medicines (fda_id, fda_registration_id, fda_appr
 --
 
 COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_created_at, vault_updated_at, vault_note, vault_status, vault_source, vault_confidence) FROM stdin;
-417	7c549b52906e9ccd	45901	2030-10-10	2026-11-18 08:46:18.308605	2026-11-18 08:46:18.308605		verified	scan	100
 \.
 
 
@@ -62557,7 +62556,7 @@ SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62563, t
 -- Name: vault_items_vault_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 417, true);
+SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 416, true);
 
 
 --
@@ -62819,5 +62818,5 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict AJ0NMShS7FvTeK8wM6dRgjGVGUxA8UZBqaaaMFIuym6EZIa4A7vEVO9uIqmWIeG
+\unrestrict 2uVRE2KMQbSZsvB5jZNiyDyQj0yF8b9yh9IkP7fJzIOpc5ZFkXibv1qCXMsTcKB
 

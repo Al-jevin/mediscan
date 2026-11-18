@@ -18,12 +18,7 @@ import ScanActions from '@/components/ScanActions';
 import VerificationBanner from '@/components/VerificationBanner';
 import { Colors, Spacing, Type } from '@/constants/display';
 import { findPossibleMatch, isScanState, mockScanResults } from '@/data/mockScanResults';
-import {
-  getConfidenceTier,
-  getLatestScan,
-  getLatestScanTelemetry,
-  getScanSnapshot,
-} from '@/services/scanApi';
+import { getLatestScan, getLatestScanTelemetry } from '@/services/scanApi';
 import type { ScanTelemetry } from '@/services/scanApi';
 import { addMedicine } from '@/services/vaultStore';
 import { formatDateInput } from '@/utils/date';
@@ -37,22 +32,9 @@ const EmptyText = '#B9B9B9';
 // Shows the latest real scan. To preview a mock state, use /result?state=verified | needs_verification | no_results
 export default function ResultScreen() {
   const router = useRouter();
-  const { state, scanId: scanIdParam } = useLocalSearchParams<{
-    state?: string;
-    scanId?: string | string[];
-  }>();
-  const scanId = Array.isArray(scanIdParam) ? scanIdParam[0] : scanIdParam;
-  const scanSnapshot = scanId ? getScanSnapshot(scanId) : null;
-  const realScan = isScanState(state)
-    ? null
-    : scanId
-      ? scanSnapshot?.result ?? null
-      : getLatestScan();
-  const telemetry = realScan
-    ? scanId
-      ? scanSnapshot?.telemetry ?? null
-      : getLatestScanTelemetry()
-    : null;
+  const { state } = useLocalSearchParams<{ state?: string }>();
+  const realScan = isScanState(state) ? null : getLatestScan();
+  const telemetry = realScan ? getLatestScanTelemetry() : null;
   const result = realScan ?? (isScanState(state) ? mockScanResults[state] : null);
 
   // Needs Verification: at most one possible match is selected. Tapping the selected one again deselects it.
@@ -133,18 +115,6 @@ export default function ResultScreen() {
     );
   }
 
-  const confidenceTier = telemetry ? getConfidenceTier(telemetry) : null;
-  const trustScore =
-    typeof telemetry?.trust_score === 'number' && Number.isFinite(telemetry.trust_score)
-      ? telemetry.trust_score
-      : null;
-  const dosageStatus = telemetry?.dosage_match_status?.toLowerCase();
-  const dosageConflict = dosageStatus === 'mismatch' || dosageStatus === 'dosage_conflict';
-  const dosageUnconfirmed =
-    dosageStatus === 'not_detected' ||
-    dosageStatus === 'missing_dosage' ||
-    dosageStatus === 'unverified';
-
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -152,19 +122,9 @@ export default function ResultScreen() {
           <>
             <VerificationBanner
               status="verified"
-              title={dosageConflict ? 'Dosage Conflict' : 'Verified Medicine'}
-              subtitle={
-                dosageConflict
-                  ? 'Detected dosage does not match the FDA strength'
-                  : dosageUnconfirmed
-                    ? 'Verify the dosage before saving'
-                    : confidenceTier
-                      ? `${confidenceTier[0].toUpperCase()}${confidenceTier.slice(1)} confidence match`
-                      : 'High confidence match'
-              }
+              title="Verified Medicine"
+              subtitle="High confidence match"
               confidence={result.confidence}
-              confidenceTier={confidenceTier}
-              trustScore={trustScore}
             />
             <View style={styles.label}>
               <MedicineIcon form={getMedicineForm(result.medicine.form)} size={96} />
@@ -181,19 +141,9 @@ export default function ResultScreen() {
           <>
             <VerificationBanner
               status="needs_verification"
-              title={dosageConflict ? 'Dosage Conflict' : 'Needs Verification'}
-              subtitle={
-                dosageConflict
-                  ? 'Detected dosage does not match the FDA strength'
-                  : dosageUnconfirmed
-                    ? 'Verify the dosage before saving'
-                    : confidenceTier
-                      ? `${confidenceTier[0].toUpperCase()}${confidenceTier.slice(1)} confidence match`
-                      : 'Moderate confidence match'
-              }
+              title="Needs Verification"
+              subtitle="Moderate confidence match"
               confidence={result.confidence}
-              confidenceTier={confidenceTier}
-              trustScore={trustScore}
             />
             <PossibleMatches
               matches={result.matches}
@@ -205,12 +155,7 @@ export default function ResultScreen() {
 
         {result.status === 'no_results' && (
           <>
-            <VerificationBanner
-              status="no_results"
-              title={dosageConflict ? 'Dosage Conflict' : 'No Results'}
-              confidenceTier={confidenceTier}
-              trustScore={trustScore}
-            />
+            <VerificationBanner status="no_results" title="No Results" />
             {result.detected?.length ? (
               <>
                 <Text style={styles.detectedHeading}>Read from the label (not matched to a medicine)</Text>
@@ -294,7 +239,14 @@ function ScanTelemetryDrawer({ telemetry }: { telemetry: ScanTelemetry }) {
     typeof telemetry.trust_score === 'number' && Number.isFinite(telemetry.trust_score)
       ? telemetry.trust_score
       : null;
-  const tier = getConfidenceTier(telemetry);
+  const tier =
+    trustScore === null
+      ? telemetry.confidence_tier ?? telemetry.trust_tier ?? null
+      : trustScore >= 0.85
+        ? 'high'
+        : trustScore >= 0.65
+          ? 'medium'
+          : 'low';
   const tierStyle =
     tier === 'high'
       ? styles.telemetryHigh
