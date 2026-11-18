@@ -1,3 +1,5 @@
+import { useAppTheme } from '@/hooks/useAppTheme';
+import { Colors } from '@/constants/display';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { Camera } from 'expo-camera';
@@ -57,14 +59,63 @@ const FAQS = [
 ];
 
 export default function SettingsContent({ onBack }: { onBack?: () => void }) {
+  const { colors } = useAppTheme();
+  const styles = createStyles(colors);  
   // The profile picked on "Choose your profile" + the logged-in account's email
   const profileCtx = useProfile();
   const activeProfile = profileCtx.activeProfile;
   // Uses the email if ProfileContext provides one; shows nothing otherwise
   const email = (profileCtx as unknown as { email?: string }).email ?? '';
 
-  // Saved on/off settings (shared with the camera screen and reminders)
-  const [settings] = useAppSettings();
+// Saved on/off settings (shared with the camera screen and reminders)
+const [settings] = useAppSettings();
+const { appearance, language } = settings;
+
+const translations = {
+  Language: 'Wika',
+  Settings: 'Mga Setting',
+  Display: 'Display',
+  Appearance: 'Hitsura',
+  Light: 'Maliwanag',
+  Dark: 'Madilim',
+  System: 'Sistema',
+  Notifications: 'Mga Abiso',
+  Privacy: 'Pribasiya',
+  English: 'Ingles',
+  Filipino: 'Filipino',
+  Preferences: 'Mga Kagustuhan',
+  'Data & Sync': 'Datos at Pag-sync',
+  'Security & Privacy': 'Seguridad at Pribasiya',
+  Support: 'Suporta',
+  'Offline Database': 'Offline na Database',
+  FAQs: 'Mga Madalas Itanong',
+  'About MediScan': 'Tungkol sa MediScan',
+  'Text Size': 'Laki ng Teksto',
+Preview: 'Halimbawa',
+'Sample Reminder': 'Halimbawang Paalala',
+'This is how your medicine reminders and text will look throughout the app.':
+'Ganito ang magiging hitsura ng iyong mga paalala sa gamot at teksto sa buong app.',
+};
+
+const t = (text: string): string => {
+  if (language === 'Filipino') {
+    return translations[text as keyof typeof translations] ?? text;
+  }
+
+  return text;
+};
+
+  const setAppearance = (
+    value: 'Light' | 'Dark' | 'System'
+  ) => {
+    void updateSettings({ appearance: value });
+  };
+
+  const setLanguage = (
+    value: 'English' | 'Filipino'
+  ) => {
+    void updateSettings({ language: value });
+  };
   // Real phone permissions (null = still checking)
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<boolean | null>(null);
@@ -75,8 +126,6 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   const { medicationReminders, sound, vibration } = settings;
 
   const [screen, setScreen] = useState<Screen>('Settings');
-  const [appearance, setAppearance] = useState('Light');
-  const [language, setLanguage] = useState('English');
   const [textSize, setTextSize] = useState(16);
   const [faqSearch, setFaqSearch] = useState('');
   const [openFaq, setOpenFaq] = useState<string | null>(null);
@@ -298,71 +347,197 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 
 
   const DisplayScreen = () => (
-    <>
-      <Header title="Display" />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <Text style={styles.displaySectionTitle}>Appearance</Text>
-        <View style={styles.appearanceRow}>
-          {[
-            { title: 'Light', icon: 'sunny-outline' as const },
-            { title: 'Dark', icon: 'moon-outline' as const },
-            { title: 'System', icon: 'phone-portrait-outline' as const },
-          ].map(option => {
-            const selected = appearance === option.title;
-            return <Pressable key={option.title} onPress={() => setAppearance(option.title)} style={[styles.appearanceCard, selected && styles.appearanceSelected]}>
+  <>
+    <Header title={t('Display')} />
+
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.content}
+    >
+      <Text style={styles.displaySectionTitle}>
+        {t('Appearance')}
+      </Text>
+
+      <View style={styles.appearanceRow}>
+        {([
+          { title: 'Light', icon: 'sunny-outline' },
+          { title: 'Dark', icon: 'moon-outline' },
+          { title: 'System', icon: 'phone-portrait-outline' },
+        ] as const).map(option => {
+          const selected = appearance === option.title;
+
+          const iconColor = selected
+            ? colors.onAction
+            : colors.actionPrimary;
+
+          return (
+            <Pressable
+              key={option.title}
+              onPress={() => setAppearance(option.title)}
+              style={[
+                styles.appearanceCard,
+                selected && styles.appearanceSelected,
+              ]}
+            >
               <View style={styles.appearanceIcon}>
                 {option.title === 'System' ? (
                   <View style={styles.systemIcon}>
-                    {/* Thin custom outline: desktop monitor behind, phone in front */}
-                    <View style={[styles.desktopMonitor, { borderColor: selected ? 'white' : GREEN }]}>
-                      <View style={[styles.monitorStand, { backgroundColor: selected ? 'white' : GREEN }]} />
-                      <View style={[styles.monitorFoot, { backgroundColor: selected ? 'white' : GREEN }]} />
+                    <View
+                      style={[
+                        styles.desktopMonitor,
+                        { borderColor: iconColor },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.monitorStand,
+                          { backgroundColor: iconColor },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.monitorFoot,
+                          { backgroundColor: iconColor },
+                        ]}
+                      />
                     </View>
-                    <View style={[styles.systemPhone, { borderColor: selected ? 'white' : GREEN, backgroundColor: selected ? SELECTED_LIGHT : 'white' }]}>
-                      <View style={[styles.phoneSpeaker, { backgroundColor: selected ? 'white' : GREEN }]} />
+
+                    <View
+                      style={[
+                        styles.systemPhone,
+                        {
+                          borderColor: iconColor,
+                          backgroundColor: selected
+                            ? colors.actionPrimary
+                            : colors.surfaceSecondary,
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.phoneSpeaker,
+                          { backgroundColor: iconColor },
+                        ]}
+                      />
                     </View>
                   </View>
-                ) : <Ionicons name={option.icon} size={18} color={selected ? 'white' : GREEN} />}
+                ) : (
+                  <Ionicons
+                    name={option.icon}
+                    size={18}
+                    color={iconColor}
+                  />
+                )}
               </View>
-              <Text style={[styles.appearanceText, selected && styles.selectedText]}>{option.title}</Text>
-            </Pressable>;
-          })}
-        </View>
-        <Text style={styles.displaySectionTitle}>Text Size</Text>
-        <View style={styles.sliderCard}>
-          <Text style={styles.smallA}>A</Text>
-          <View style={styles.sliderWrap}>
-            <View pointerEvents="none" style={styles.sliderTicks}>
-              {[0, 1, 2, 3, 4].map((tick) => <View key={tick} style={[styles.sliderTick, (textSize >= 12 + tick * 3) && styles.sliderTickActive]} />)}
-            </View>
-            <Slider style={styles.slider} minimumValue={12} maximumValue={24} step={3} value={Math.round((textSize - 12) / 3) * 3 + 12} onValueChange={setTextSize} minimumTrackTintColor={GREEN} maximumTrackTintColor="#D5D9D8" thumbTintColor="#FFFFFF" />
+
+              <Text
+                style={[
+                  styles.appearanceText,
+                  selected && styles.selectedText,
+                ]}
+              >
+                {t(option.title)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text style={styles.displaySectionTitle}>
+        {t('Text Size')}
+      </Text>
+
+      <View style={styles.sliderCard}>
+        <Text style={styles.smallA}>A</Text>
+
+        <View style={styles.sliderWrap}>
+          <View pointerEvents="none" style={styles.sliderTicks}>
+            {[0, 1, 2, 3, 4].map(tick => (
+              <View
+                key={tick}
+                style={[
+                  styles.sliderTick,
+                  textSize >= 12 + tick * 3 &&
+                    styles.sliderTickActive,
+                ]}
+              />
+            ))}
           </View>
-          <Text style={styles.largeA}>A</Text>
+
+          <Slider
+            style={styles.slider}
+            minimumValue={12}
+            maximumValue={24}
+            step={3}
+            value={Math.round((textSize - 12) / 3) * 3 + 12}
+            onValueChange={setTextSize}
+            minimumTrackTintColor={colors.actionPrimary}
+            maximumTrackTintColor={colors.borderDefault}
+            thumbTintColor={colors.surfacePrimary}
+          />
         </View>
-        <SectionTitle>Preview</SectionTitle>
-        <View style={styles.previewCard}>
-          <Text style={[styles.previewTitle, { fontSize: textSize }]}>Sample Reminder</Text>
-          <Text style={[styles.previewDescription, { fontSize: Math.max(11, textSize - 3) }]}>This is how your medicine reminders and text will look throughout the app.</Text>
-        </View>
-      </ScrollView>
-    </>
-  );
+
+        <Text style={styles.largeA}>A</Text>
+      </View>
+
+      <SectionTitle>{t('Preview')}</SectionTitle>
+
+      <View style={styles.previewCard}>
+        <Text
+          style={[
+            styles.previewTitle,
+            { fontSize: textSize },
+          ]}
+        >
+          {t('Sample Reminder')}
+        </Text>
+
+        <Text
+          style={[
+            styles.previewDescription,
+            { fontSize: Math.max(11, textSize - 3) },
+          ]}
+        >
+          {t('This is how your medicine reminders and text will look throughout the app.')}
+        </Text>
+      </View>
+    </ScrollView>
+  </>
+);
 
 
   const LanguageScreen = () => (
-    <>
-      <Header title="Language" />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <SectionTitle>Language</SectionTitle>
-        {['English', 'Filipino'].map(item => (
-          <Pressable key={item} onPress={() => setLanguage(item)} style={styles.languageCard}>
-            <Text style={styles.languageText}>{item}</Text>
-            {language === item && <Ionicons name="checkmark" size={23} color={GREEN} />}
-          </Pressable>
-        ))}
-      </ScrollView>
-    </>
-  );
+  <>
+    <Header title={t('Language')} />
+
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.content}
+    >
+      <SectionTitle>{t('Language')}</SectionTitle>
+
+      {(['English', 'Filipino'] as const).map(item => (
+        <Pressable
+          key={item}
+          onPress={() => setLanguage(item)}
+          style={styles.languageCard}
+        >
+          <Text style={styles.languageText}>
+            {t(item)}
+          </Text>
+
+          {language === item && (
+            <Ionicons
+              name="checkmark"
+              size={23}
+              color={colors.actionPrimary}
+            />
+          )}
+        </Pressable>
+      ))}
+    </ScrollView>
+  </>
+);
 
 
   const NotificationsScreen = () => (
@@ -639,28 +814,28 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 }
 
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+const createStyles = (colors: typeof Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surfacePrimary },
   main: { flex: 1, minHeight: 0 },
-  headerSafe: { backgroundColor: BG },
-  header: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: BORDER, backgroundColor: BG },
+  headerSafe: { backgroundColor: colors.surfacePrimary },
+  header: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: colors.borderDefault, backgroundColor: colors.surfacePrimary },
   backButton: { width: 36, height: 44, alignItems: 'flex-start', justifyContent: 'center' },
-  headerTitle: { fontSize: 21, fontWeight: '700', color: TEXT },
+  headerTitle: { fontSize: 21, fontWeight: '700', color: colors.textPrimary },
   scroll: { flex: 1 },
   content: { padding: 20, paddingBottom: 30 },
-  profileCard: { minHeight: 82, backgroundColor: 'white', borderRadius: 13, borderWidth: 1, borderColor: '#EDF0F0', flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 22, gap: 12, elevation: 1 },
-  profileName: { fontSize: 19, fontWeight: '800', color: TEXT },
-  email: { color: '#697B79', fontSize: 10, marginTop: 4 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: TEXT, marginBottom: 9, marginTop: 5 },
-  displaySectionTitle: { fontSize: 17, fontWeight: '700', color: TEXT, marginBottom: 9, marginTop: 5, alignSelf: 'stretch', textAlign: 'left' },
-  group: { backgroundColor: 'white', borderWidth: 1, borderColor: BORDER, borderRadius: 12, marginBottom: 19, overflow: 'hidden' },
-  settingRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#EDF0F0' },
-  rowTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: TEXT },
-  rowValue: { fontSize: 12, color: LIGHT_GREEN },
-  pressed: { backgroundColor: '#EDF4F1' },
+  profileCard: { minHeight: 82, backgroundColor: colors.surfaceSecondary, borderRadius: 13, borderWidth: 1, borderColor: colors.borderDefault, flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 22, gap: 12, elevation: 1 },
+  profileName: { fontSize: 19, fontWeight: '800', color: colors.textPrimary },
+  email: { color: colors.textSecondary, fontSize: 10, marginTop: 4 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginBottom: 9, marginTop: 5 },
+  displaySectionTitle: { fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginBottom: 9, marginTop: 5, alignSelf: 'stretch', textAlign: 'left' },
+  group: { backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.borderDefault, borderRadius: 12, marginBottom: 19, overflow: 'hidden' },
+  settingRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: colors.borderDefault },
+  rowTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  rowValue: { fontSize: 12, color: colors.textSecondary },
+  pressed: { backgroundColor: colors.surfaceSecondary },
   appearanceRow: { flexDirection: 'row', gap: 10, marginBottom: 30 },
-  appearanceCard: { flex: 1, height: 82, backgroundColor: 'white', borderWidth: 1, borderColor: '#E5E9E8', borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 7, elevation: 1 },
-  appearanceSelected: { backgroundColor: SELECTED_LIGHT, borderColor: SELECTED_LIGHT },
+  appearanceCard: { flex: 1, height: 82, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: '#E5E9E8', borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 7, elevation: 1 },
+  appearanceSelected: { backgroundColor: colors.actionPrimary, borderColor: colors.actionPrimary },
   appearanceIcon: { minHeight: 23, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   systemIcon: { width: 30, height: 21, position: 'relative', alignItems: 'center', justifyContent: 'center' },
   desktopMonitor: { position: 'absolute', width: 23, height: 15, borderWidth: 1, borderRadius: 2, left: 9, top: 3 },
@@ -676,28 +851,28 @@ const styles = StyleSheet.create({
   sunRayUpperRight: { position: 'absolute', left: 11, top: 4, width: 1.2, height: 2.5, backgroundColor: '#64847D', borderRadius: 1, transform: [{ rotate: '45deg' }] },
   sunRayRight: { position: 'absolute', left: 11, top: 12, width: 2.5, height: 1.2, backgroundColor: '#64847D', borderRadius: 1 },
   syncContent: { paddingHorizontal: 18, paddingTop: 20, paddingBottom: 30 },
-  syncInfoCard: { minHeight: 54, borderWidth: 1, borderColor: '#DDE2E1', borderRadius: 9, backgroundColor: '#FFFFFF', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  syncSmallLabel: { color: '#526662', fontSize: 14, fontWeight: '600' },
-  syncTimestamp: { color: LIGHT_GREEN, fontSize: 14, fontWeight: '500' },
-  syncNowButton: { minHeight: 40, borderRadius: 7, backgroundColor: GREEN, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 19 },
+  syncInfoCard: { minHeight: 54, borderWidth: 1, borderColor: colors.borderDefault, borderRadius: 9, backgroundColor: colors.surfaceSecondary, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  syncSmallLabel: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
+  syncTimestamp: { color: colors.textSecondary, fontSize: 14, fontWeight: '500' },
+  syncNowButton: { minHeight: 40, borderRadius: 7, backgroundColor: colors.actionPrimary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 19 },
   syncNowPressed: { opacity: 0.82 },
-  syncNowText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  clearCacheButton: { minHeight: 48, borderWidth: 1, borderColor: '#DDE2E1', borderRadius: 9, backgroundColor: '#FFFFFF', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  clearCachePressed: { backgroundColor: '#F4F7F6' },
+  syncNowText: { color: colors.onAction, fontSize: 15, fontWeight: '700' },
+  clearCacheButton: { minHeight: 48, borderWidth: 1, borderColor: colors.borderDefault, borderRadius: 9, backgroundColor: colors.surfaceSecondary, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  clearCachePressed: { backgroundColor: colors.surfaceSecondary },
   clearCacheText: { color: '#C85C5C', fontSize: 14, fontWeight: '600' },
   syncModalBackdrop: { flex: 1, backgroundColor: 'rgba(99, 117, 116, 0.68)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 35 },
-  syncModalCard: { width: '100%', maxWidth: 300, backgroundColor: '#FFFFFF', borderRadius: 13, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 16, alignItems: 'center', elevation: 8 },
+  syncModalCard: { width: '100%', maxWidth: 300, backgroundColor: colors.surfaceSecondary, borderRadius: 13, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 16, alignItems: 'center', elevation: 8 },
   syncModalIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#DDF1E1', alignItems: 'center', justifyContent: 'center', marginBottom: 9 },
   syncModalTitle: { color: TEXT, fontSize: 19, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
-  syncModalDescription: { color: '#6B7C78', fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 12 },
+  syncModalDescription: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 12 },
   progressTrack: { width: '100%', height: 4, backgroundColor: '#E4EAE7', borderRadius: 3, overflow: 'hidden', marginTop: 1 },
   progressFill: { width: '65%', height: '100%', backgroundColor: '#3FA58D', borderRadius: 3 },
   progressPercent: { color: '#3FA58D', fontSize: 11, marginTop: 8 },
   doneButton: { width: '100%', minHeight: 34, borderRadius: 7, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
   doneButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   appearanceText: { fontSize: 14, color: '#315B53', fontWeight: '500' },
-  selectedText: { color: 'white', fontWeight: '600' },
-  sliderCard: { minHeight: 90, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, backgroundColor: 'white', borderRadius: 14, borderWidth: 1, borderColor: '#E3E7E6', marginBottom: 28, elevation: 1 },
+  selectedText: { color: colors.onAction, fontWeight: '600' },
+  sliderCard: { minHeight: 90, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, backgroundColor: 'white', borderRadius: 14, borderWidth: 1, borderColor: colors.surfaceSecondary, marginBottom: 28, elevation: 1 },
   smallA: { color: GREEN, fontSize: 18, fontWeight: '600' },
   largeA: { color: GREEN, fontSize: 28, fontWeight: '600' },
   sliderWrap: { flex: 1, height: 54, justifyContent: 'center', marginHorizontal: 10 },
@@ -705,19 +880,19 @@ const styles = StyleSheet.create({
   sliderTicks: { position: 'absolute', left: 12, right: 12, top: 22, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 1 },
   sliderTick: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#B8BFBD' },
   sliderTickActive: { backgroundColor: GREEN, width: 9, height: 9 },
-  previewCard: { minHeight: 100, padding: 16, backgroundColor: 'white', borderWidth: 1, borderColor: '#DDE2E1', borderRadius: 12 },
+  previewCard: { minHeight: 100, padding: 16, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.borderDefault, borderRadius: 12 },
   previewTitle: { fontWeight: '700', color: TEXT, marginBottom: 8 },
-  previewDescription: { color: '#667875', lineHeight: 20 },
-  languageCard: { minHeight: 48, backgroundColor: 'white', borderWidth: 1, borderColor: '#DDE2E1', borderRadius: 10, paddingHorizontal: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  previewDescription: { color: colors.textSecondary, lineHeight: 20 },
+  languageCard: { minHeight: 48, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.borderDefault, borderRadius: 10, paddingHorizontal: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   languageText: { color: TEXT, fontSize: 14, fontWeight: '600' },
-  toggleRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 13, borderBottomWidth: 1, borderBottomColor: '#EDF0F0' },
+  toggleRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 13, borderBottomWidth: 1, borderBottomColor: colors.borderDefault },
   toggleTitle: { color: TEXT, fontSize: 15, fontWeight: '600', flex: 1 },
-  searchBox: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: BORDER, borderRadius: 10, backgroundColor: 'white', marginBottom: 12 },
+  searchBox: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: BORDER, borderRadius: 10, backgroundColor: colors.surfaceSecondary , marginBottom: 12 },
   searchInput: { flex: 1, minHeight: 42, color: TEXT, fontSize: 15 },
-  faqCard: { backgroundColor: 'white', borderWidth: 1, borderColor: BORDER, borderRadius: 10, padding: 13, marginBottom: 9 },
+  faqCard: { backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: BORDER, borderRadius: 10, padding: 13, marginBottom: 9 },
   faqTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  faqAnswer: { color: '#526662', fontSize: 15, lineHeight: 23, marginTop: 10 },
-  faqHelp: { color: '#526662', fontSize: 12, lineHeight: 18, textAlign: 'center', alignSelf: 'stretch', marginTop: 8, marginBottom: 10 },
+  faqAnswer: { color: colors.textSecondary, fontSize: 15, lineHeight: 23, marginTop: 10 },
+  faqHelp: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center', alignSelf: 'stretch', marginTop: 8, marginBottom: 10 },
   aboutContent: { width: '100%', paddingHorizontal: 22, paddingTop: 16, paddingBottom: 28 },
   aboutBrand: { alignItems: 'center', marginBottom: 20 },
   aboutLogo: { width: 76, height: 76, borderRadius: 38, marginBottom: 2 },
@@ -725,26 +900,26 @@ const styles = StyleSheet.create({
   aboutVersion: { color: LIGHT_GREEN, fontSize: 12, marginTop: 5 },
   aboutSectionTitle: { color: TEXT, fontSize: 17, fontWeight: '700', marginTop: 0, marginBottom: 12 },
   aboutLinks: { gap: 10 },
-  aboutLink: { minHeight: 56, borderWidth: 1, borderColor: '#D8DEDD', borderRadius: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  aboutLink: { minHeight: 56, borderWidth: 1, borderColor: '#D8DEDD', borderRadius: 10, backgroundColor: colors.surfaceSecondary, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   aboutLinkText: { color: TEXT, fontSize: 16, fontWeight: '600' },
   termsOfServiceLinkText: { color: TEXT, fontSize: 14, fontWeight: '600' },
   legalPageContent: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 30 },
   lastUpdated: { color: '#7C8986', fontSize: 12, lineHeight: 17, marginBottom: 10 },
-  legalHeading: { color: '#243B38', fontSize: 15, lineHeight: 21, fontWeight: '700', marginTop: 2, marginBottom: 6 },
-  legalBody: { color: '#687875', fontSize: 13, lineHeight: 19, marginBottom: 12 },
+  legalHeading: { color: colors.textPrimary, fontSize: 15, lineHeight: 21, fontWeight: '700', marginTop: 2, marginBottom: 6 },
+  legalBody: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: 12 },
   licensePageContent: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 30 },
   licenseIntro: { color: '#687875', fontSize: 12, lineHeight: 16, marginBottom: 10 },
-  licenseCard: { minHeight: 48, borderWidth: 1, borderColor: '#DDE2E1', borderRadius: 8, backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 7 },
+  licenseCard: { minHeight: 48, borderWidth: 1, borderColor: colors.borderDefault, borderRadius: 8, backgroundColor: colors.surfaceSecondary, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 7 },
   licenseRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   licenseLabels: { flex: 1, paddingRight: 8 },
-  licenseTitle: { color: '#334743', fontSize: 15, lineHeight: 20, fontWeight: '700' },
-  licenseSubtitle: { color: '#7B8986', fontSize: 12, lineHeight: 16, marginTop: 3 },
-  clearCacheModalCard: { width: '100%', maxWidth: 320, backgroundColor: '#FFFFFF', borderRadius: 13, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 14, alignItems: 'center', elevation: 8 },
+  licenseTitle: { color: colors.textPrimary, fontSize: 15, lineHeight: 20, fontWeight: '700' },
+  licenseSubtitle: { color: colors.textSecondary, fontSize: 12, lineHeight: 16, marginTop: 3 },
+  clearCacheModalCard: { width: '100%', maxWidth: 320, backgroundColor: colors.surfaceSecondary, borderRadius: 13, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 14, alignItems: 'center', elevation: 8 },
   clearCacheModalIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFF0F0', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   clearCacheModalTitle: { color: TEXT, fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
   clearCacheModalDescription: { color: '#6B7C78', fontSize: 13, lineHeight: 18, textAlign: 'center', marginBottom: 12 },
   clearCacheActions: { width: '100%', flexDirection: 'row', gap: 8 },
-  cancelCacheButton: { flex: 1, minHeight: 36, borderWidth: 1, borderColor: '#AAB9B5', borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  cancelCacheButton: { flex: 1, minHeight: 36, borderWidth: 1, borderColor: '#AAB9B5', borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceSecondary },
   cancelCacheText: { color: '#35534D', fontSize: 13, fontWeight: '700' },
   confirmCacheButton: { flex: 1, minHeight: 36, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#D9342B' },
   confirmCacheText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },

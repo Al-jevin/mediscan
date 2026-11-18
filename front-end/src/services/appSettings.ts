@@ -12,6 +12,10 @@ export type AppSettings = {
   medicationReminders: boolean;
   sound: boolean;
   vibration: boolean;
+
+  // Display and language preferences
+  appearance: 'Light' | 'Dark' | 'System';
+  language: 'English' | 'Filipino';
 };
 
 const STORAGE_KEY = 'mediscan.settings.v1';
@@ -23,6 +27,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   medicationReminders: true,
   sound: true,
   vibration: true,
+
+  appearance: 'System',
+  language: 'English',
 };
 
 let current: AppSettings = { ...DEFAULT_SETTINGS };
