@@ -26,25 +26,44 @@ if [ -f ".env" ]; then
     ENV_NAME=$(grep -E '^DB_NAME=' .env | cut -d '=' -f2- | tr -d '\r"')
     ENV_HOST=$(grep -E '^DB_HOST=' .env | cut -d '=' -f2- | tr -d '\r"')
     ENV_PORT=$(grep -E '^DB_PORT=' .env | cut -d '=' -f2- | tr -d '\r"')
+    ENV_CONTAINER=$(grep -E '^DOCKER_PG_CONTAINER=' .env | cut -d '=' -f2- | tr -d '\r"')
 
     [ -n "$ENV_PASS" ] && DB_PASS="$ENV_PASS"
     [ -n "$ENV_USER" ] && DB_USER="$ENV_USER"
     [ -n "$ENV_NAME" ] && DB_NAME="$ENV_NAME"
     [ -n "$ENV_HOST" ] && DB_HOST="$ENV_HOST"
     [ -n "$ENV_PORT" ] && DB_PORT="$ENV_PORT"
+    [ -n "$ENV_CONTAINER" ] && DOCKER_PG_CONTAINER="$ENV_CONTAINER"
 fi
 
 export PGPASSWORD="$DB_PASS"
 
-# Helper to find and run pg_dump across PATH, Windows installs, and WSL
+# Helper to find and run pg_dump across Docker, PATH, Windows installs, and WSL
 run_pg_dump() {
-    # 1. Native PATH
+    # 1. Docker container (uses DOCKER_PG_CONTAINER if set, else finds container publishing DB_PORT or named *postgres*/*db*)
+    if command -v docker >/dev/null 2>&1; then
+        CONTAINER="$DOCKER_PG_CONTAINER"
+        if [ -z "$CONTAINER" ]; then
+            CONTAINER=$(docker ps --filter "publish=${DB_PORT}" --format "{{.Names}}" 2>/dev/null | head -n 1)
+        fi
+        if [ -z "$CONTAINER" ]; then
+            CONTAINER=$(docker ps --format "{{.Names}}" 2>/dev/null | grep -E 'postgres|mediscan.*db' | head -n 1)
+        fi
+
+        if [ -n "$CONTAINER" ]; then
+            MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD="$PGPASSWORD" "$CONTAINER" \
+                pg_dump -U "$DB_USER" -d "$DB_NAME" --clean --if-exists > "$SQL_FILE"
+            return $?
+        fi
+    fi
+
+    # 2. Native PATH
     if command -v pg_dump >/dev/null 2>&1; then
         pg_dump -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" --clean --if-exists -f "$SQL_FILE"
         return $?
     fi
 
-    # 2. Windows standard install paths
+    # 3. Windows standard install paths
     for p in "/c/Program Files/PostgreSQL"/*/bin/pg_dump.exe "/c/Program Files (x86)/PostgreSQL"/*/bin/pg_dump.exe; do
         if [ -f "$p" ]; then
             "$p" -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" --clean --if-exists -f "$SQL_FILE"
@@ -52,7 +71,7 @@ run_pg_dump() {
         fi
     done
 
-    # 3. WSL
+    # 4. WSL
     if command -v wsl >/dev/null 2>&1; then
         if wsl which pg_dump >/dev/null 2>&1; then
             wsl env PGPASSWORD="$PGPASSWORD" pg_dump -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" --clean --if-exists -f "$SQL_FILE"
@@ -60,7 +79,7 @@ run_pg_dump() {
         fi
     fi
 
-    echo "Error: Neither pg_dump nor WSL pg_dump was found in PATH or standard locations." >&2
+    echo "Error: Neither Docker Postgres container, local pg_dump, nor WSL pg_dump was found." >&2
     return 127
 }
 

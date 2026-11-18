@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "description": "Copy this manifest and replace the image paths and expected labels with a consented, labeled evaluation set.",
+  "samples": [
+    {
+      "id": "sample-001",
+      "image": "images/label-001.jpg",
+      "expected": {
+        "entities": {
+          "medicine_name": "Example Medicine",
+          "dosage": "500 mg",
+          "frequency": null,
+          "expiry_date": null
+        },
+        "fda_registration_id": "DR-EXAMPLE-001",
+        "fda_approval_id": "AP-EXAMPLE-001",
+        "dosage": "500 mg"
+      }
+    }
+  ]
+}

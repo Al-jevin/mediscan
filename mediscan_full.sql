@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict 5Y3fp6TxT5LJZ1ANV1jhU29KhWWW9a96ouWhgeD31gNevqGCfPkfBQIi9f1GvKN
+\restrict fqY78icngVZLPRighck73cEkPTE8l84r6anN1qrTvMUfE7ymgtDKQ1quPH7aihu
 
 -- Dumped from database version 18.6
--- Dumped by pg_dump version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
+-- Dumped by pg_dump version 18.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -31549,8 +31549,7 @@ bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated
 --
 
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
-37a9a98c-875b-433e-8fc2-fe34d170307d	917ef719-c1ce-46c5-9f37-207a05a23395	85fee27ac9a3f36ac6ebda4a0bcf7f9c81258e690180e864e033ddef1be0bf9c	2026-11-07 12:13:27.734336	2026-11-14 12:13:27.729537
-21488fda-6273-468d-bed4-ce08e156beff	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	99e8f59b7c7f728a3c254f374e6b5fc326c164a60b96b1ec5b33ea5595b09a88	2026-11-15 05:40:04.191402	2026-11-22 05:40:04.188284
+ef802fed-845c-480a-b0c6-e7d59ac939af	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	e4e85e1b2bac81dbb18955448c23f8b6c4b2b20a68947cf85467e5b03d7829bc	2026-11-18 06:36:43.8158	2026-11-25 06:36:43.812356
 \.
 
 
@@ -62536,28 +62535,28 @@ COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_
 -- Name: medication_logs_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 396, true);
+SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 413, true);
 
 
 --
 -- Name: medication_schedules_schedule_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 397, true);
+SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 414, true);
 
 
 --
 -- Name: philippines_fda_medicines_fda_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62545, true);
+SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62563, true);
 
 
 --
 -- Name: vault_items_vault_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 397, true);
+SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 416, true);
 
 
 --
@@ -62819,5 +62818,5 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 5Y3fp6TxT5LJZ1ANV1jhU29KhWWW9a96ouWhgeD31gNevqGCfPkfBQIi9f1GvKN
+\unrestrict fqY78icngVZLPRighck73cEkPTE8l84r6anN1qrTvMUfE7ymgtDKQ1quPH7aihu
 

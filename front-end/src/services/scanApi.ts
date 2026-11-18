@@ -14,7 +14,34 @@ type OcrEntities = {
   dosage: string | null;
   expiry_date: string | null;
 };
-type OcrResponse = { entities: OcrEntities; suggested_medicines: OcrMedicine[] };
+
+export type ScanTelemetry = {
+  trust_score?: number | null;
+  confidence_tier?: 'high' | 'medium' | 'low' | null;
+  trust_tier?: 'high' | 'medium' | 'low' | null;
+  dosage_match_status?: string | null;
+  safety_cap_reason?: string | null;
+  stage?: number | null;
+  applied_preprocessing?: string[] | null;
+  quarantined_distractors?: string[] | null;
+  primary_header_lines?: string[] | null;
+  secondary_body_lines?: string[] | null;
+  clahe_applied?: boolean | null;
+  roi_fallback_used?: boolean | null;
+  preprocess_ms?: number | null;
+  ocr_ms?: number | null;
+  nlp_ms?: number | null;
+  grounding_ms?: number | null;
+  db_match_ms?: number | null;
+  total_ms?: number | null;
+  total_latency_ms?: number | null;
+};
+
+type OcrResponse = {
+  entities: OcrEntities;
+  suggested_medicines: OcrMedicine[];
+  telemetry?: ScanTelemetry;
+};
 
 const REQUEST_TIMEOUT_MS = 90_000; // PaddleOCR on a CPU can take a while
 
@@ -25,7 +52,9 @@ const MAX_POSSIBLE_MATCHES = 4;
 // The latest real scan, read by the Scan Result and Edit Medicine screens. Kept here rather than in route
 // params because medicine names can contain "%" (e.g. "5% Dextrose"), which is unsafe in a URL.
 let latestScan: ScanResult | null = null;
+let latestScanTelemetry: ScanTelemetry | null = null;
 export const getLatestScan = () => latestScan;
+export const getLatestScanTelemetry = () => latestScanTelemetry;
 
 function toInfoRows(rows: (MedicineInfoRow | false)[]): MedicineInfoRow[] {
   return rows.filter((row): row is MedicineInfoRow => row !== false);
@@ -126,7 +155,9 @@ export async function scanLabel(imageUri: string): Promise<ScanResult> {
       throw new Error(detail);
     }
 
-    latestScan = toScanResult(responseBody as OcrResponse);
+    const ocrResponse = responseBody as OcrResponse;
+    latestScanTelemetry = ocrResponse.telemetry ?? null;
+    latestScan = toScanResult(ocrResponse);
     return latestScan;
   } catch (error) {
     if (controller.signal.aborted) {

@@ -1,0 +1,532 @@
+{
+  "ablation_status": "unconfirmed",
+  "endpoint": "http://127.0.0.1:8000/api/v1/ocr/extract-label",
+  "sample_count": 11,
+  "stages": [
+    {
+      "requested_stage": 0,
+      "reported_stage_confirmed": false,
+      "ablation_status": "unconfirmed",
+      "sample_count": 11,
+      "entity_extraction": {
+        "precision": 40.91,
+        "recall": 42.86,
+        "f1": 41.86,
+        "target_percent": 88.0,
+        "meets_target": false
+      },
+      "dosage_match_accuracy_percent": 10.0,
+      "dosage_match_accuracy_target_percent": 92.0,
+      "dosage_match_accuracy_meets_target": false,
+      "drug_match_accuracy_percent": null,
+      "unsafe_high_trust_rate_percent": 0.0,
+      "unsafe_high_trust_target_percent": 0.0,
+      "unsafe_high_trust_meets_target": true,
+      "unsafe_mismatch_count": 9,
+      "unsafe_high_trust_count": 0,
+      "warm_latency_ms": {
+        "mean": 1165.57,
+        "p95": 1561.41,
+        "measurement": "client end-to-end wall-clock",
+        "target_ms": 1200,
+        "mean_meets_target": true,
+        "p95_meets_target": false
+      },
+      "results": [
+        {
+          "sample_id": "alaxan",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 742.81,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "biogesic",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": true,
+          "trust_score": 0.0,
+          "latency_ms": 1347.56,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "ceelin",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1322.5,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "erce",
+          "entity_counts": {
+            "tp": 0,
+            "fp": 2,
+            "fn": 2
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1426.97,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "kremil",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1561.41,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "neozep",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 744.16,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "robitussin",
+          "entity_counts": {
+            "tp": 0,
+            "fp": 2,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": null,
+          "trust_score": 0.0,
+          "latency_ms": 1331.16,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "solmux",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1275.08,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "alaxan-adversarial-dosage-conflict",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1112.64,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "biogesic-adversarial-dosage-conflict",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 973.52,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "ceelin-adversarial-dosage-conflict",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 983.43,
+          "reported_stage": null
+        }
+      ]
+    },
+    {
+      "requested_stage": 1,
+      "reported_stage_confirmed": false,
+      "ablation_status": "unconfirmed",
+      "sample_count": 11,
+      "entity_extraction": {
+        "precision": 40.91,
+        "recall": 42.86,
+        "f1": 41.86,
+        "target_percent": 88.0,
+        "meets_target": false
+      },
+      "dosage_match_accuracy_percent": 10.0,
+      "dosage_match_accuracy_target_percent": 92.0,
+      "dosage_match_accuracy_meets_target": false,
+      "drug_match_accuracy_percent": null,
+      "unsafe_high_trust_rate_percent": 0.0,
+      "unsafe_high_trust_target_percent": 0.0,
+      "unsafe_high_trust_meets_target": true,
+      "unsafe_mismatch_count": 9,
+      "unsafe_high_trust_count": 0,
+      "warm_latency_ms": {
+        "mean": 1021.42,
+        "p95": 1397.41,
+        "measurement": "client end-to-end wall-clock",
+        "target_ms": 1200,
+        "mean_meets_target": true,
+        "p95_meets_target": false
+      },
+      "results": [
+        {
+          "sample_id": "alaxan",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 674.11,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "biogesic",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": true,
+          "trust_score": 0.0,
+          "latency_ms": 794.7,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "ceelin",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 777.78,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "erce",
+          "entity_counts": {
+            "tp": 0,
+            "fp": 2,
+            "fn": 2
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1139.66,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "kremil",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1166.31,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "neozep",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 639.15,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "robitussin",
+          "entity_counts": {
+            "tp": 0,
+            "fp": 2,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": null,
+          "trust_score": 0.0,
+          "latency_ms": 1397.41,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "solmux",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1232.64,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "alaxan-adversarial-dosage-conflict",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1109.05,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "biogesic-adversarial-dosage-conflict",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 950.73,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "ceelin-adversarial-dosage-conflict",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1354.06,
+          "reported_stage": null
+        }
+      ]
+    },
+    {
+      "requested_stage": 2,
+      "reported_stage_confirmed": false,
+      "ablation_status": "unconfirmed",
+      "sample_count": 11,
+      "entity_extraction": {
+        "precision": 40.91,
+        "recall": 42.86,
+        "f1": 41.86,
+        "target_percent": 88.0,
+        "meets_target": false
+      },
+      "dosage_match_accuracy_percent": 10.0,
+      "dosage_match_accuracy_target_percent": 92.0,
+      "dosage_match_accuracy_meets_target": false,
+      "drug_match_accuracy_percent": null,
+      "unsafe_high_trust_rate_percent": 0.0,
+      "unsafe_high_trust_target_percent": 0.0,
+      "unsafe_high_trust_meets_target": true,
+      "unsafe_mismatch_count": 9,
+      "unsafe_high_trust_count": 0,
+      "warm_latency_ms": {
+        "mean": 1054.03,
+        "p95": 1311.6,
+        "measurement": "client end-to-end wall-clock",
+        "target_ms": 1200,
+        "mean_meets_target": true,
+        "p95_meets_target": false
+      },
+      "results": [
+        {
+          "sample_id": "alaxan",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 740.46,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "biogesic",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": true,
+          "trust_score": 0.0,
+          "latency_ms": 804.89,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "ceelin",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 966.21,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "erce",
+          "entity_counts": {
+            "tp": 0,
+            "fp": 2,
+            "fn": 2
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1220.66,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "kremil",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1204.96,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "neozep",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 710.95,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "robitussin",
+          "entity_counts": {
+            "tp": 0,
+            "fp": 2,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": null,
+          "trust_score": 0.0,
+          "latency_ms": 1311.6,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "solmux",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1184.12,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "alaxan-adversarial-dosage-conflict",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1137.97,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "biogesic-adversarial-dosage-conflict",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1078.5,
+          "reported_stage": null
+        },
+        {
+          "sample_id": "ceelin-adversarial-dosage-conflict",
+          "entity_counts": {
+            "tp": 1,
+            "fp": 1,
+            "fn": 1
+          },
+          "drug_correct": null,
+          "dosage_correct": false,
+          "trust_score": 0.0,
+          "latency_ms": 1234.07,
+          "reported_stage": null
+        }
+      ]
+    }
+  ]
+}
