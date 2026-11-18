@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict fqY78icngVZLPRighck73cEkPTE8l84r6anN1qrTvMUfE7ymgtDKQ1quPH7aihu
+\restrict 2uVRE2KMQbSZsvB5jZNiyDyQj0yF8b9yh9IkP7fJzIOpc5ZFkXibv1qCXMsTcKB
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -31549,7 +31549,7 @@ bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated
 --
 
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
-ef802fed-845c-480a-b0c6-e7d59ac939af	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	e4e85e1b2bac81dbb18955448c23f8b6c4b2b20a68947cf85467e5b03d7829bc	2026-11-18 06:36:43.8158	2026-11-25 06:36:43.812356
+4348d7e6-7e63-4dfb-b629-015d6c6eb72b	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	e406e72eea98115172ac5aa3eedcda24caeee012b284d2fd830afc8cbb4c90a1	2026-11-18 08:42:15.474003	2026-11-25 08:42:15.470852
 \.
 
 
@@ -62818,5 +62818,5 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict fqY78icngVZLPRighck73cEkPTE8l84r6anN1qrTvMUfE7ymgtDKQ1quPH7aihu
+\unrestrict 2uVRE2KMQbSZsvB5jZNiyDyQj0yF8b9yh9IkP7fJzIOpc5ZFkXibv1qCXMsTcKB
 

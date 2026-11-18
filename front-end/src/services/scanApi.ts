@@ -8,26 +8,34 @@ import { API_V1_URL } from '@/services/apiUrl';
 // Shape of POST /api/v1/ocr/extract-label (back-end/app/schemas/ocr.py). Only the fields the app reads.
 type OcrMedicine = FdaMedicine & {
   confidence_percentage: number;
+  trust_score?: number | null;
+  trust_tier?: 'high' | 'medium' | 'low' | null;
 };
 type OcrEntities = {
   medicine_name: string | null;
   dosage: string | null;
+  frequency: string | null;
   expiry_date: string | null;
 };
 
 export type ScanTelemetry = {
+  stage?: 0 | 1 | 2 | null;
+  raw_ocr_text?: string;
+  grounded_text?: string;
   trust_score?: number | null;
   confidence_tier?: 'high' | 'medium' | 'low' | null;
   trust_tier?: 'high' | 'medium' | 'low' | null;
   dosage_match_status?: string | null;
   safety_cap_reason?: string | null;
-  stage?: number | null;
   applied_preprocessing?: string[] | null;
   quarantined_distractors?: string[] | null;
   primary_header_lines?: string[] | null;
   secondary_body_lines?: string[] | null;
   clahe_applied?: boolean | null;
   roi_fallback_used?: boolean | null;
+  ocr_confidence?: number | null;
+  dosage_confidence?: number | null;
+  fda_match_score?: number | null;
   preprocess_ms?: number | null;
   ocr_ms?: number | null;
   nlp_ms?: number | null;
@@ -35,11 +43,22 @@ export type ScanTelemetry = {
   db_match_ms?: number | null;
   total_ms?: number | null;
   total_latency_ms?: number | null;
+  latency_ms?: {
+    preprocess_ms?: number | null;
+    ocr_ms?: number | null;
+    nlp_ms?: number | null;
+    db_match_ms?: number | null;
+    total_ms?: number | null;
+  } | null;
 };
 
 type OcrResponse = {
   entities: OcrEntities;
   suggested_medicines: OcrMedicine[];
+  trust_score?: number | null;
+  confidence_tier?: 'high' | 'medium' | 'low' | null;
+  dosage_match_status?: string | null;
+  safety_cap_reason?: string | null;
   telemetry?: ScanTelemetry;
 };
 
@@ -49,8 +68,6 @@ const VERIFIED_MIN_CONFIDENCE = 90;
 const NEEDS_VERIFICATION_MIN_CONFIDENCE = 65;
 const MAX_POSSIBLE_MATCHES = 4;
 
-// The latest real scan, read by the Scan Result and Edit Medicine screens. Kept here rather than in route
-// params because medicine names can contain "%" (e.g. "5% Dextrose"), which is unsafe in a URL.
 let latestScan: ScanResult | null = null;
 let latestScanTelemetry: ScanTelemetry | null = null;
 export const getLatestScan = () => latestScan;
@@ -122,6 +139,36 @@ function toScanResult({ entities, suggested_medicines }: OcrResponse): ScanResul
   };
 }
 
+function toScanTelemetry(response: OcrResponse): ScanTelemetry {
+  const telemetry = response.telemetry ?? {};
+  const best = response.suggested_medicines[0];
+  const trustScore =
+    response.trust_score ?? telemetry.trust_score ?? best?.trust_score ?? null;
+  const confidenceTier =
+    response.confidence_tier ??
+    telemetry.confidence_tier ??
+    telemetry.trust_tier ??
+    best?.trust_tier ??
+    (trustScore === null
+      ? null
+      : trustScore >= 0.85
+        ? 'high'
+        : trustScore >= 0.65
+          ? 'medium'
+          : 'low');
+
+  return {
+    ...telemetry,
+    trust_score: trustScore,
+    confidence_tier: confidenceTier,
+    trust_tier: telemetry.trust_tier ?? best?.trust_tier ?? confidenceTier,
+    dosage_match_status:
+      response.dosage_match_status ?? telemetry.dosage_match_status ?? null,
+    safety_cap_reason:
+      response.safety_cap_reason ?? telemetry.safety_cap_reason ?? null,
+  };
+}
+
 // Sends a local JPEG to the OCR + NER pipeline and returns the state for the Scan Result screen.
 export async function scanLabel(imageUri: string): Promise<ScanResult> {
   if (!API_V1_URL) throw new Error('EXPO_PUBLIC_API_URL is not set (see front-end/.env)');
@@ -156,9 +203,10 @@ export async function scanLabel(imageUri: string): Promise<ScanResult> {
     }
 
     const ocrResponse = responseBody as OcrResponse;
-    latestScanTelemetry = ocrResponse.telemetry ?? null;
-    latestScan = toScanResult(ocrResponse);
-    return latestScan;
+    const result = toScanResult(ocrResponse);
+    latestScan = result;
+    latestScanTelemetry = toScanTelemetry(ocrResponse);
+    return result;
   } catch (error) {
     if (controller.signal.aborted) {
       throw new Error('The scan request timed out. Try again with a smaller, clearer image.');

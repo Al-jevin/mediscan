@@ -57,11 +57,24 @@ class LinkedMedicineResponse(BaseModel):
     )
 
 
+class OCRLatencyMetrics(BaseModel):
+    preprocess_ms: int = Field(default=0, ge=0)
+    ocr_ms: int = Field(default=0, ge=0)
+    nlp_ms: int = Field(default=0, ge=0)
+    db_match_ms: int = Field(default=0, ge=0)
+    total_ms: int = Field(default=0, ge=0)
+
+
 class ScanTelemetry(BaseModel):
     """Auditable OCR, confidence, and latency details for one scan."""
 
+    stage: Literal[0, 1, 2] = 2
     raw_ocr_text: str = ""
     grounded_text: str = ""
+    applied_preprocessing: list[str] = Field(default_factory=list)
+    quarantined_distractors: list[str] = Field(default_factory=list)
+    primary_header_lines: list[str] = Field(default_factory=list)
+    secondary_body_lines: list[str] = Field(default_factory=list)
     clahe_applied: bool = False
     roi_fallback_used: bool = False
     ocr_confidence: float = Field(default=0, ge=0, le=1)
@@ -69,9 +82,18 @@ class ScanTelemetry(BaseModel):
     fda_match_score: float = Field(default=0, ge=0, le=1)
     trust_score: float = Field(default=0, ge=0, le=1)
     trust_tier: Literal["high", "medium", "low"] = "low"
+    confidence_tier: Literal["high", "medium", "low"] = "low"
+    dosage_match_status: Literal[
+        "matched", "mismatch", "not_detected", "unverified", "no_match"
+    ] = "no_match"
+    safety_cap_reason: str | None = None
+    latency_ms: OCRLatencyMetrics = Field(default_factory=OCRLatencyMetrics)
     preprocess_ms: int = Field(default=0, ge=0)
     ocr_ms: int = Field(default=0, ge=0)
     grounding_ms: int = Field(default=0, ge=0)
+    nlp_ms: int = Field(default=0, ge=0)
+    db_match_ms: int = Field(default=0, ge=0)
+    total_ms: int = Field(default=0, ge=0)
     total_latency_ms: int = Field(default=0, ge=0)
 
 
@@ -85,4 +107,10 @@ class OCRResponse(BaseModel):
     message: str = Field(min_length=1, max_length=500)
     entities: ExtractedEntityResponse
     suggested_medicines: list[LinkedMedicineResponse] = Field(default_factory=list)
+    trust_score: float = Field(default=0, ge=0, le=1)
+    confidence_tier: Literal["high", "medium", "low"] = "low"
+    dosage_match_status: Literal[
+        "matched", "mismatch", "not_detected", "unverified", "no_match"
+    ] = "no_match"
+    safety_cap_reason: str | None = None
     telemetry: ScanTelemetry = Field(default_factory=ScanTelemetry)
