@@ -254,11 +254,11 @@ function ScanTelemetryDrawer({ telemetry }: { telemetry: ScanTelemetry }) {
         ? styles.telemetryMedium
         : styles.telemetryLow;
   const latencyRows: [string, number | null | undefined][] = [
-    ['Preprocessing', telemetry.latency_ms?.preprocess_ms ?? telemetry.preprocess_ms],
-    ['OCR', telemetry.latency_ms?.ocr_ms ?? telemetry.ocr_ms],
-    ['NER', telemetry.latency_ms?.nlp_ms ?? telemetry.nlp_ms ?? telemetry.grounding_ms],
-    ['Database match', telemetry.latency_ms?.db_match_ms ?? telemetry.db_match_ms],
-    ['Total', telemetry.latency_ms?.total_ms ?? telemetry.total_ms ?? telemetry.total_latency_ms],
+    ['Preprocessing', telemetry.preprocess_ms],
+    ['OCR', telemetry.ocr_ms],
+    ['NER', telemetry.nlp_ms ?? telemetry.grounding_ms],
+    ['Database match', telemetry.db_match_ms],
+    ['Total', telemetry.total_ms ?? telemetry.total_latency_ms],
   ];
   const appliedPreprocessing =
     telemetry.applied_preprocessing ??

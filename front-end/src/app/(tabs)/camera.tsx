@@ -46,7 +46,7 @@ export default function CameraScreen() {
       const scan = await scanLabel(result.uri);
       console.log("Image scan result:", scan.status);
 
-      // Step 3: open the Scan Result screen, which reads the latest scan and telemetry.
+      // Step 3: open the Scan Result screen, which reads the latest scan
       router.push("/result");
     } catch (e) {
       console.log("Processing failed:", e);
