@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2uVRE2KMQbSZsvB5jZNiyDyQj0yF8b9yh9IkP7fJzIOpc5ZFkXibv1qCXMsTcKB
+\restrict m5fKUQ16ypvjuQG6egxrWvHmkpZJMFgXqwl0BToUEY5PHhyovDU7L1rCHVhdKXe
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -475,6 +475,14 @@ c9012295-48d6-4f97-a8e3-ab5ae9f9c0fe	combined-c2c146db81db41dab7b7779e6030c6d6@e
 82e30038-7b3c-4c61-9c00-f19761491c46	frontend-updated-9a08cffbcc7a4653832a6211a5e47e7e@example.test	frontend-test-hash	t	t	2026-10-23 09:19:31.022791	2026-10-23 09:19:31.38687
 58f42e71-9f36-4309-bacb-5d14c233ae31	combined-9a08cffbcc7a4653832a6211a5e47e7e@example.test	combined-hash	f	t	2026-10-23 09:19:31.040325	2026-10-23 09:19:31.394699
 8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	ccchua1290@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$4Zc9ccb3WfJrOlMHkhTJmw$Zk6uoUGv3lrX/yROf0f3DWs3w7fUW6AnS/ZNkUN6iB8	t	f	2026-11-15 03:59:19.650975	2026-11-15 03:59:36.692526
+cb7706c8-789f-4513-8afd-35a06e399b03	combined-3492916788684ded92175071bdeb7abf@example.test	combined-hash	f	t	2026-11-18 10:04:14.723957	2026-11-18 10:04:15.253899
+6d72a08b-2ecc-4c86-9960-6503f8791604	frontend-updated-3492916788684ded92175071bdeb7abf@example.test	frontend-test-hash	t	t	2026-11-18 10:04:14.67891	2026-11-18 10:04:15.242842
+ec26df99-185a-476a-921d-a191d63f370b	frontend-updated-28676c6206b74894812628f5343a49e2@example.test	frontend-test-hash	t	t	2026-11-18 09:44:12.98926	2026-11-18 09:44:13.701995
+8ff13c5e-9bca-4374-b527-a317b82d0782	combined-28676c6206b74894812628f5343a49e2@example.test	combined-hash	f	t	2026-11-18 09:44:13.030674	2026-11-18 09:44:13.717241
+6823c452-32cf-4932-9be8-b75532a5e034	combined-6393c038e44e497cad12d79fa3fa121c@example.test	combined-hash	f	t	2026-11-18 10:08:34.486841	2026-11-18 10:08:35.138528
+207204ce-412d-462d-a5ca-6d6d958b4b88	frontend-updated-6393c038e44e497cad12d79fa3fa121c@example.test	frontend-test-hash	t	t	2026-11-18 10:08:34.457118	2026-11-18 10:08:35.123453
+051586d2-9ac1-4732-b702-1f032a4aabd4	combined-ae36e57b899e47699973c62020014e20@example.test	combined-hash	f	t	2026-11-18 10:01:46.603482	2026-11-18 10:01:47.207058
+5bd7e45f-d5f8-494b-910f-13e199a5e66a	frontend-updated-ae36e57b899e47699973c62020014e20@example.test	frontend-test-hash	t	t	2026-11-18 10:01:46.581676	2026-11-18 10:01:47.192522
 \.
 
 
@@ -31541,6 +31549,14 @@ c553cb5dc22c1eb6	31882017-2018-4b8f-8cbd-453624302ae4	t	Updated Frontend	updated
 9bc2c7a685c836d0	58f42e71-9f36-4309-bacb-5d14c233ae31	f	Combined	combined	2	1990-01-01	2026-10-23 09:19:31.040325	2026-10-23 09:19:31.040325
 bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated	3	1992-03-04	2026-10-23 09:19:31.049025	2026-10-23 09:19:31.378935
 7c549b52906e9ccd	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	f	123	123	3	2000-10-10	2026-11-15 05:39:13.681129	2026-11-15 05:39:13.681129
+b48b68fd8aa60feb	6823c452-32cf-4932-9be8-b75532a5e034	f	Combined	combined	2	1990-01-01	2026-11-18 10:08:34.486841	2026-11-18 10:08:34.486841
+540be827a24aab15	207204ce-412d-462d-a5ca-6d6d958b4b88	t	Updated Frontend	updated	3	1992-03-04	2026-11-18 10:08:34.506514	2026-11-18 10:08:35.107554
+353d00f10b79612b	8ff13c5e-9bca-4374-b527-a317b82d0782	f	Combined	combined	2	1990-01-01	2026-11-18 09:44:13.030674	2026-11-18 09:44:13.030674
+3cf0a6405688480a	ec26df99-185a-476a-921d-a191d63f370b	t	Updated Frontend	updated	3	1992-03-04	2026-11-18 09:44:13.045281	2026-11-18 09:44:13.686946
+86cfd81cd0801514	051586d2-9ac1-4732-b702-1f032a4aabd4	f	Combined	combined	2	1990-01-01	2026-11-18 10:01:46.603482	2026-11-18 10:01:46.603482
+d01e1e7c708d472c	cb7706c8-789f-4513-8afd-35a06e399b03	f	Combined	combined	2	1990-01-01	2026-11-18 10:04:14.723957	2026-11-18 10:04:14.723957
+187f1f22f32367c0	5bd7e45f-d5f8-494b-910f-13e199a5e66a	t	Updated Frontend	updated	3	1992-03-04	2026-11-18 10:01:46.619567	2026-11-18 10:01:47.178795
+b71c4e7c36b2340f	6d72a08b-2ecc-4c86-9960-6503f8791604	t	Updated Frontend	updated	3	1992-03-04	2026-11-18 10:04:14.739583	2026-11-18 10:04:15.230241
 \.
 
 
@@ -31549,7 +31565,7 @@ bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated
 --
 
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
-4348d7e6-7e63-4dfb-b629-015d6c6eb72b	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	e406e72eea98115172ac5aa3eedcda24caeee012b284d2fd830afc8cbb4c90a1	2026-11-18 08:42:15.474003	2026-11-25 08:42:15.470852
+9f047a51-6ca6-47f8-8844-31aaba8e9914	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	e5630e04a4d33b54b333d82eb9a7ec23c5cd5a5f7150c1f0d69c3f7867e203ba	2026-11-18 11:34:36.610557	2026-11-25 11:34:36.605803
 \.
 
 
@@ -62528,6 +62544,7 @@ COPY public.test_philippine_fda_medicines (fda_id, fda_registration_id, fda_appr
 --
 
 COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_created_at, vault_updated_at, vault_note, vault_status, vault_source, vault_confidence) FROM stdin;
+417	7c549b52906e9ccd	45901	2030-10-10	2026-11-18 08:46:18.308605	2026-11-18 08:46:18.308605		verified	scan	100
 \.
 
 
@@ -62535,28 +62552,28 @@ COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_
 -- Name: medication_logs_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 413, true);
+SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 485, true);
 
 
 --
 -- Name: medication_schedules_schedule_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 414, true);
+SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 486, true);
 
 
 --
 -- Name: philippines_fda_medicines_fda_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62563, true);
+SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62639, true);
 
 
 --
 -- Name: vault_items_vault_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 416, true);
+SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 497, true);
 
 
 --
@@ -62818,5 +62835,5 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2uVRE2KMQbSZsvB5jZNiyDyQj0yF8b9yh9IkP7fJzIOpc5ZFkXibv1qCXMsTcKB
+\unrestrict m5fKUQ16ypvjuQG6egxrWvHmkpZJMFgXqwl0BToUEY5PHhyovDU7L1rCHVhdKXe
 

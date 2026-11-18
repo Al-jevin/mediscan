@@ -213,6 +213,8 @@ export const MockAuth = {
     activeProfile = p;
     emit();
   },
+  getAuthorizationHeader: () =>
+    sessionToken ? `Bearer ${sessionToken}` : null,
   getActiveProfile: () => activeProfile,
   getEmail: () => (sessionToken ? currentEmail : null),
   isLoggedIn: () => !!sessionToken,
