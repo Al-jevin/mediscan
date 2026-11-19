@@ -269,6 +269,22 @@ This backlog expands the current GitHub issue set into parallel frontend, backen
 - Confirm a Vault failure does not reload the app, clear the active session, or redirect the user to login.
 - Test the affected flow on web and Expo Go, including the medicine-card menu and accessibility behavior.
 
+
+- [ ] **[Fix] Link Raw OCR Output into ScanTelemetryDrawer Details** (`front-end` / `back-end`)
+  - **Problem:** In `ScanTelemetryDrawer` on the OCR Result screen (`result.tsx`), the **Raw Output** section renders as empty/blank instead of displaying the raw extracted OCR text lines.
+  - **Tasks:**
+    - Verify the backend OCR endpoint (`back-end/app/api/v1/ocr.py`) includes raw OCR text lines in the response/telemetry payload.
+    - Preserve and pass the raw OCR output field through the frontend OCR service and navigation params / state into `ScanTelemetryDrawer`.
+    - Render the raw text lines cleanly inside the **Raw Output** section (with an explicit fallback only when OCR truly extracted zero characters).
+
+- [ ] **[Chore/Fix] Audit & Repair Git Pre-Commit / Post-Merge DB Sync Hooks Across Teammate Machines** (`scripts` / `.git/hooks`)
+  - **Problem:** Cross-machine testing revealed that local PostgreSQL databases are not syncing reliably after `git pull`/`git merge`, and pre-commit `pg_dump` hooks (`mediscan_full.sql`) appear to fail silently or fail to install on teammates' laptops (e.g., Windows vs. WSL2 path mismatches, missing `pg_dump` in PATH, or uninitialized `.git/hooks`).
+  - **Tasks:**
+    - Audit the Git hook installation script and `.git/hooks` (`pre-commit`, `post-merge` / `post-checkout`) to verify why hooks are bypassed or failing on teammates' machines.
+    - Ensure `pg_dump` / `psql` database snapshot sync (`mediscan_full.sql`) works cross-environment and surfaces clear error messages instead of failing silently.
+    - Document the one-command hook setup in `README.md` / onboarding docs so every teammate's local DB stays in sync.
+
+
 ## Suggested sequencing
 
 1. Redact production OCR diagnostics and establish the lint/typecheck baseline early.
@@ -277,3 +293,6 @@ This backlog expands the current GitHub issue set into parallel frontend, backen
 4. Backend consent/notification APIs → corresponding frontend work → QA acceptance.
 5. Deduplicate scan matches and stabilize Vault navigation before release regression.
 6. Verify database restore and local-network smoke tests before releases.
+
+
+
