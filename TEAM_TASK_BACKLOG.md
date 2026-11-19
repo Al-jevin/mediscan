@@ -204,16 +204,17 @@ This backlog expands the current GitHub issue set into parallel frontend, backen
 ### 14. [Expo Go][Frontend/Backend] Fix mobile access to the development app
 
 **Related:** #27; follows the reported behavior where the app works in the laptop browser but not in Expo Go.
+**Status:** Completed (Issue #47)
 
 **Description:** Fix the mobile development path so Expo Go on a physical Android phone can reach both the MediScan app and its backend. The laptop browser currently works, but the phone cannot reliably use the local API.
 
 **Acceptance criteria**
 
-- Verify Expo Go resolves the laptop's active LAN address and uses a reachable API URL; do not use `localhost` for a physical phone.
-- Ensure FastAPI listens on a LAN-reachable interface during local Expo Go development and document the required same-Wi-Fi/firewall setup without opening access on public networks.
-- Confirm login, authenticated API requests, profile loading, and OCR image upload work from a physical Android device using Expo Go.
-- Keep laptop-browser behavior working and preserve the production API URL/configuration.
-- Add a concise mobile connectivity smoke-test checklist and actionable diagnostics for an unset or unreachable API URL.
+- [x] Verify Expo Go resolves the laptop's active LAN address and uses a reachable API URL; do not use `localhost` for a physical phone.
+- [x] Ensure FastAPI listens on a LAN-reachable interface during local Expo Go development and document the required same-Wi-Fi/firewall setup without opening access on public networks.
+- [x] Confirm login, authenticated API requests, profile loading, and OCR image upload work from a physical Android device using Expo Go.
+- [x] Keep laptop-browser behavior working and preserve the production API URL/configuration.
+- [x] Add a concise mobile connectivity smoke-test checklist and actionable diagnostics for an unset or unreachable API URL.
 
 ### 15. [Backend/QA] Test database backup and restore from a clean environment
 

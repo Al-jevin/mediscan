@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict nwzBRGsAGkBzU2neEfA2PFJhNKnnOfxWlwJRilVSa7ognScMq34lPyimTW2O1f4
+\restrict QXtRNb61qkVdduXlflkXdJmgnmBlRbwg3CxLvtFDP8NcvSNc02RrIFUdrz2d6Dq
 
 -- Dumped from database version 18.6
--- Dumped by pg_dump version 18.6
+-- Dumped by pg_dump version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -31565,7 +31565,7 @@ b71c4e7c36b2340f	6d72a08b-2ecc-4c86-9960-6503f8791604	t	Updated Frontend	updated
 --
 
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
-0dea22de-1694-4cab-979e-a57294bd076c	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	439549f98aec69745d760fbc1b51219c295c81c8627c5f7a5d725547fd2328eb	2026-11-18 13:34:48.238842	2026-11-25 13:34:48.23406
+286e2ab3-edca-4442-97f1-797bcc177845	8bd67808-b4a1-4bfd-a19d-92fc6ca9ae04	0bcc2dad259a83cc1d4187108f5a8bf5775773dadae515e5c4dc33a7f959c7d1	2026-11-19 07:15:31.956906	2026-11-26 07:15:31.953614
 \.
 
 
@@ -62835,5 +62835,5 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict nwzBRGsAGkBzU2neEfA2PFJhNKnnOfxWlwJRilVSa7ognScMq34lPyimTW2O1f4
+\unrestrict QXtRNb61qkVdduXlflkXdJmgnmBlRbwg3CxLvtFDP8NcvSNc02RrIFUdrz2d6Dq
 

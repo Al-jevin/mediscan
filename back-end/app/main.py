@@ -39,6 +39,20 @@ app.add_middleware(
 app.include_router(router, prefix="/api/v1")
 app.include_router(crud_tester_router)
 
+@app.on_event("startup")
+async def startup_event():
+    import socket
+    try:
+        hostname = socket.gethostname()
+        local_ip = socket.gethostbyname(hostname)
+        print("\n" + "=" * 55, flush=True)
+        print(" [MediScan Backend] Server running on all interfaces", flush=True)
+        print(f" -> Localhost (Browser): http://127.0.0.1:8000/docs", flush=True)
+        print(f" -> Mobile LAN (Expo Go): http://{local_ip}:8000/docs", flush=True)
+        print("=" * 55 + "\n", flush=True)
+    except Exception:
+        pass
+
 CRUD_TESTER_DIRECTORY = REPOSITORY_DIRECTORY / "front-end"
 app.mount(
     "/crud-tester",

@@ -52,6 +52,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "test:api": "node --test --experimental-strip-types src/services/__tests__/apiUrl.test.ts",
     "postinstall": "cd .. && git config core.hooksPath .githooks"
   },
   "private": true

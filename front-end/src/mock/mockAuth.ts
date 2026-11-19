@@ -86,8 +86,8 @@ async function request(path: string, method: string, payload?: unknown): Promise
     return { ok: true, status: response.status, body };
   } catch {
     const message = controller.signal.aborted
-      ? 'The request timed out. Check that the backend is running and reachable at EXPO_PUBLIC_API_URL.'
-      : 'Could not connect to the backend. Check EXPO_PUBLIC_API_URL, make sure FastAPI is running and CORS_ALLOWED_ORIGINS includes this browser origin, and connect your device to the same Wi-Fi network.';
+      ? `The request timed out. Check that the backend is running and reachable at ${API_V1_URL || 'EXPO_PUBLIC_API_URL'}.`
+      : `Could not connect to backend at ${API_V1_URL || 'configured API URL'}. Ensure FastAPI is running with --host 0.0.0.0 and your device is on the same Wi-Fi or Hotspot.`;
     return { ok: false, status: 0, message };
   } finally {
     clearTimeout(timeout);

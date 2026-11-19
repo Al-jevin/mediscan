@@ -7,8 +7,8 @@ Run this checklist against the configured PostgreSQL database, FastAPI backend, 
 - [ ] Root `.env` points to the intended PostgreSQL database.
 - [ ] `philippines_fda_medicines` contains the real FDA records used for testing.
 - [ ] A controlled test account is available; its credentials are not committed.
-- [ ] Backend starts on `http://127.0.0.1:8000`.
-- [ ] Frontend uses `EXPO_PUBLIC_API_URL=http://127.0.0.1:8000/api/v1`.
+- [ ] Backend starts on `0.0.0.0:8000` (listening on all interfaces for mobile access).
+- [ ] Frontend dynamically resolves laptop active LAN/Hotspot IP on mobile, or uses `localhost` on web.
 - [ ] Frontend API mode is enabled.
 - [ ] Brevo sender and SMTP credentials are configured only through the local environment.
 

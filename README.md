@@ -1,183 +1,191 @@
 # MediScan Vault
 
-MediScan Vault is a mobile app that scans medicine boxes and blister packs using your phone camera, checks the medicine against the Philippine FDA database, and helps families track medication schedules.
+MediScan Vault is a mobile app that scans medicine boxes and blister packs using your phone camera, validates the medicine against the Philippine FDA database, and helps families track medication schedules.
 
 ---
 
-## Choose How You Want to Run the Backend
+## Quick Overview: How the System Works
 
-You have two ways to set up the backend and database on your computer:
-* *Option A: Docker Setup (Recommended on Windows)* — Runs the backend and database inside containers so you do not have to install PostgreSQL manually or deal with Windows Python/DLL errors.
-* *Option B: Manual Local Setup* — Installs PostgreSQL and Python 3.11 directly on your machine.
-
-(Regardless of which option you pick for the backend, the **Expo mobile app* always runs directly on your computer so your phone can connect to it over Wi-Fi.)*
+* **PostgreSQL Database (Port 5432):** Stores FDA medicine records, user accounts, profiles, and reminders. Running it via Docker Desktop (WSL 2) is the easiest method.
+* **FastAPI Backend (Port 8000):** Runs OCR (PaddleOCR) and NER medicine-matching logic. Must listen on `--host 0.0.0.0` so physical phones can reach it.
+* **Expo Mobile App (Port 8081):** Runs on your computer via Metro bundler and opens on your physical phone through the **Expo Go** app.
 
 ---
 
-## Step 1: Download the Code and .env Files (Required for Both Options)
+## Prerequisites (Install These First)
 
-### 1. Clone the Repo and Switch to the OCR Branch
-Open your terminal (WSL2 Ubuntu or PowerShell) and run:
+1. **[Node.js (LTS Version)](https://nodejs.org/)** — For running the Expo frontend.
+2. **[Python 3.11 (64-bit)](https://www.python.org/downloads/release/python-3119/)** — For the FastAPI backend. *(Do not use Python 3.12+ or 32-bit Python, or PaddleOCR will fail to install).*
+3. **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** — For running the PostgreSQL database with zero configuration.
+4. **[Expo Go app](https://expo.dev/go)** installed on your Android/iOS phone.
+
+---
+
+## Step 1: Install WSL 2 & Docker Desktop (For Windows)
+
+Running Docker through WSL 2 (Windows Subsystem for Linux) gives the best performance and prevents Windows file/path issues.
+
+### 1. Install WSL 2 (Do this once)
+Open **PowerShell as Administrator** and run:
+```powershell
+wsl --install
+```
+*If your computer asks you to restart, restart your computer to finish installation.*
+
+### 2. Configure Docker Desktop for WSL 2
+1. Download and install **Docker Desktop for Windows**.
+2. Open Docker Desktop, click the **Settings (gear icon)** at the top right:
+   * Under **General**, check **Use the WSL 2 based engine**.
+   * Under **Resources** -> **WSL Integration**, make sure integration with your default WSL distro is enabled.
+3. Click **Apply & restart**. Make sure Docker Desktop is running in the background.
+
+---
+
+## Step 2: Clone the Project & Set Up `.env` Files
+
+### 1. Clone the repository and switch to the development branch:
+```powershell
 git clone <your-repo-url>
 cd mediscan
 git switch feat/ocr-ner-hardening
+```
 
-### 2. Download and Place the Two .env Files
-Ask the team lead (or check the team group chat) to download the two .env files, then place them in these exact folders:
-1. Place the **backend .env file** directly in the *main project folder (root)* (mediscan/.env).
-2. Place the **frontend .env file** inside the **front-end/** folder (mediscan/front-end/.env).
+### 2. Place the two `.env` files:
+Get the `.env` files from your team lead / group chat:
+1. **Backend `.env`:** Place directly in the project root: `mediscan/.env`
+2. **Frontend `.env`:** Place inside the `front-end` folder: `mediscan/front-end/.env`
 
-*(Do not commit or upload .env files to GitHub.)*
-
----
-
-## Option A: Docker Setup (Easiest)
-
-### What You Need Installed
-1. *Docker Desktop* (make sure Docker Desktop is open and running before running commands)
-2. *Node.js (LTS version)*
-3. *Expo Go* app installed on your phone
-
-### First-Time Docker Setup & Daily Run
-1. Open the .env file in your *root* folder (mediscan/.env) and make sure DATABASE_URL uses db instead of localhost:
-   
-dotenv
-   DATABASE_URL=postgresql://mediscan_admin:mediscan_P%40ssw0rd@db:5432/mediscan_db
-   
-2. From the main mediscan folder, build and start the backend + database containers:
-   
-   docker compose up --build -d
-   
-3. Load the starter database (mediscan_full.sql) into the running database container (replace <db-container-name> with the container name shown in docker ps):
-   
-   docker exec -i <db-container-name> psql -U mediscan_admin -d mediscan_db < mediscan_full.sql
-   
-4. Check that the backend is live by opening http://127.0.0.1:8000/docs in your browser.
-5. Install and start the mobile app in your terminal:
-   
-   cd front-end
-   npm install
-   npx expo start -c
-   
-
-### Useful Docker Commands
-# View backend logs
-docker compose logs -f
-
-# Stop all containers when done
-docker compose down
-
-# Rebuild after someone updates back-end/requirements.txt
-docker compose up --build -d
+*(Note: In `front-end/.env`, dynamic IP resolution is enabled by default so your phone connects automatically on any Wi-Fi or Hotspot).*
 
 ---
 
-## Option B: Manual Local Setup (Without Docker)
+## Step 3: One-Time Windows Firewall Rule (Allows Phone Access)
 
-### What You Need Installed
-1. *Python 3.11 (64-bit)* — Do not use Python 3.12+ or 32-bit Python, or the OCR library will fail to install.
-2. *Node.js (LTS version)*
-3. *PostgreSQL (version 14 or newer)*
-4. *Expo Go* app installed on your phone
+By default, Windows Firewall blocks incoming connections from physical phones. Run this **once** to permanently allow your phone to talk to FastAPI:
 
-### Part 1: First-Time Local Setup (Do This Once)
+Open **PowerShell as Administrator** and run:
+```powershell
+netsh advfirewall firewall add rule name="MediScan Port 8000" dir=in action=allow protocol=TCP localport=8000
+```
+*(You will see `Ok.` You can delete this rule after defense day with `netsh advfirewall firewall delete rule name="MediScan Port 8000"`).*
 
-#### 1. Check Your Root .env File
-Open the .env file in your *root* folder (mediscan/.env) and make sure DATABASE_URL uses localhost:
-dotenv
-DATABASE_URL=postgresql://mediscan_admin:mediscan_P%40ssw0rd@localhost:5432/mediscan_db
+---
 
-#### 2. Set Up PostgreSQL (mediscan_db)
-Start PostgreSQL and load mediscan_full.sql from the main mediscan folder:
+## Step 4: First-Time Setup (Do Once)
 
-*WSL2 (Ubuntu) / Mac / Linux:*
-sudo service postgresql start
-sudo -u postgres psql -c "CREATE USER mediscan_admin WITH PASSWORD 'mediscan_P@ssw0rd' SUPERUSER;"
-sudo -u postgres psql -c "CREATE DATABASE mediscan_db OWNER mediscan_admin;"
-PGPASSWORD="mediscan_P@ssw0rd" psql -U mediscan_admin -h localhost -d mediscan_db -f mediscan_full.sql
+### 1. Start the PostgreSQL Database (via Docker)
+From the main `mediscan` folder:
+```powershell
+docker compose up -d
+```
+*(Docker will automatically start the database container and pre-load `mediscan_full.sql`).*
 
-*Windows PowerShell:*
-Start-Service postgresql*
-psql -U postgres -c "CREATE USER mediscan_admin WITH PASSWORD 'mediscan_P@ssw0rd' SUPERUSER;"
-psql -U postgres -c "CREATE DATABASE mediscan_db OWNER mediscan_admin;"
-$env:PGPASSWORD="mediscan_P@ssw0rd"; psql -U mediscan_admin -h localhost -d mediscan_db -f mediscan_full.sql
-
-#### 3. Install Backend Python Packages
-From the main mediscan folder:
-
-*WSL2 (Ubuntu) / Mac / Linux:*
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r back-end/requirements.txt
-
-*Windows PowerShell:*
-# Run this first line once so Windows allows you to activate Python environments:
+### 2. Set Up the Python Backend Virtual Environment
+From the main `mediscan` folder:
+```powershell
+# Allow running PowerShell scripts (if prompted):
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
+# Create virtual environment with Python 3.11:
 py -3.11 -m venv .venv
+
+# Activate environment:
 .venv\Scripts\Activate.ps1
+
+# Install requirements:
 python -m pip install --upgrade pip
 pip install -r back-end\requirements.txt
+```
 
-#### 4. Install Mobile App Packages
-From the main mediscan folder:
+### 3. Install Mobile App Dependencies
+From the main `mediscan` folder:
+```powershell
 cd front-end
 npm install
+cd ..
+```
 
-### Part 2: How to Run Locally Every Day
+---
 
-Open *two terminal windows* in the main mediscan folder:
+## Step 5: How to Run the App Every Day
 
-*Terminal 1 — Start Database & Backend:*
-# WSL2 / Mac / Linux:
-sudo service postgresql start
-source .venv/bin/activate
-cd back-end/app
-python -m uvicorn main:app --reload
-# Windows PowerShell:
-Start-Service postgresql*
+Open **two terminal windows** in the main `mediscan` folder:
+
+### Terminal 1: Start Database & Backend
+```powershell
+# 1. Ensure Docker database is running:
+docker compose up -d
+
+# 2. Activate Python environment & run backend:
 .venv\Scripts\Activate.ps1
 cd back-end\app
-python -m uvicorn main:app --reload
-You will see `Uvicorn running on http://127.0.0.1:8000`. (You can ignore the yellow `failed to import ujson` warning—that is normal.)
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+You will see our startup banner:
+```text
+=======================================================
+ [MediScan Backend] Server running on all interfaces
+ -> Localhost (Browser): http://127.0.0.1:8000/docs
+ -> Mobile LAN (Expo Go): http://<your-laptop-ip>:8000/docs
+=======================================================
+```
 
-
-*Terminal 2 — Start Mobile App:*
+### Terminal 2: Start Mobile App
+```powershell
 cd front-end
 npx expo start -c
-Scan the QR code with *Expo Go* on your phone (same Wi-Fi), or press **w** to open it in your browser.
+```
+* **On Phone:** Open **Expo Go** and scan the QR code.
+* **On Laptop Browser:** Press **`w`** in the terminal or open `http://localhost:8081`.
 
 ---
 
-## Team Git Rules (Read Before Committing)
+## 🏆 Defense Day Protocol (Saturday Bulletproof Setup)
 
-1. **Never push directly to main.** Always work on a feature branch (like feat/ocr-ner-hardening) and open a Pull Request on GitHub when done.
-2. **Keep PostgreSQL running when you run git commit.** Our repo has an automatic script that backs up your database into mediscan_full.sql every time you commit. If PostgreSQL is turned off, your commit will be blocked.
-3. **Commit your changes before running git pull.** Whenever you pull new updates from GitHub, your local database automatically resets to match the team's latest mediscan_full.sql.
+University/campus Wi-Fi networks frequently block device-to-device communication (AP Client Isolation). To guarantee a 100% reliable defense presentation:
+
+1. **Turn on Mobile Hotspot on your phone.**
+2. **Connect your laptop to your phone's hotspot Wi-Fi.**
+3. In Windows Settings -> **Network & internet** -> **Wi-Fi**, ensure the hotspot connection is set to **Private network**.
+4. Start database & backend in Terminal 1 (`python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000`).
+5. Start frontend in Terminal 2 (`npx expo start -c`).
+6. Scan the QR code in Expo Go!
+
+**Why this works:** The phone and laptop communicate directly over their own private network (`192.168.43.x` or `10.x.x.x`). The app automatically discovers the new IP with **zero manual configuration**, and does not rely on venue Wi-Fi.
 
 ---
 
-## Common Errors & Quick Fixes
+## Common Errors & Quick Solutions
 
-### 1. Docker says port is already allocated (5432 or 8000)
-Your local PostgreSQL or a local Uvicorn server is already using that port. Stop the local service (sudo service postgresql stop or Stop-Service postgresql* in PowerShell) before running docker compose up.
+### 1. Phone says: "Could not connect to backend..."
+* **Cause A:** Backend was started without `--host 0.0.0.0`. Ensure you use `--host 0.0.0.0 --port 8000`.
+* **Cause B:** Wi-Fi is set to "Public" in Windows. Switch it to **Private network** in Windows Settings -> Network & Internet -> Wi-Fi.
+* **Cause C:** Windows Firewall blocked port 8000. Run the `netsh advfirewall` command from Step 3 as Administrator.
 
-### 2. PowerShell says: Activate.ps1 cannot be loaded because running scripts is disabled
-Run this command once in PowerShell, then try activating .venv again:
+### 2. Docker says: "port is already allocated (5432)"
+Another PostgreSQL instance is running locally on your computer. Stop it in PowerShell before running Docker:
+```powershell
+Stop-Service postgresql*
+docker compose up -d
+```
+
+### 3. PowerShell says: "Activate.ps1 cannot be loaded because running scripts is disabled"
+Run this command once in PowerShell:
+```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
 
-### 3. Backend crashes with set_optimization_level or paddlex error
-This happens if pip installed PaddleOCR version 3.x instead of 2.x. Run these commands inside your activated .venv to fix it:
+### 4. PaddleOCR installation error (`set_optimization_level` or `paddlex`)
+Run inside your activated `.venv`:
+```powershell
 pip uninstall -y paddleocr paddlex
 pip install "paddleocr==2.9.1" "numpy<2.0" "opencv-python-headless<4.11"
+```
 
-### 4. Windows says: Application Control policy has blocked this file
-Windows 11 security sometimes blocks Python files stored inside your Documents folder. Either:
-* *Recommended:* Use *Option A (Docker)* or run inside *WSL2 Ubuntu*.
-* *Or:* Move your .venv outside Documents (e.g., py -3.11 -m venv C:\venvs\mediscan and activate C:\venvs\mediscan\Scripts\Activate.ps1).
+---
 
-### 5. Phone app cannot connect to the backend over Wi-Fi
-If running manually without Docker, python -m uvicorn main:app --reload only listens on your laptop (127.0.0.1). To test on a physical phone over Wi-Fi, run python -m uvicorn main:app --host 0.0.0.0 --reload, and if Windows Firewall blocks port 8000, run this once in *PowerShell as Administrator*:
-New-NetFirewallRule -DisplayName "MediScan Backend" -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow -Profile Any
-127.0.0.1
+## Team Git Workflow Rules
+
+1. **Never push directly to `main`.** Work on your feature branch and submit a Pull Request.
+2. **Keep the database running when running `git commit`.** Our git hooks automatically back up the database into `mediscan_full.sql` on each commit.
+3. **Commit your local changes before running `git pull`.**

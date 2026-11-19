@@ -277,6 +277,11 @@ export async function scanLabel(imageUri: string): Promise<ScanResult> {
     if (controller.signal.aborted) {
       throw new Error('The scan request timed out. Try again with a smaller, clearer image.');
     }
+    if (error instanceof TypeError && error.message.includes('Network request failed')) {
+      throw new Error(
+        `Network request failed when contacting ${API_V1_URL}/ocr/extract-label. Check that your phone and laptop are on the same Wi-Fi/Hotspot and the backend is running.`
+      );
+    }
     throw error;
   } finally {
     clearTimeout(timeout);
