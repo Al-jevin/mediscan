@@ -53,6 +53,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test:api": "node --test --experimental-strip-types src/services/__tests__/apiUrl.test.ts",
+    "test:reminders": "node --test --experimental-strip-types src/utils/__tests__/reminderDates.test.mjs",
     "postinstall": "cd .. && git config core.hooksPath .githooks"
   },
   "private": true

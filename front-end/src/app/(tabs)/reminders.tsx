@@ -20,6 +20,11 @@ import { useProfile } from '@/context/ProfileContext';
 import { useVault } from '@/services/vaultStore';
 import { createReminder, deleteReminder as deleteReminderRecord, fetchReminders, updateReminder } from '@/services/remindersApi';
 import { overviewCounts } from '@/utils/medicine';
+import {
+  countReminderOccurrences,
+  groupRemindersByOccurrenceDate,
+  groupUpcomingReminders,
+} from '@/utils/reminderDates';
 
 export default function RemindersScreen() {
   const colors = useColors();
@@ -113,13 +118,34 @@ export default function RemindersScreen() {
     router.setParams({ member: undefined, reminderId: undefined, from: undefined });
   }, [loaded, requestedMember, requestedReminderId, requestedFrom, reminders]);
 
-  const visibleReminders = useMemo(() => {
+  const filteredReminders = useMemo(() => {
     const filtered =
       selectedMember === 'All Members'
         ? reminders
         : reminders.filter((reminder) => reminder.member === selectedMember);
-    return showAll ? filtered : filtered.slice(0, 2);
-  }, [reminders, selectedMember, showAll]);
+    return filtered;
+  }, [reminders, selectedMember]);
+  const allReminderGroups = useMemo(
+    () => groupRemindersByOccurrenceDate(reminders),
+    [reminders],
+  );
+  const filteredReminderGroups = useMemo(
+    () => allReminderGroups
+      .map((group) => ({
+        ...group,
+        reminders: group.reminders.filter((reminder) =>
+          selectedMember === 'All Members' || reminder.member === selectedMember),
+      }))
+      .filter((group) => group.reminders.length > 0),
+    [allReminderGroups, selectedMember],
+  );
+  const reminderGroups = useMemo(
+    () => showAll
+      ? filteredReminderGroups
+      : groupUpcomingReminders(filteredReminders),
+    [filteredReminderGroups, filteredReminders, showAll],
+  );
+  const displayedReminderCount = countReminderOccurrences(filteredReminderGroups);
 
   const openNewReminder = () => {
     setEditingReminder(null);
@@ -194,17 +220,23 @@ export default function RemindersScreen() {
   }
 };
 
-  const webTopInset = Platform.OS === 'web' ? 67 : 0;
-  const todayCount = reminders.filter((item) => item.enabled).length;
+  const todayCount = countReminderOccurrences(
+    allReminderGroups
+      .filter((group) => group.title.startsWith('Today - '))
+      .map((group) => ({
+        ...group,
+        reminders: group.reminders.filter((reminder) => reminder.enabled),
+      })),
+  );
+  const totalReminderCount = countReminderOccurrences(allReminderGroups);
   const medicineCounts = overviewCounts(medicines);
-  const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
     <SafeAreaView
       edges={['top']}
       style={[
         styles.safe,
-        { backgroundColor: colors.background, paddingTop: Math.max(0, webTopInset - insets.top) },
+        { backgroundColor: colors.background },
       ]}
     >
       <StatusBar style="dark" />
@@ -271,16 +303,6 @@ export default function RemindersScreen() {
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
               Upcoming Alerts
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              testID="toggle-all-reminders"
-              onPress={() => setShowAll((value) => !value)}
-              hitSlop={8}
-            >
-              <Text style={[styles.viewAll, { color: colors.primary }]}>
-                {showAll ? 'Show Less' : 'View All'}
-              </Text>
-            </Pressable>
           </View>
 
           <View style={styles.summaryRow}>
@@ -312,9 +334,9 @@ export default function RemindersScreen() {
               foreground={colors.todayForeground}
             />
             <SummaryCard
-              count={String(reminders.length)}
+              count={String(totalReminderCount)}
               label="Total"
-              sublabel="Reminders"
+              sublabel="Occurrences"
               icon="notifications"
               background={colors.totalBackground}
               border={colors.totalBorder}
@@ -325,7 +347,7 @@ export default function RemindersScreen() {
           <View style={styles.listHeading}>
             <View>
               <Text style={[styles.listTitle, { color: colors.foreground }]}>
-                Today - {todayLabel}
+                {showAll ? 'All Reminder Occurrences' : 'Upcoming Reminders'}
               </Text>
               {selectedMember !== 'All Members' ? (
                 <Text style={[styles.filterCaption, { color: colors.mutedForeground }]}>
@@ -333,36 +355,55 @@ export default function RemindersScreen() {
                 </Text>
               ) : null}
             </View>
-            <Text style={[styles.countText, { color: colors.mutedForeground }]}>
-              {selectedMember === 'All Members'
-                ? reminders.length
-                : reminders.filter((item) => item.member === selectedMember).length}{' '}
-              {reminders.length === 1 ? 'reminder' : 'reminders'}
-            </Text>
+            <View style={styles.listHeadingActions}>
+              <Pressable
+                accessibilityRole="button"
+                testID="toggle-all-reminders"
+                onPress={() => setShowAll((value) => !value)}
+                hitSlop={8}
+              >
+                <Text style={[styles.viewAll, { color: colors.primary }]}>
+                  {showAll ? 'Show Less' : 'View All'}
+                </Text>
+              </Pressable>
+              <Text style={[styles.countText, { color: colors.mutedForeground }]}>
+                {displayedReminderCount}{' '}
+                {displayedReminderCount === 1 ? 'reminder' : 'reminders'}
+              </Text>
+            </View>
           </View>
 
-          {visibleReminders.length ? (
-            <View style={styles.reminderList}>
-              {visibleReminders.map((reminder) => (
-                <ReminderCard
-                  key={reminder.id}
-                  reminder={reminder}
-                  onPress={() => openReminder(reminder)}
-                  onToggle={() => toggleReminder(reminder.id)}
-                  colors={colors}
-                />
-              ))}
-            </View>
+          {reminderGroups.length ? (
+            reminderGroups.map((group) => (
+              <View key={group.key} style={styles.dateGroup}>
+                <Text style={[styles.dateGroupTitle, { color: colors.foreground }]}>
+                  {group.title}
+                </Text>
+                <View style={styles.reminderList}>
+                  {group.reminders.map((reminder) => (
+                    <ReminderCard
+                      key={reminder.id}
+                      reminder={reminder}
+                      onPress={() => openReminder(reminder)}
+                      onToggle={() => toggleReminder(reminder.id)}
+                      colors={colors}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))
           ) : (
             <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={[styles.emptyIcon, { backgroundColor: colors.accent }]}>
                 <Ionicons name="alarm-outline" size={23} color={colors.primary} />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-                No reminders for {selectedMember}
+                {showAll ? 'No reminders for' : 'No upcoming reminders for'} {selectedMember}
               </Text>
               <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                Add a reminder or choose another family member.
+                {showAll
+                  ? 'Add a reminder or choose another family member.'
+                  : 'View all reminders or add a new one.'}
               </Text>
             </View>
           )}
@@ -811,9 +852,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  listHeadingActions: { alignItems: 'flex-end', gap: 4 },
   listTitle: { fontSize: 14, fontWeight: '700' },
   filterCaption: { fontSize: 10, marginTop: 3 },
   countText: { fontSize: 11 },
+  dateGroup: { marginBottom: 13 },
+  dateGroupTitle: { fontSize: 13, fontWeight: '700', marginBottom: 7 },
   reminderList: { gap: 8 },
   reminderCard: {
     minHeight: 103,

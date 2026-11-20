@@ -2,11 +2,7 @@
 -- PostgreSQL database dump
 --
 
-<<<<<<< HEAD
-\restrict M5OHjpWyImHWmPgS69A8s6SsrpPPN13VHPO9VMg39CvUnFoILfNphTZk3SKcloY
-=======
-\restrict wPP8SRZ1H4ENfF2zmRo56MI0ER7liDmNxPBhB9E9v0k83ThQjMIswaXPH3cqYtm
->>>>>>> 2b13c55 (Fixed issue #53)
+\restrict labxJztJ4s6fNbWHoMLK45ngeB5RSiRJYjJ5zl6S4OU1BzJBdD1H57KzLthRVl4
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -515,6 +511,10 @@ COPY public.medication_logs (log_id, schedule_id, profile_id, log_scheduled_time
 --
 
 COPY public.medication_schedules (schedule_id, profile_id, fda_id, sched_is_active, sched_frequency_type, sched_reminder_time, sched_start_date, sched_end_date, sched_notes, sched_created_at, sched_updated_at) FROM stdin;
+401	38fb4db62a4e83cf	41016	t	daily	{11:10:00}	2026-11-20	\N	\N	2026-11-20 03:09:10.821537	2026-11-20 03:09:10.821537
+402	38fb4db62a4e83cf	33136	t	daily	{10:00:00}	2020-01-01	\N	123	2026-11-20 03:18:01.061745	2026-11-20 03:18:01.061745
+404	38fb4db62a4e83cf	55065	t	daily	{10:00:00}	2026-11-20	\N	\N	2026-11-20 03:19:27.191757	2026-11-20 03:19:27.191757
+405	38fb4db62a4e83cf	33636	t	daily	{10:00:00}	2026-11-20	\N	\N	2026-11-20 03:19:43.524915	2026-11-20 03:19:43.524915
 \.
 
 
@@ -31557,7 +31557,7 @@ bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
 37a9a98c-875b-433e-8fc2-fe34d170307d	917ef719-c1ce-46c5-9f37-207a05a23395	85fee27ac9a3f36ac6ebda4a0bcf7f9c81258e690180e864e033ddef1be0bf9c	2026-11-07 12:13:27.734336	2026-11-14 12:13:27.729537
 8d7f52b3-8029-4b1e-bfba-62243103149f	3d74ea17-386d-4119-950c-f256af7154ff	37583b559caab070f19179ae7205b71f145482e7dcb4de3c50c89d50b476013e	2026-11-11 07:02:08.703737	2026-11-18 07:02:08.699687
-4d217cc1-82cb-41ea-aebd-a847dc923c37	3d74ea17-386d-4119-950c-f256af7154ff	f506a68a97f17f271c228c7210b5926813bd7967e949d63bce3f33753392a58d	2026-11-20 01:41:17.852417	2026-11-27 01:41:17.849452
+4d277e69-03a0-4f37-ac83-483a8836a1da	3d74ea17-386d-4119-950c-f256af7154ff	ac64df9ed84308c6b53367410b892e29c286819ac67aa07906a5eaa56b9d6722	2026-11-20 04:18:29.85974	2026-11-27 04:18:29.856292
 \.
 
 
@@ -62557,7 +62557,7 @@ SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 398, true);
 -- Name: medication_schedules_schedule_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 399, true);
+SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 406, true);
 
 
 --
@@ -62833,9 +62833,5 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
-<<<<<<< HEAD
-\unrestrict M5OHjpWyImHWmPgS69A8s6SsrpPPN13VHPO9VMg39CvUnFoILfNphTZk3SKcloY
-=======
-\unrestrict wPP8SRZ1H4ENfF2zmRo56MI0ER7liDmNxPBhB9E9v0k83ThQjMIswaXPH3cqYtm
->>>>>>> 2b13c55 (Fixed issue #53)
+\unrestrict labxJztJ4s6fNbWHoMLK45ngeB5RSiRJYjJ5zl6S4OU1BzJBdD1H57KzLthRVl4
 
