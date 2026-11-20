@@ -6,12 +6,21 @@ import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import { useProfile } from '@/context/ProfileContext';
+import {
+  useAppTheme,
+  type AppearanceMode,
+  type AppLanguage,
+} from '@/context/ThemeContext';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 type Screen = 'Settings' | 'Display' | 'Language' | 'Notifications' | 'Offline Database' | 'Privacy' | 'FAQs' | 'About MediScan' | 'Privacy Policy' | 'Terms of Service' | 'Open Source Licenses';
 
+const SELECTED_LIGHT = '#8DB29B';
+const SELECTED_DARK = '#2E5C4E';
+
+/** Fallback light tokens for StyleSheet defaults (overridden at render). */
 const GREEN = '#164F43';
 const LIGHT_GREEN = '#8FB5A0';
-const SELECTED_LIGHT = '#8DB29B';
 const BG = '#F8FAFB';
 const TEXT = '#18312F';
 const BORDER = '#E0E5E5';
@@ -51,10 +60,24 @@ const FAQS = [
 export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   // The profile picked on "Choose your profile" + the logged-in account's email
   const { activeProfile, email } = useProfile();
+  const {
+    appearance,
+    setAppearance,
+    language,
+    setLanguage,
+    textSize,
+    setTextSize,
+    t,
+  } = useAppTheme();
+  const { colors, isDark } = useDisplayTheme();
+  const themeGreen = colors.actionPrimary;
+  const themeMuted = colors.textSecondary;
+  const themeBg = colors.surfacePrimary;
+  const themeText = colors.textPrimary;
+  const themeBorder = colors.borderDefault;
+  const themeCard = isDark ? colors.surfaceSecondary : '#FFFFFF';
+  const themeSelected = isDark ? SELECTED_DARK : SELECTED_LIGHT;
   const [screen, setScreen] = useState<Screen>('Settings');
-  const [appearance, setAppearance] = useState('Light');
-  const [language, setLanguage] = useState('English');
-  const [textSize, setTextSize] = useState(16);
   const [pushNotifications, setPushNotifications] = useState(false);
   const [medicineReminders, setMedicineReminders] = useState(true);
   const [sound, setSound] = useState(true);
@@ -116,8 +139,8 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 
 
   const Header = ({ title }: { title: string }) => (
-    <SafeAreaView edges={['top']} style={styles.headerSafe}>
-      <View style={styles.header}>
+    <SafeAreaView edges={['top']} style={[styles.headerSafe, { backgroundColor: themeBg }]}>
+      <View style={[styles.header, { backgroundColor: themeBg, borderBottomColor: themeBorder }]}>
         <Pressable
           onPress={goBack}
           style={styles.backButton}
@@ -125,10 +148,10 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
           accessibilityRole="button"
           accessibilityLabel={screen === 'Settings' ? 'Open menu' : 'Go back'}
         >
-          <Ionicons name="arrow-back" size={25} color={GREEN} />
+          <Ionicons name="arrow-back" size={25} color={themeGreen} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={[styles.headerTitle, { color: themeText }]}>{title}</Text>
 
         <View style={{ width: 36 }} />
       </View>
@@ -136,64 +159,66 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   );
 
   const ProfileCard = () => (
-    <View style={styles.profileCard}>
+    <View style={[styles.profileCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
       {/* Same avatar, name and email as Home, the side menu and the Profile screen */}
       <ProfileAvatar icon={activeProfile?.profile_icon ?? 1} size={50} />
       <View style={{ flex: 1 }}>
-        <Text style={styles.profileName} numberOfLines={1}>{activeProfile?.profile_fullname ?? ''}</Text>
-        <Text style={styles.email} numberOfLines={1}>{email ?? ''}</Text>
+        <Text style={[styles.profileName, { color: themeText }]} numberOfLines={1}>{activeProfile?.profile_fullname ?? ''}</Text>
+        <Text style={[styles.email, { color: themeMuted }]} numberOfLines={1}>{email ?? ''}</Text>
       </View>
     </View>
   );
 
 
   const SettingRow = ({ icon, title, value, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; value?: string; onPress: () => void }) => (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]} accessibilityRole="button">
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.settingRow, { borderBottomColor: themeBorder }, pressed && { backgroundColor: isDark ? '#1B3D2E' : '#EDF4F1' }]} accessibilityRole="button">
       {title === 'Appearance' ? (
         <View style={styles.appearanceRowIcon}>
           {/* Crescent outline with a half-sun tucked into its open side, matching the reference icon */}
-          <Ionicons name="moon-outline" size={23} color="#64847D" style={styles.appearanceMoonGlyph} />
+          <Ionicons name="moon-outline" size={23} color={themeMuted} style={styles.appearanceMoonGlyph} />
           <View style={styles.appearanceSunGraphic}>
-            <View style={styles.appearanceSunCircle} />
-            <View style={styles.sunRayTop} />
-            <View style={styles.sunRayUpperRight} />
-            <View style={styles.sunRayRight} />
+            <View style={[styles.appearanceSunCircle, { borderColor: themeMuted }]} />
+            <View style={[styles.sunRayTop, { backgroundColor: themeMuted }]} />
+            <View style={[styles.sunRayUpperRight, { backgroundColor: themeMuted }]} />
+            <View style={[styles.sunRayRight, { backgroundColor: themeMuted }]} />
           </View>
         </View>
-      ) : <Ionicons name={icon} size={21} color="#64847D" />}
-      <Text style={[styles.rowTitle, { fontSize: Math.max(textSize, 17) }]}>{title}</Text>
-      {value ? <Text style={styles.rowValue}>{value}</Text> : null}
-      <Ionicons name="chevron-forward" size={21} color="#64847D" />
+      ) : <Ionicons name={icon} size={21} color={themeMuted} />}
+      <Text style={[styles.rowTitle, { fontSize: Math.max(textSize, 17), color: themeText }]}>{title}</Text>
+      {value ? <Text style={[styles.rowValue, { color: themeMuted }]}>{value}</Text> : null}
+      <Ionicons name="chevron-forward" size={21} color={themeMuted} />
     </Pressable>
   );
 
 
-  const SectionTitle = ({ children }: { children: string }) => <Text style={styles.sectionTitle}>{children}</Text>;
+  const SectionTitle = ({ children }: { children: string }) => (
+    <Text style={[styles.sectionTitle, { color: themeText }]}>{children}</Text>
+  );
   const ToggleRow = ({ title, value, onValueChange }: { title: string; value: boolean; onValueChange: (value: boolean) => void }) => (
     <View style={styles.toggleRow}>
-      <Text style={styles.toggleTitle}>{title}</Text>
-      <Switch value={value} onValueChange={onValueChange} trackColor={{ false: '#D8DEDD', true: LIGHT_GREEN }} thumbColor={value ? GREEN : '#F7F9F9'} />
+      <Text style={[styles.toggleTitle, { color: themeText }]}>{title}</Text>
+      <Switch value={value} onValueChange={onValueChange} trackColor={{ false: themeBorder, true: themeMuted }} thumbColor={value ? themeGreen : themeCard} />
     </View>
   );
 
 
   const SettingsScreen = () => (
     <>
-      <Header title="Settings" />
+      <Header title={t('Settings', 'Mga Setting')} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ProfileCard />
-        <SectionTitle>Preferences</SectionTitle>
-        <View style={styles.group}>
-          <SettingRow icon="sunny-outline" title="Appearance" onPress={() => openScreen('Display')} />
-          <SettingRow icon="globe-outline" title="Language" value={language} onPress={() => openScreen('Language')} />
-          <SettingRow icon="notifications-outline" title="Notifications" onPress={() => openScreen('Notifications')} />
+        <SectionTitle>{t('Preferences', 'Mga Kagustuhan')}</SectionTitle>
+        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+          <SettingRow icon="sunny-outline" title={t('Appearance', 'Hitsura')} onPress={() => openScreen('Display')} />
+          <SettingRow icon="globe-outline" title={t('Language', 'Wika')} value={language} onPress={() => openScreen('Language')} />
+          <SettingRow icon="notifications-outline" title={t('Notifications', 'Mga Abiso')} onPress={() => openScreen('Notifications')} />
         </View>
-        <SectionTitle>Data &amp; Sync</SectionTitle>
-        <View style={styles.group}><SettingRow icon="sync-outline" title="Offline Database" onPress={() => openScreen('Offline Database')} /></View>
+        <SectionTitle>{t('Data & Sync', 'Data at Sync')}</SectionTitle>
+        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}><SettingRow icon="sync-outline" title="Offline Database" onPress={() => openScreen('Offline Database')} /></View>
         <SectionTitle>Security &amp; Privacy</SectionTitle>
-        <View style={styles.group}><SettingRow icon="shield-outline" title="Privacy" onPress={() => openScreen('Privacy')} /></View>
+        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}><SettingRow icon="shield-outline" title="Privacy" onPress={() => openScreen('Privacy')} /></View>
         <SectionTitle>Support</SectionTitle>
-        <View style={styles.group}>
+        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
           <SettingRow icon="help-circle-outline" title="FAQs" onPress={() => openScreen('FAQs')} />
           <SettingRow icon="information-circle-outline" title="About MediScan" onPress={() => openScreen('About MediScan')} />
         </View>
@@ -204,9 +229,9 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 
   const DisplayScreen = () => (
     <>
-      <Header title="Display" />
+      <Header title={t('Display', 'Display')} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <Text style={styles.displaySectionTitle}>Appearance</Text>
+        <Text style={[styles.displaySectionTitle, { color: themeText }]}>{t('Appearance', 'Hitsura')}</Text>
         <View style={styles.appearanceRow}>
           {[
             { title: 'Light', icon: 'sunny-outline' as const },
@@ -214,40 +239,40 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
             { title: 'System', icon: 'phone-portrait-outline' as const },
           ].map(option => {
             const selected = appearance === option.title;
-            return <Pressable key={option.title} onPress={() => setAppearance(option.title)} style={[styles.appearanceCard, selected && styles.appearanceSelected]}>
+            return <Pressable key={option.title} onPress={() => setAppearance(option.title as AppearanceMode)} style={[styles.appearanceCard, { backgroundColor: themeCard, borderColor: themeBorder }, selected && { backgroundColor: themeSelected, borderColor: themeSelected }]}>
               <View style={styles.appearanceIcon}>
                 {option.title === 'System' ? (
                   <View style={styles.systemIcon}>
                     {/* Thin custom outline: desktop monitor behind, phone in front */}
-                    <View style={[styles.desktopMonitor, { borderColor: selected ? 'white' : GREEN }]}>
-                      <View style={[styles.monitorStand, { backgroundColor: selected ? 'white' : GREEN }]} />
-                      <View style={[styles.monitorFoot, { backgroundColor: selected ? 'white' : GREEN }]} />
+                    <View style={[styles.desktopMonitor, { borderColor: selected ? 'white' : themeGreen }]}>
+                      <View style={[styles.monitorStand, { backgroundColor: selected ? 'white' : themeGreen }]} />
+                      <View style={[styles.monitorFoot, { backgroundColor: selected ? 'white' : themeGreen }]} />
                     </View>
-                    <View style={[styles.systemPhone, { borderColor: selected ? 'white' : GREEN, backgroundColor: selected ? SELECTED_LIGHT : 'white' }]}>
-                      <View style={[styles.phoneSpeaker, { backgroundColor: selected ? 'white' : GREEN }]} />
+                    <View style={[styles.systemPhone, { borderColor: selected ? 'white' : themeGreen, backgroundColor: selected ? themeSelected : themeCard }]}>
+                      <View style={[styles.phoneSpeaker, { backgroundColor: selected ? 'white' : themeGreen }]} />
                     </View>
                   </View>
-                ) : <Ionicons name={option.icon} size={18} color={selected ? 'white' : GREEN} />}
+                ) : <Ionicons name={option.icon} size={18} color={selected ? 'white' : themeGreen} />}
               </View>
-              <Text style={[styles.appearanceText, selected && styles.selectedText]}>{option.title}</Text>
+              <Text style={[styles.appearanceText, { color: themeText }, selected && styles.selectedText]}>{option.title}</Text>
             </Pressable>;
           })}
         </View>
-        <Text style={styles.displaySectionTitle}>Text Size</Text>
-        <View style={styles.sliderCard}>
-          <Text style={styles.smallA}>A</Text>
+        <Text style={[styles.displaySectionTitle, { color: themeText }]}>{t('Text Size', 'Laki ng Teksto')}</Text>
+        <View style={[styles.sliderCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+          <Text style={[styles.smallA, { color: themeText }]}>A</Text>
           <View style={styles.sliderWrap}>
             <View pointerEvents="none" style={styles.sliderTicks}>
               {[0, 1, 2, 3, 4].map((tick) => <View key={tick} style={[styles.sliderTick, (textSize >= 12 + tick * 3) && styles.sliderTickActive]} />)}
             </View>
-            <Slider style={styles.slider} minimumValue={12} maximumValue={24} step={3} value={Math.round((textSize - 12) / 3) * 3 + 12} onValueChange={setTextSize} minimumTrackTintColor={GREEN} maximumTrackTintColor="#D5D9D8" thumbTintColor="#FFFFFF" />
+            <Slider style={styles.slider} minimumValue={12} maximumValue={24} step={3} value={Math.round((textSize - 12) / 3) * 3 + 12} onValueChange={setTextSize} minimumTrackTintColor={themeGreen} maximumTrackTintColor={themeBorder} thumbTintColor={themeCard} />
           </View>
-          <Text style={styles.largeA}>A</Text>
+          <Text style={[styles.largeA, { color: themeText }]}>A</Text>
         </View>
-        <SectionTitle>Preview</SectionTitle>
-        <View style={styles.previewCard}>
-          <Text style={[styles.previewTitle, { fontSize: textSize }]}>Sample Reminder</Text>
-          <Text style={[styles.previewDescription, { fontSize: Math.max(11, textSize - 3) }]}>This is how your medicine reminders and text will look throughout the app.</Text>
+        <SectionTitle>{t('Preview', 'Preview')}</SectionTitle>
+        <View style={[styles.previewCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+          <Text style={[styles.previewTitle, { fontSize: textSize, color: themeText }]}>{t('Sample Reminder', 'Halimbawang Paalala')}</Text>
+          <Text style={[styles.previewDescription, { fontSize: Math.max(11, textSize - 3), color: themeMuted }]}>{t('This is how your medicine reminders and text will look throughout the app.', 'Ganito magmumukha ang mga paalala at teksto sa buong app.')}</Text>
         </View>
       </ScrollView>
     </>
@@ -256,13 +281,13 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 
   const LanguageScreen = () => (
     <>
-      <Header title="Language" />
+      <Header title={t('Language', 'Wika')} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <SectionTitle>Language</SectionTitle>
+        <SectionTitle>{t('Language', 'Wika')}</SectionTitle>
         {['English', 'Filipino'].map(item => (
-          <Pressable key={item} onPress={() => setLanguage(item)} style={styles.languageCard}>
-            <Text style={styles.languageText}>{item}</Text>
-            {language === item && <Ionicons name="checkmark" size={23} color={GREEN} />}
+          <Pressable key={item} onPress={() => setLanguage(item as AppLanguage)} style={[styles.languageCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+            <Text style={[styles.languageText, { color: themeText }]}>{item}</Text>
+            {language === item && <Ionicons name="checkmark" size={23} color={themeGreen} />}
           </Pressable>
         ))}
       </ScrollView>
@@ -532,7 +557,7 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeBg }]}>
       <View style={styles.main}>
         {/* Called as functions (not <SettingsScreen />) so React doesn't treat them as
             brand-new components on every render — that reset the FAQ search box and scroll. */}

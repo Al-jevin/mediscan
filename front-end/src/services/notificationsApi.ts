@@ -47,3 +47,11 @@ export async function registerDevicePushToken(
     { push_token: pushToken, platform },
   );
 }
+
+export async function revokeDevicePushToken(pushToken: string): Promise<void> {
+  await apiRequest<{ success: boolean; code: number; message: string }>(
+    '/accounts/me/notifications/device-token',
+    'DELETE',
+    { push_token: pushToken },
+  );
+}

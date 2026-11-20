@@ -1,7 +1,8 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/display';
+import { measureInWindow, useViewRef } from '@/utils/viewRef';
 import { useMenu } from './MenuContext';
 
 export const FAB_SIZE = 68;
@@ -19,12 +20,12 @@ export function FabCircle({ icon }: { icon: 'add' | 'close' }) {
 // The raised + button in the middle of the bottom bar.
 export default function AddTabButton() {
   const { openAdd } = useMenu();
-  const ref = useRef<View>(null);
+  const ref = useViewRef();
 
   // naka measure dito yung button so that the "Add medicine" sheet can be positioned exactly on top of it.
   const onPress = () => {
     if (ref.current) {
-      ref.current.measureInWindow((x, y, w, h) => openAdd({ x, y, w, h }));
+      measureInWindow(ref.current, (x, y, w, h) => openAdd({ x, y, w, h }));
     } else {
       openAdd();
     }

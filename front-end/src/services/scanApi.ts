@@ -2,9 +2,16 @@ import { Platform } from 'react-native';
 import type { MedicineInfoRow } from '@/components/MedicineInfoCard';
 import { Assets } from '@/constants/assets';
 import type { ScanResult } from '@/data/mockScanResults';
-import type { FdaMedicine } from '@/types/medicine';
 import { API_V1_URL } from '@/services/apiUrl';
+import {
+  getConfidenceTier,
+  type ConfidenceTier,
+} from '@/services/scanConfidence';
 import { MockAuth } from '@/mock/mockAuth';
+import type { FdaMedicine } from '@/types/medicine';
+
+export type { ConfidenceTier };
+export { getConfidenceTier };
 
 // Shape of POST /api/v1/ocr/extract-label (back-end/app/schemas/ocr.py). Only the fields the app reads.
 type OcrMedicine = FdaMedicine & {
@@ -54,8 +61,6 @@ export type ScanTelemetry = {
   } | null;
 };
 
-export type ConfidenceTier = 'high' | 'medium' | 'low';
-
 type OcrResponse = {
   entities: OcrEntities;
   suggested_medicines: OcrMedicine[];
@@ -71,38 +76,6 @@ const REQUEST_TIMEOUT_MS = 90_000; // PaddleOCR on a CPU can take a while
 const VERIFIED_MIN_CONFIDENCE = 90;
 const NEEDS_VERIFICATION_MIN_CONFIDENCE = 65;
 const MAX_POSSIBLE_MATCHES = 4;
-
-export function getConfidenceTier(telemetry: ScanTelemetry): ConfidenceTier | null {
-  const trustScore = telemetry.trust_score;
-  if (typeof trustScore === 'number' && Number.isFinite(trustScore)) {
-    if (trustScore >= 0.85) return 'high';
-    if (trustScore >= 0.65) return 'medium';
-    return 'low';
-  }
-
-  const reportedTier = telemetry.confidence_tier ?? telemetry.trust_tier;
-  switch (reportedTier?.toLowerCase()) {
-    case 'high':
-      return 'high';
-    case 'medium':
-      return 'medium';
-    case 'low':
-      return 'low';
-    default:
-      break;
-  }
-
-  const dosageStatus = telemetry.dosage_match_status?.toLowerCase();
-  if (dosageStatus === 'mismatch' || dosageStatus === 'dosage_conflict') return 'low';
-  if (
-    dosageStatus === 'not_detected' ||
-    dosageStatus === 'missing_dosage' ||
-    dosageStatus === 'unverified'
-  ) {
-    return 'medium';
-  }
-  return null;
-}
 
 // The latest real scan, read by the Scan Result and Edit Medicine screens. Kept here rather than in route
 // params because medicine names can contain "%" (e.g. "5% Dextrose"), which is unsafe in a URL.

@@ -1,7 +1,7 @@
 import AddTabButton from '@/components/AddTabButton';
 import AppHeader from '@/components/AppHeader';
 import ReminderIcon from '@/components/ReminderIcon';
-import { Colors } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { MockAuth } from '@/mock/mockAuth';
 import { Redirect, Tabs } from 'expo-router';
@@ -23,16 +23,22 @@ const tab = (title: string, icon: (c: any) => any, showLogo = false) => ({
 });
 
 export default function TabsLayout() {
+  const { colors } = useDisplayTheme();
   // START SCREEN: hangga't walang naka-login + napiling profile, Log In muna (walang tabs/icons).
   if (!MockAuth.getActiveProfile()) return <Redirect href="/login" />;
   return (
     <Tabs
       backBehavior="history"
       screenOptions={{
-        tabBarActiveTintColor: Colors.active,
-        tabBarInactiveTintColor: Colors.text,
+        tabBarActiveTintColor: colors.active,
+        tabBarInactiveTintColor: colors.text,
         tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
-        tabBarStyle: { height: 64, backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border },
+        tabBarStyle: {
+          height: 64,
+          backgroundColor: colors.surface,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+        },
       }}
     >
       {/* Bottom bar */}

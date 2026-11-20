@@ -3,7 +3,8 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Spacing, Type } from '@/constants/display';
+import { Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import Logo from './Logo';
 import { useMenu } from './MenuContext';
 
@@ -18,6 +19,7 @@ type Props = {
 export default function AppHeader({ title, showLogo, back, backToMenu }: Props) {
   const router = useRouter();
   const { openMenu } = useMenu();
+  const { colors } = useDisplayTheme();
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
@@ -26,7 +28,13 @@ export default function AppHeader({ title, showLogo, back, backToMenu }: Props) 
   };
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
+    <SafeAreaView
+      edges={['top']}
+      style={[
+        styles.safe,
+        { backgroundColor: colors.background, borderBottomColor: colors.border },
+      ]}
+    >
       <View style={styles.row}>
         {/* ito yung left side: back arrow or burger menu */}
         {back ? (
@@ -37,7 +45,7 @@ export default function AppHeader({ title, showLogo, back, backToMenu }: Props) 
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons name="arrow-back" size={26} color={Colors.text} />
+            <Ionicons name="arrow-back" size={26} color={colors.text} />
           </Pressable>
         ) : (
           <Pressable
@@ -47,7 +55,7 @@ export default function AppHeader({ title, showLogo, back, backToMenu }: Props) 
             accessibilityRole="button"
             accessibilityLabel="Open menu"
           >
-            <Ionicons name="menu" size={28} color={Colors.text} />
+            <Ionicons name="menu" size={28} color={colors.text} />
           </Pressable>
         )}
 
@@ -57,7 +65,7 @@ export default function AppHeader({ title, showLogo, back, backToMenu }: Props) 
             <Logo size={34} withText />
           ) : (
             <Text
-              style={styles.title}
+              style={[styles.title, { color: colors.text }]}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.7}
@@ -80,7 +88,7 @@ export default function AppHeader({ title, showLogo, back, backToMenu }: Props) 
             <Ionicons
               name="notifications-outline"
               size={24}
-              color={Colors.text}
+              color={colors.text}
             />
           </Pressable>
         )}
@@ -91,9 +99,7 @@ export default function AppHeader({ title, showLogo, back, backToMenu }: Props) 
 
 const styles = StyleSheet.create({
   safe: {
-    backgroundColor: Colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   row: {
     height: 56,
@@ -103,6 +109,6 @@ const styles = StyleSheet.create({
   },
   side: { width: 40, justifyContent: 'center' },
   titleWrap: { flex: 1, alignItems: 'center' },
-  titleLeft: { alignItems: 'flex-start', paddingLeft: Spacing.sm }, // yung logo is beside sa burger menu, so hindi centered yung title gaya sa figma
-  title: { ...Type.h2, color: Colors.text },
+  titleLeft: { alignItems: 'flex-start', paddingLeft: Spacing.sm },
+  title: { ...Type.h2 },
 });

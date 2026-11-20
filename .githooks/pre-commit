@@ -84,7 +84,9 @@ run_pg_dump() {
 }
 
 if ! run_pg_dump; then
-    echo "Error: pg_dump failed. Is the database running and reachable at ${DB_HOST}:${DB_PORT}? Commit aborted." >&2
+    echo "Error: pg_dump failed. Is the database running and reachable at ${DB_HOST}:${DB_PORT}?" >&2
+    echo "Tips: start Docker Desktop + \`docker compose up -d\`, or ensure pg_dump is on PATH / WSL." >&2
+    echo "Re-install hooks with: sh scripts/install-git-hooks.sh" >&2
     unset PGPASSWORD
     exit 1
 fi

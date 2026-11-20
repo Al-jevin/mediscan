@@ -4,7 +4,9 @@
 from time import perf_counter
 
 import psycopg2
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from typing import Literal
+
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from starlette.concurrency import run_in_threadpool
 
 from crud import crud_medicine
@@ -72,6 +74,12 @@ async def extract_label(
         ...,
         description="Medicine-label image for OCR and medicine matching.",
     ),
+    stage: Literal[0, 1, 2] = Query(
+        default=2,
+        description=(
+            "Preprocessing stage: 0=decode/resize, 1=+CLAHE, 2=full pipeline with ROI."
+        ),
+    ),
 ):
     """Extract NER entities from an uploaded medicine-label image."""
     request_started = perf_counter()
@@ -92,7 +100,7 @@ async def extract_label(
             detail=format_decision.reason,
         )
     try:
-        ocr_result = await extract_ocr_result(image_bytes)
+        ocr_result = await extract_ocr_result(image_bytes, stage=stage)
     except OCRProcessingError as error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -187,7 +195,7 @@ async def extract_label(
     )
     total_ms = round((perf_counter() - request_started) * 1000)
     telemetry = ScanTelemetry(
-        stage=2,
+        stage=stage,
         raw_ocr_text=raw_text,
         grounded_text=grounded_text,
         applied_preprocessing=preprocessing,

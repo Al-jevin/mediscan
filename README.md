@@ -105,6 +105,15 @@ npm install
 cd ..
 ```
 
+### 4. Install Git hooks (keeps `mediscan_full.sql` in sync)
+Hooks live in `.githooks/` (not `.git/hooks`). After clone / on a new machine:
+
+```sh
+sh scripts/install-git-hooks.sh
+```
+
+`front-end` `npm install` also sets `core.hooksPath` via `postinstall`. Pre-commit dumps Postgres into `mediscan_full.sql` (Docker, PATH, Windows PostgreSQL, or WSL). If dump fails, the commit is aborted with a clear error—start Docker/`docker compose up -d` first.
+
 ---
 
 ## Step 5: How to Run the App Every Day

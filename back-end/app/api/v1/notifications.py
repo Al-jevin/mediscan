@@ -87,6 +87,19 @@ def _insert_device_token(account_id: str, push_token: str, platform: str) -> Non
         )
 
 
+def _delete_device_token(account_id: str, push_token: str) -> bool:
+    with connection_cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM notification_push_tokens
+            WHERE account_id = %s::uuid
+              AND push_token = %s
+            """,
+            (account_id, push_token),
+        )
+        return cursor.rowcount > 0
+
+
 def _notifications_for_profile(
     profile: dict,
     schedules: list[dict],
@@ -208,4 +221,49 @@ async def register_device_token(
         success=True,
         code=status.HTTP_200_OK,
         message="Device notification token registered.",
+    )
+
+
+class DeviceTokenRevokeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    push_token: str = Field(min_length=1, max_length=4096)
+
+    @field_validator("push_token")
+    @classmethod
+    def require_nonempty_token(cls, value: str) -> str:
+        token = value.strip()
+        if not token:
+            raise ValueError("The push token cannot be blank.")
+        return token
+
+
+@router.delete(
+    "/notifications/device-token",
+    response_model=DeviceTokenResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def revoke_device_token(
+    payload: DeviceTokenRevokeRequest,
+    account: dict[str, str] = Depends(require_session),
+) -> DeviceTokenResponse:
+    """Revoke a device push token owned by the authenticated account.
+
+    Delivery is client-local: Expo schedules reminders from the feed, so
+    revoke only removes the stored token (idempotent if already absent).
+    """
+    deleted = await _run_database(
+        _delete_device_token,
+        account["account_id"],
+        payload.push_token.strip(),
+    )
+    message = (
+        "Device notification token revoked."
+        if deleted
+        else "Device notification token was not registered."
+    )
+    return DeviceTokenResponse(
+        success=True,
+        code=status.HTTP_200_OK,
+        message=message,
     )

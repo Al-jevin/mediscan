@@ -14,6 +14,7 @@ import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSizes, Radius, Spacing } from '@/constants/display';
 import { useProfile } from '@/context/ProfileContext';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import Logo from './Logo';
 import { useMenu } from './MenuContext';
 import ProfileAvatar from './ProfileAvatar';
@@ -51,6 +52,7 @@ export default function HamburgerMenu() {
   const { open, closeMenu, openLogout } = useMenu();
   // The profile picked on "Choose your profile" + the logged-in account's email
   const { activeProfile, email } = useProfile();
+  const { colors } = useDisplayTheme();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -133,7 +135,7 @@ export default function HamburgerMenu() {
       <Animated.View
         style={[
           styles.panel,
-          { transform: [{ translateX: x }] },
+          { transform: [{ translateX: x }], backgroundColor: colors.surface },
         ]}
       >
         <View style={{ flex: 1, paddingTop: insets.top }}>
@@ -147,7 +149,7 @@ export default function HamburgerMenu() {
               <Ionicons
                 name="arrow-back"
                 size={22}
-                color={Colors.text}
+                color={colors.text}
               />
             </Pressable>
 

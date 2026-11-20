@@ -16,7 +16,7 @@ from services.vision import OCRLine, OCRResult
 
 
 def test_extract_label_returns_database_medicine_identifier(monkeypatch, capsys):
-    async def fake_extract_ocr_result(_image_bytes):
+    async def fake_extract_ocr_result(_image_bytes, stage=2):
         lines = (
             OCRLine("BIOGESIC PARACETAMOL", 0.95, (), 0, "primary_header"),
             OCRLine("500 mg Tablet", 0.9, (), 0, "secondary_body"),
@@ -111,7 +111,7 @@ def test_extract_label_returns_database_medicine_identifier(monkeypatch, capsys)
 
 
 def test_extract_label_caps_trust_on_dosage_conflict(monkeypatch):
-    async def fake_extract_ocr_result(_image_bytes):
+    async def fake_extract_ocr_result(_image_bytes, stage=2):
         return OCRResult(
             text="BIOGESIC PARACETAMOL\n250 mg Tablet",
             lines=(OCRLine("250 mg Tablet", 0.96, (), 0, "secondary_body"),),
@@ -194,7 +194,7 @@ def test_extract_label_rejects_oversized_upload(monkeypatch):
 def test_extract_label_rejects_gif_before_ocr(monkeypatch):
     called = {"ocr": False}
 
-    async def fake_extract_ocr_result(_image_bytes):
+    async def fake_extract_ocr_result(_image_bytes, stage=2):
         called["ocr"] = True
         raise AssertionError("OCR must not run for unsupported formats")
 
@@ -212,7 +212,7 @@ def test_extract_label_rejects_gif_before_ocr(monkeypatch):
 def test_extract_label_rejects_svg_even_with_spoofed_png_mime(monkeypatch):
     called = {"ocr": False}
 
-    async def fake_extract_ocr_result(_image_bytes):
+    async def fake_extract_ocr_result(_image_bytes, stage=2):
         called["ocr"] = True
         raise AssertionError("OCR must not run for SVG uploads")
 

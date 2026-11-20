@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppHeader from '@/components/AppHeader';
 import { MenuProvider } from '@/components/MenuContext';
@@ -6,6 +7,7 @@ import AddMenu from '@/components/AddMenu';
 import LogoutDialog from '@/components/LogoutDialog';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import { ProfileProvider } from '../context/ProfileContext';
+import { ThemeProvider, useAppTheme } from '../context/ThemeContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 function NotificationRuntime() {
@@ -13,11 +15,18 @@ function NotificationRuntime() {
   return null;
 }
 
+function ThemedStatusBar() {
+  const { colorScheme } = useAppTheme();
+  return <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />;
+}
+
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
+      <ThemeProvider>
       <MenuProvider>
         <ProfileProvider>
+          <ThemedStatusBar />
           <NotificationRuntime />
           <Stack screenOptions={{ headerShown: false }}>
             {/* Main app (bottom bar + top bar) */}
@@ -68,6 +77,7 @@ export default function RootLayout() {
           <LogoutDialog />
         </ProfileProvider>
       </MenuProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

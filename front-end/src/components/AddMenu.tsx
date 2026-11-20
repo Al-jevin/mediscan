@@ -6,6 +6,7 @@ import {
   Animated, BackHandler, Easing, LayoutChangeEvent, Pressable,
   StyleSheet, Text, useWindowDimensions, View,
 } from 'react-native';
+import { measureInWindow, useViewRef } from '@/utils/viewRef';
 import { FabCircle } from './AddTabButton';
 import { useMenu } from './MenuContext';
 
@@ -29,7 +30,7 @@ export default function AddMenu() {
   const [mounted, setMounted] = useState(false);
   const [origin, setOrigin] = useState({ x: 0, y: 0 });
   const [overlayH, setOverlayH] = useState(0);
-  const overlayRef = useRef<View>(null);
+  const overlayRef = useViewRef();
   const t = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function AddMenu() {
 
   const onLayout = (e: LayoutChangeEvent) => {
     setOverlayH(e.nativeEvent.layout.height);
-    overlayRef.current?.measureInWindow((x, y) => setOrigin({ x, y }));
+    measureInWindow(overlayRef.current, (x, y) => setOrigin({ x, y }));
   };
 
   // Here yung position of the '+' button, or if not available, default to the center of the screen.

@@ -5,7 +5,8 @@ import { useMemo, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import MedicineIcon from '@/components/medicine/MedicineIcon';
 import ScanCard from '@/components/medicine/ScanCard';
-import { Colors, Components, Radius, Spacing, Type } from '@/constants/display';
+import { DarkColors, Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { useFirstLaunchPermissions } from '@/hooks/useFirstLaunchPermissions';
 import { resetListQuery } from '@/services/listQueryStore';
 import {
@@ -15,11 +16,14 @@ import { useVault } from '@/services/vaultStore';
 import type { StatusFilter, UrgencyFilter, VaultMedicine } from '@/types/medicine';
 import { getMedicineForm, overviewCounts } from '@/utils/medicine';
 
+type ThemeColors = typeof DarkColors;
+
 // Home (Figma: Home Page). The top bar (burger + MediScan logo + bell) comes from
 // (tabs)/_layout.tsx, so this screen does NOT draw its own header.
 export default function HomeScreen() {
   useFirstLaunchPermissions();
   const router = useRouter();
+  const { colors, components } = useDisplayTheme();
   const { ready, error, medicines, retry } = useVault();
   const profile = useLoggedInProfile(); // the profile picked on Choose Profile
   const name = firstName(profile);
@@ -59,88 +63,126 @@ export default function HomeScreen() {
     });
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      {/* Greeting */}
+    <ScrollView
+      style={[styles.root, { backgroundColor: colors.surfacePrimary }]}
+      contentContainerStyle={styles.content}
+    >
       <LinearGradient
-        colors={[Colors.surfacePrimary, Colors.surfaceSecondary]}
+        colors={[colors.surfacePrimary, colors.surfaceSecondary]}
         start={{ x: 0.2, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.greeting}
       >
-        <Text style={styles.hello}>Hello, {name}! 👋</Text>
-        <Text style={styles.sub}>Take care, stay safe.</Text>
+        <Text style={[styles.hello, { color: colors.textPrimary }]}>Hello, {name}! 👋</Text>
+        <Text style={[styles.sub, { color: colors.textSecondary }]}>Take care, stay safe.</Text>
       </LinearGradient>
 
-      {/* Medicine Overview */}
-      <SectionHeader title="Medicine Overview" />
+      <SectionHeader
+        title="Medicine Overview"
+        titleColor={colors.textPrimary}
+        linkColor={colors.textSecondary}
+      />
       {!ready ? (
-        <ActivityIndicator color={Colors.actionPrimary} style={{ marginVertical: Spacing.lg }} />
+        <ActivityIndicator color={colors.actionPrimary} style={{ marginVertical: Spacing.lg }} />
       ) : error ? (
         <View style={styles.loadError}>
-          <Text style={styles.empty}>Could not load medicines: {error}</Text>
+          <Text style={[styles.empty, { color: colors.textSecondary }]}>
+            Could not load medicines: {error}
+          </Text>
           <Pressable onPress={() => void retry()} accessibilityRole="button">
-            <Text style={styles.viewAll}>Retry</Text>
+            <Text style={[styles.viewAll, { color: colors.actionPrimary }]}>Retry</Text>
           </Pressable>
         </View>
       ) : (
         <View style={styles.stats}>
           <StatCard
-            icon={<MaterialCommunityIcons name="pill" size={26} color={Colors.textSecondary} />}
-            value={counts.total} label="Total Medicines" onPress={() => openVault()}
+            icon={<MaterialCommunityIcons name="pill" size={26} color={colors.textSecondary} />}
+            value={counts.total}
+            label="Total Medicines"
+            onPress={() => openVault()}
+            colors={colors}
+            cardStyle={components.statCard}
           />
           <StatCard
-            icon={<Ionicons name="shield-checkmark" size={26} color={Colors.statusSuccess} />}
-            value={counts.verified} label="Verified" onPress={() => openVault('verified')}
+            icon={<Ionicons name="shield-checkmark" size={26} color={colors.statusSuccess} />}
+            value={counts.verified}
+            label="Verified"
+            onPress={() => openVault('verified')}
+            colors={colors}
+            cardStyle={components.statCard}
           />
           <StatCard
-            icon={<Ionicons name="warning" size={26} color={Colors.statusWarning} />}
-            value={counts.needsVerification} label="Needs Verification" onPress={() => openVault('needs_verification')}
+            icon={<Ionicons name="warning" size={26} color={colors.statusWarning} />}
+            value={counts.needsVerification}
+            label="Needs Verification"
+            onPress={() => openVault('needs_verification')}
+            colors={colors}
+            cardStyle={components.statCard}
           />
           <StatCard
-            icon={<Ionicons name="time" size={26} color={Colors.statusDanger} />}
-            value={counts.expiring} label="Expiring" onPress={() => openVault('all', 'within30')}
+            icon={<Ionicons name="time" size={26} color={colors.statusDanger} />}
+            value={counts.expiring}
+            label="Expiring"
+            onPress={() => openVault('all', 'within30')}
+            colors={colors}
+            cardStyle={components.statCard}
           />
         </View>
       )}
 
-      {/* Recent Scans */}
-      <SectionHeader title="Recent Scans" onViewAll={() => router.push('/recent-scans')} />
+      <SectionHeader
+        title="Recent Scans"
+        titleColor={colors.textPrimary}
+        linkColor={colors.textSecondary}
+        onViewAll={() => router.push('/recent-scans')}
+      />
       {ready && recent.length === 0 ? (
-        <EmptyLine text="No medicines yet. Tap + to scan your first one." />
+        <EmptyLine text="No medicines yet. Tap + to scan your first one." color={colors.textSecondary} />
       ) : (
         <View style={styles.list}>
           {recent.map((m) => <ScanCard key={m.vault_id} medicine={m} onPress={openDetails} />)}
         </View>
       )}
 
-      {/* Upcoming Reminders (for the logged-in profile) */}
-      <SectionHeader title="Upcoming Reminders" onViewAll={() => openReminders()} />
+      <SectionHeader
+        title="Upcoming Reminders"
+        titleColor={colors.textPrimary}
+        linkColor={colors.textSecondary}
+        onViewAll={() => openReminders()}
+      />
       {!remindersReady ? (
-        <ActivityIndicator color={Colors.actionPrimary} style={{ marginVertical: Spacing.md }} />
+        <ActivityIndicator color={colors.actionPrimary} style={{ marginVertical: Spacing.md }} />
       ) : remindersError ? (
-        <EmptyLine text={`Could not load reminders: ${remindersError}`} />
+        <EmptyLine text={`Could not load reminders: ${remindersError}`} color={colors.textSecondary} />
       ) : reminders.length === 0 ? (
-        <EmptyLine text={`No upcoming reminders for ${name}.`} />
+        <EmptyLine text={`No upcoming reminders for ${name}.`} color={colors.textSecondary} />
       ) : (
         <View style={styles.list}>
           {reminders.map(({ reminder, label }) => (
             <Pressable
               key={reminder.id}
-              style={({ pressed }) => [Components.medicineCard, styles.reminder, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [
+                components.medicineCard,
+                styles.reminder,
+                pressed && { opacity: 0.85 },
+              ]}
               onPress={() => openReminders(reminder.id)}
               accessibilityRole="button"
               accessibilityLabel={`${reminder.medicine}, ${label}. Open reminder details`}
             >
               <MedicineIcon form={getMedicineForm(reminder.category)} size={48} />
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.remName} numberOfLines={1}>{reminder.medicine}</Text>
-                <Text style={styles.remSub} numberOfLines={1}>
-                  {reminder.frequency}{reminder.instructions ? ` · ${reminder.instructions}` : ''}
+                <Text style={[styles.remName, { color: colors.textPrimary }]} numberOfLines={1}>
+                  {reminder.medicine}
+                </Text>
+                <Text style={[styles.remSub, { color: colors.textSecondary }]} numberOfLines={1}>
+                  {reminder.frequency}
+                  {reminder.instructions ? ` · ${reminder.instructions}` : ''}
                 </Text>
               </View>
               <View style={styles.remTime}>
-                <Ionicons name="alarm-outline" size={16} color={Colors.statusSuccess} />
-                <Text style={styles.remTimeText}>{label}</Text>
+                <Ionicons name="alarm-outline" size={16} color={colors.statusSuccess} />
+                <Text style={[styles.remTimeText, { color: colors.textPrimary }]}>{label}</Text>
               </View>
             </Pressable>
           ))}
@@ -150,61 +192,109 @@ export default function HomeScreen() {
   );
 }
 
-// "View All" only shows when onViewAll is given (Medicine Overview has none).
-function SectionHeader({ title, onViewAll }: { title: string; onViewAll?: () => void }) {
+function SectionHeader({
+  title,
+  onViewAll,
+  titleColor,
+  linkColor,
+}: {
+  title: string;
+  onViewAll?: () => void;
+  titleColor: string;
+  linkColor: string;
+}) {
   return (
     <View style={styles.sectionRow}>
-      <Text style={styles.section}>{title}</Text>
+      <Text style={[styles.section, { color: titleColor }]}>{title}</Text>
       {onViewAll && (
-        <Pressable onPress={onViewAll} hitSlop={10} accessibilityRole="button" accessibilityLabel={`View all ${title}`}>
-          <Text style={styles.viewAll}>View All</Text>
+        <Pressable
+          onPress={onViewAll}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={`View all ${title}`}
+        >
+          <Text style={[styles.viewAll, { color: linkColor }]}>View All</Text>
         </Pressable>
       )}
     </View>
   );
 }
 
-function StatCard({ icon, value, label, onPress }: { icon: ReactNode; value: number; label: string; onPress: () => void }) {
+function StatCard({
+  icon,
+  value,
+  label,
+  onPress,
+  colors,
+  cardStyle,
+}: {
+  icon: ReactNode;
+  value: number;
+  label: string;
+  onPress: () => void;
+  colors: ThemeColors;
+  cardStyle: object;
+}) {
   return (
     <Pressable
-      style={({ pressed }) => [Components.statCard, styles.stat, pressed && { backgroundColor: Colors.surfaceSecondary }]}
+      style={({ pressed }) => [
+        cardStyle,
+        styles.stat,
+        pressed && { backgroundColor: colors.surfaceSecondary },
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${value} ${label}`}
     >
       {icon}
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>{label}</Text>
+      <Text style={[styles.statValue, { color: colors.textPrimary }]}>{value}</Text>
+      <Text
+        style={[styles.statLabel, { color: colors.textPrimary }]}
+        numberOfLines={2}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
-function EmptyLine({ text }: { text: string }) {
-  return <Text style={styles.empty}>{text}</Text>;
+function EmptyLine({ text, color }: { text: string; color: string }) {
+  return <Text style={[styles.empty, { color }]}>{text}</Text>;
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.surfacePrimary },
+  root: { flex: 1 },
   content: { paddingBottom: Spacing.xl * 2 },
   greeting: { paddingHorizontal: Spacing.md + 4, paddingVertical: Spacing.lg },
-  hello: { ...Type.h1, color: Colors.textPrimary },
-  sub: { ...Type.bodyLarge, fontWeight: '600', color: Colors.textPrimary },
+  hello: { ...Type.h1 },
+  sub: { ...Type.bodyLarge, fontWeight: '600' },
   sectionRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: Spacing.md + 4, marginTop: Spacing.lg, marginBottom: Spacing.sm + 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md + 4,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm + 4,
   },
-  section: { ...Type.h2, color: Colors.textPrimary },
-  viewAll: { ...Type.label, color: Colors.textSecondary },
+  section: { ...Type.h2 },
+  viewAll: { ...Type.label },
   stats: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.md + 4 },
   stat: { flex: 1, gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radius.sm },
-  statValue: { ...Type.h2, color: Colors.textPrimary },
-  statLabel: { ...Type.caption, lineHeight: 18, color: Colors.textPrimary, textAlign: 'center' },
+  statValue: { ...Type.h2 },
+  statLabel: { ...Type.caption, lineHeight: 18, textAlign: 'center' },
   list: { gap: Spacing.sm + 4, paddingHorizontal: Spacing.md + 4 },
-  reminder: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 4, padding: Spacing.sm + 4 },
-  remName: { ...Type.label, color: Colors.textPrimary },
-  remSub: { ...Type.caption, color: Colors.textSecondary },
+  reminder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm + 4,
+    padding: Spacing.sm + 4,
+  },
+  remName: { ...Type.label },
+  remSub: { ...Type.caption },
   remTime: { alignItems: 'flex-end', gap: 2, maxWidth: '40%' },
-  remTimeText: { ...Type.caption, color: Colors.textPrimary, textAlign: 'right' },
-  empty: { ...Type.body, color: Colors.textSecondary, paddingHorizontal: Spacing.md + 4 },
+  remTimeText: { ...Type.caption, textAlign: 'right' },
+  empty: { ...Type.body, paddingHorizontal: Spacing.md + 4 },
   loadError: { gap: Spacing.xs },
 });

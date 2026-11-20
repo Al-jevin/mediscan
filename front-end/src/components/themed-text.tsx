@@ -1,5 +1,6 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { Platform, StyleSheet, Text, type TextProps, type TextStyle } from 'react-native';
 
+import { useAppTheme } from '@/context/ThemeContext';
 import { Fonts, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -8,21 +9,34 @@ export type ThemedTextProps = TextProps & {
   themeColor?: ThemeColor;
 };
 
+function scaleFontStyle(style: TextStyle, fontScale: number): TextStyle {
+  return {
+    ...style,
+    ...(typeof style.fontSize === 'number'
+      ? { fontSize: Math.round(style.fontSize * fontScale) }
+      : {}),
+    ...(typeof style.lineHeight === 'number'
+      ? { lineHeight: Math.round(style.lineHeight * fontScale) }
+      : {}),
+  };
+}
+
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
   const theme = useTheme();
+  const { fontScale } = useAppTheme();
 
   return (
     <Text
       style={[
         { color: theme[themeColor ?? 'text'] },
-        type === 'default' && styles.default,
-        type === 'title' && styles.title,
-        type === 'small' && styles.small,
-        type === 'smallBold' && styles.smallBold,
-        type === 'subtitle' && styles.subtitle,
-        type === 'link' && styles.link,
-        type === 'linkPrimary' && styles.linkPrimary,
-        type === 'code' && styles.code,
+        type === 'default' && scaleFontStyle(styles.default, fontScale),
+        type === 'title' && scaleFontStyle(styles.title, fontScale),
+        type === 'small' && scaleFontStyle(styles.small, fontScale),
+        type === 'smallBold' && scaleFontStyle(styles.smallBold, fontScale),
+        type === 'subtitle' && scaleFontStyle(styles.subtitle, fontScale),
+        type === 'link' && scaleFontStyle(styles.link, fontScale),
+        type === 'linkPrimary' && scaleFontStyle(styles.linkPrimary, fontScale),
+        type === 'code' && scaleFontStyle(styles.code, fontScale),
         style,
       ]}
       {...rest}

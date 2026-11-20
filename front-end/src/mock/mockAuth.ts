@@ -169,7 +169,7 @@ export const MockAuth = {
   },
 
   // ---------- Verify Code ----------
-  async verifyCode(email: string, code: string): Promise<Result> {
+  async verifyCode(email: string, code: string): Promise<Result<{ needsLogin?: true }>> {
     const res = await request('/auth/verify-email', 'POST', { email: norm(email), code });
     if (!res.ok) return fail(res.status, res.message);
 
@@ -183,7 +183,13 @@ export const MockAuth = {
     const password = pendingSignupPassword;
     pendingSignupPassword = null;
     const login = await MockAuth.login(email, password);
-    if (login.success) return login;
+    if (login.success) {
+      return {
+        success: true,
+        code: login.code,
+        message: login.message,
+      };
+    }
     // Account is verified even if auto-login is rate-limited or otherwise fails.
     return {
       success: true,

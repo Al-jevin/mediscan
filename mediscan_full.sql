@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LkaeNKoIguZzAhbePImJKp0JKzSrwcqjWFrYO0FSWE27pSeBjwZdem4Sa5Zgji5
+\restrict bTmuXJtX66HMhislKLxEK9KolKf9xj4FfKY9403gjHfwdEjXJbofqmR5aNxs0My
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
@@ -31579,6 +31579,7 @@ c553cb5dc22c1eb6	31882017-2018-4b8f-8cbd-453624302ae4	t	Updated Frontend	updated
 bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated	3	1992-03-04	2026-10-23 09:19:31.049025	2026-10-23 09:19:31.378935
 38fb4db62a4e83cf	3d74ea17-386d-4119-950c-f256af7154ff	f	Jamal	Neckhurts	3	2001-01-01	2026-11-10 16:44:42.002993	2026-11-10 16:44:42.002993
 9487c43185b25bc1	a226baee-1463-42e6-b6de-bf52c0dea78a	f	123	123	3	2000-11-11	2026-11-20 15:56:25.862524	2026-11-20 15:56:25.862524
+f585e4b2de8bfd88	a226baee-1463-42e6-b6de-bf52c0dea78a	f	asd	asd	3	1990-10-10	2026-11-20 17:13:29.213968	2026-11-20 17:13:29.213968
 \.
 
 
@@ -31588,7 +31589,7 @@ bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated
 
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
 4d277e69-03a0-4f37-ac83-483a8836a1da	3d74ea17-386d-4119-950c-f256af7154ff	ac64df9ed84308c6b53367410b892e29c286819ac67aa07906a5eaa56b9d6722	2026-11-20 04:18:29.85974	2026-11-27 04:18:29.856292
-48ba683d-5047-4041-8376-6bd06d41f2a1	a226baee-1463-42e6-b6de-bf52c0dea78a	13be60b0a0950019c752c26b77c4a96cebd0f36af1ba7da83e0952a044e29790	2026-11-20 16:37:07.994162	2026-11-27 16:37:07.991353
+8a54a85b-47d9-41a5-b040-e945e067debf	a226baee-1463-42e6-b6de-bf52c0dea78a	4ebb4b9e959b028acecba47b0a647a732286665afa301f8afccfdbb9779ccd1e	2026-11-20 17:20:58.7435	2026-11-27 17:20:58.740414
 \.
 
 
@@ -62889,5 +62890,5 @@ ALTER TABLE ONLY public.notification_push_tokens
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LkaeNKoIguZzAhbePImJKp0JKzSrwcqjWFrYO0FSWE27pSeBjwZdem4Sa5Zgji5
+\unrestrict bTmuXJtX66HMhislKLxEK9KolKf9xj4FfKY9403gjHfwdEjXJbofqmR5aNxs0My
 

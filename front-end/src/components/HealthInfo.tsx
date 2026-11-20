@@ -205,7 +205,7 @@ export default function HealthInfo({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(5,31,32,0.45)' },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(5,31,32,0.45)' },
   sheet: {
     backgroundColor: Colors.surface,
     borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg,

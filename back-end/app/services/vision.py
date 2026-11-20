@@ -177,11 +177,13 @@ def _tag_spatial_zones(lines: tuple[OCRLine, ...]) -> tuple[OCRLine, ...]:
     return tuple(tagged)
 
 
-def _extract_text_sync(image_bytes: bytes) -> OCRResult:
+def _extract_text_sync(image_bytes: bytes, stage: int = 2) -> OCRResult:
     """Run conditioning and OCR passes synchronously in a worker thread."""
     preprocess_ms = 0
     try:
-        conditioned, metadata = preprocess_medication_image(image_bytes)
+        conditioned, metadata = preprocess_medication_image(
+            image_bytes, stage=stage
+        )
         preprocess_ms += int(metadata["preprocess_ms"])
     except Exception as exc:
         raise OCRProcessingError(
@@ -195,9 +197,9 @@ def _extract_text_sync(image_bytes: bytes) -> OCRResult:
         ocr_ms += round((time.perf_counter() - ocr_started) * 1000)
         selected_lines = first_pass
         roi_fallback_used = False
-        if _mean_confidence(first_pass) < 0.70:
+        if stage >= 2 and _mean_confidence(first_pass) < 0.70:
             roi_image, roi_metadata = preprocess_medication_image(
-                image_bytes, crop_center_ratio=0.70
+                image_bytes, crop_center_ratio=0.70, stage=stage
             )
             preprocess_ms += int(roi_metadata["preprocess_ms"])
             ocr_started = time.perf_counter()
@@ -231,15 +233,15 @@ def _extract_text_sync(image_bytes: bytes) -> OCRResult:
         preprocess_ms=preprocess_ms,
         ocr_ms=ocr_ms,
         roi_fallback_used=roi_fallback_used,
-        clahe_applied=True,
+        clahe_applied=bool(metadata.get("clahe_applied")),
     )
 
 
-async def extract_ocr_result(image_bytes: bytes) -> OCRResult:
+async def extract_ocr_result(image_bytes: bytes, stage: int = 2) -> OCRResult:
     """Return structured OCR output without blocking the FastAPI event loop."""
     if not image_bytes:
         raise OCRProcessingError("The uploaded image is empty.")
-    return await run_in_threadpool(_extract_text_sync, image_bytes)
+    return await run_in_threadpool(_extract_text_sync, image_bytes, stage)
 
 
 async def extract_text(image_bytes: bytes) -> str:

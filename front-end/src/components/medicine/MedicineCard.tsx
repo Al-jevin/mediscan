@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, Components, Spacing, Type } from '@/constants/display';
 import type { VaultMedicine } from '@/types/medicine';
+import { measureInWindow, usePressableRef } from '@/utils/viewRef';
 import { daysUntilExpiry, expiryLabel, getMedicineForm, isExpired, medicineName } from '@/utils/medicine';
 import MedicineIcon from './MedicineIcon';
 import StatusBadge from './StatusBadge';
@@ -20,7 +20,7 @@ type Props = {
 // SIBLINGS, never one inside the other: on web every Pressable becomes a <button>, and a <button>
 // inside a <button> is invalid HTML ("<button> cannot contain a nested <button>").
 export default function MedicineCard({ medicine, onPress, onMenu }: Props) {
-  const menuRef = useRef<View>(null);
+  const menuRef = usePressableRef();
   const form = getMedicineForm(medicine.fda_dosage_form);
   const expired = isExpired(medicine);
   const days = daysUntilExpiry(medicine);
@@ -29,7 +29,7 @@ export default function MedicineCard({ medicine, onPress, onMenu }: Props) {
     : days !== null && days <= 30 ? Colors.statusWarning : Colors.textSecondary;
 
   const openMenu = () => {
-    menuRef.current?.measureInWindow((x, y, w, h) => onMenu?.(medicine, { x, y, w, h }));
+    measureInWindow(menuRef.current, (x, y, w, h) => onMenu?.(medicine, { x, y, w, h }));
   };
 
   return (

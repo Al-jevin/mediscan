@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { measureInWindow, useViewRef } from '@/utils/viewRef';
 import type { Anchor } from './MedicineCard';
 
 // The small ⋮ menu that opens next to a medicine card.
@@ -20,10 +21,10 @@ const ITEM_H = 48;
 export default function CardMenu({ anchor, items, onClose }: Props) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const [origin, setOrigin] = useState({ x: 0, y: 0 });
-  const rootRef = useRef<View>(null);
+  const rootRef = useViewRef();
   // measure where the modal starts on screen, so the menu lines up with the ⋮ button
   const onLayout = () => {
-    rootRef.current?.measureInWindow((x, y) => {
+    measureInWindow(rootRef.current, (x, y) => {
       if (x !== origin.x || y !== origin.y) setOrigin({ x, y });
     });
   };

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Semantic design tokens for the mobile app.
  *
  * These tokens mirror the naming conventions used in web artifacts (index.css)
@@ -68,6 +68,53 @@ const colors = {
     addRing: '#D9E9E2',
     confirmBackground: '#FBE9E9',
     shadow: '#163A36',
+  },
+
+  dark: {
+    text: '#E8F5EC',
+    tint: '#7CC4A8',
+
+    background: '#0A1514',
+    foreground: '#E8F5EC',
+
+    card: '#12302B',
+    cardForeground: '#E8F5EC',
+
+    primary: '#7CC4A8',
+    primaryForeground: '#051F20',
+
+    secondary: '#1B3D2E',
+    secondaryForeground: '#E8F5EC',
+
+    muted: '#12302B',
+    mutedForeground: '#A9CDB8',
+
+    accent: '#1B3D2E',
+    accentForeground: '#E8F5EC',
+
+    destructive: '#EF6B6B',
+    destructiveForeground: '#051F20',
+
+    border: '#3F6B5B',
+    input: '#3F6B5B',
+
+    expiredBackground: '#3D1B1B',
+    expiredBorder: '#EF6B6B',
+    expiredForeground: '#F5DADD',
+    expiringBackground: '#3D2A14',
+    expiringBorder: '#F2A65A',
+    expiringForeground: '#F6E5D4',
+    todayBackground: '#1B3D2E',
+    todayBorder: '#66BB6A',
+    todayForeground: '#DDEBE0',
+    totalBackground: '#12302B',
+    totalBorder: '#7CC4A8',
+    totalForeground: '#D9EEF7',
+    overlay: 'rgba(0, 0, 0, 0.55)',
+    overlayStrong: 'rgba(0, 0, 0, 0.7)',
+    addRing: '#1B3D2E',
+    confirmBackground: '#3D1B1B',
+    shadow: '#000000',
   },
 
   // Border radius (in px). Sync from the sibling web artifact's --radius

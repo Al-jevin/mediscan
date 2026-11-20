@@ -8,6 +8,7 @@ import {
   ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { Colors, Components, Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { resetListQuery, setListQuery, useListQuery, type ListScope } from '@/services/listQueryStore';
 import {
   commitDelete, deleteWithUndo, UNDO_SECONDS, undoDelete, usePendingDeletes,
@@ -36,6 +37,7 @@ const CHIPS: { key: StatusFilter; label: string; icon?: keyof typeof Ionicons.gl
 
 export default function MedicineList({ scope, medicines, ready, error, onRetry, initialFilter }: Props) {
   const router = useRouter();
+  const { colors } = useDisplayTheme();
   const query = useListQuery(scope);
   const [searchFocused, setSearchFocused] = useState(false);
   const shown = useMemo(() => applyQuery(medicines, query), [medicines, query]);
@@ -85,28 +87,37 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
   const hasQuery = query.search.trim() !== '' || query.status !== 'all' || sheetCount > 0;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.surfacePrimary }]}>
       {/* Search + filter button */}
       <View style={styles.searchRow}>
-        <View style={[styles.searchBox, searchFocused && styles.searchBoxFocused]}>
+        <View
+          style={[
+            styles.searchBox,
+            {
+              backgroundColor: colors.surfacePrimary,
+              borderColor: colors.textSecondary,
+            },
+            searchFocused && styles.searchBoxFocused,
+          ]}
+        >
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.textPrimary }]}
             value={query.search}
             onChangeText={(t) => setListQuery(scope, { search: t })}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             placeholder="Search medicines..."
-            placeholderTextColor={Colors.textSecondary}
+            placeholderTextColor={colors.textSecondary}
             returnKeyType="search"
             autoCorrect={false}
             accessibilityLabel="Search medicines"
           />
           {query.search ? (
             <Pressable onPress={() => setListQuery(scope, { search: '' })} hitSlop={10} accessibilityLabel="Clear search">
-              <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+              <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
             </Pressable>
           ) : (
-            <Ionicons name="search" size={20} color={Colors.textPrimary} />
+            <Ionicons name="search" size={20} color={colors.textPrimary} />
           )}
         </View>
         <Pressable
@@ -116,7 +127,7 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
           accessibilityRole="button"
           accessibilityLabel={sheetCount ? `Filters, ${sheetCount} on` : 'Filters'}
         >
-          <Ionicons name="options-outline" size={26} color={Colors.textPrimary} />
+          <Ionicons name="options-outline" size={26} color={colors.textPrimary} />
           {sheetCount > 0 && (
             <View style={styles.filterDot}><Text style={styles.filterDotText}>{sheetCount}</Text></View>
           )}
@@ -262,7 +273,7 @@ function useCountdown(key: string | null): number {
   useEffect(() => {
     if (!key) return;
     const started = Date.now();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setLeft(UNDO_SECONDS);
     const t = setInterval(() => {
       setLeft(Math.max(0, UNDO_SECONDS - Math.floor((Date.now() - started) / 1000)));
