@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict xYDc2zuj0KsF1gXEzBtp1ts5fgQnhmEedZpAovhi8xNXj3unOykCaa1sUfaI5p2
+\restrict vGC0QBCI8ARc1nvUdoqJG2Ws0EIY3ygSub86FDNFNrDGDxbt3e8GkGtfux5DWbN
 
 -- Dumped from database version 18.6
--- Dumped by pg_dump version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
+-- Dumped by pg_dump version 18.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -62883,5 +62883,5 @@ ALTER TABLE ONLY public.notification_push_tokens
 -- PostgreSQL database dump complete
 --
 
-\unrestrict xYDc2zuj0KsF1gXEzBtp1ts5fgQnhmEedZpAovhi8xNXj3unOykCaa1sUfaI5p2
+\unrestrict vGC0QBCI8ARc1nvUdoqJG2Ws0EIY3ygSub86FDNFNrDGDxbt3e8GkGtfux5DWbN
 
