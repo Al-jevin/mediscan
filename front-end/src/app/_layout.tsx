@@ -25,6 +25,10 @@ export default function RootLayout() {
 
             {/* Full screens with a back arrow (no bottom bar) */}
             <Stack.Screen
+              name="upcoming-alerts"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="notifications"
               options={{ headerShown: false }}
             />

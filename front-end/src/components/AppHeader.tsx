@@ -73,9 +73,10 @@ export default function AppHeader({ title, showLogo, back, backToMenu }: Props) 
         ) : (
           <Pressable
             style={[styles.side, { alignItems: 'flex-end' }]}
-            onPress={() => router.push('/notifications' as any)}
+            onPress={() => router.push('/upcoming-alerts' as any)}
             hitSlop={12}
-            accessibilityLabel="Notifications"
+            accessibilityRole="button"
+            accessibilityLabel="Upcoming alerts"
           >
             <Ionicons
               name="notifications-outline"
