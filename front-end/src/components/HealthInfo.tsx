@@ -7,6 +7,12 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import {
+  EMERGENCY_CONTACT_NAME_MAX_LENGTH,
+  EMERGENCY_CONTACT_NUMBER_MAX_LENGTH,
+  sanitizeEmergencyContactName,
+  sanitizeEmergencyContactNumber,
+} from '@/utils/healthInfoInput';
 
 interface HealthInfoData {
   allergies: string;
@@ -27,7 +33,16 @@ const HEALTH_KEY = 'mediscan:healthInfo';
 async function loadHealthInfo(): Promise<HealthInfoData> {
   try {
     const raw = await AsyncStorage.getItem(HEALTH_KEY);
-    return raw ? { ...EMPTY, ...JSON.parse(raw) } : EMPTY;
+    const saved = raw ? { ...EMPTY, ...JSON.parse(raw) } : EMPTY;
+    return {
+      ...saved,
+      emergencyContactName: sanitizeEmergencyContactName(
+        typeof saved.emergencyContactName === 'string' ? saved.emergencyContactName : '',
+      ),
+      emergencyContactNumber: sanitizeEmergencyContactNumber(
+        typeof saved.emergencyContactNumber === 'string' ? saved.emergencyContactNumber : '',
+      ),
+    };
   } catch (e) {
     console.warn('loadHealthInfo failed', e);
     return EMPTY;
@@ -45,13 +60,14 @@ async function saveHealthInfo(info: HealthInfoData): Promise<boolean> {
 }
 
 function Field({
-  label, value, onChangeText, placeholder, keyboardType,
+  label, value, onChangeText, placeholder, keyboardType, maxLength,
 }: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
   keyboardType?: 'default' | 'phone-pad';
+  maxLength: number;
 }) {
   return (
     <View style={styles.field}>
@@ -63,6 +79,7 @@ function Field({
         placeholder={placeholder}
         placeholderTextColor={Colors.textMuted}
         keyboardType={keyboardType}
+        maxLength={maxLength}
       />
     </View>
   );
@@ -147,25 +164,29 @@ export default function HealthInfo({
               value={form.allergies}
               onChangeText={set('allergies')}
               placeholder="e.g. Peanuts, Penicillin"
+              maxLength={150}
             />
             <Field
               label="Conditions"
               value={form.conditions}
               onChangeText={set('conditions')}
               placeholder="e.g. Diabetes, Asthma"
+              maxLength={150}
             />
             <Field
               label="Emergency Contact Name"
               value={form.emergencyContactName}
-              onChangeText={set('emergencyContactName')}
+              onChangeText={(value) => set('emergencyContactName')(sanitizeEmergencyContactName(value))}
               placeholder="Name of contact"
+              maxLength={EMERGENCY_CONTACT_NAME_MAX_LENGTH}
             />
             <Field
               label="Emergency Contact Number"
               value={form.emergencyContactNumber}
-              onChangeText={set('emergencyContactNumber')}
+              onChangeText={(value) => set('emergencyContactNumber')(sanitizeEmergencyContactNumber(value))}
               placeholder="Contact number"
               keyboardType="phone-pad"
+              maxLength={EMERGENCY_CONTACT_NUMBER_MAX_LENGTH}
             />
           </View>
 

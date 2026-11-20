@@ -37,6 +37,7 @@ const CHIPS: { key: StatusFilter; label: string; icon?: keyof typeof Ionicons.gl
 export default function MedicineList({ scope, medicines, ready, error, onRetry, initialFilter }: Props) {
   const router = useRouter();
   const query = useListQuery(scope);
+  const [searchFocused, setSearchFocused] = useState(false);
   const shown = useMemo(() => applyQuery(medicines, query), [medicines, query]);
   const sheetCount = activeSheetFilterCount(query);
 
@@ -87,11 +88,13 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
     <View style={styles.root}>
       {/* Search + filter button */}
       <View style={styles.searchRow}>
-        <View style={styles.searchBox}>
+        <View style={[styles.searchBox, searchFocused && styles.searchBoxFocused]}>
           <TextInput
             style={styles.searchInput}
             value={query.search}
             onChangeText={(t) => setListQuery(scope, { search: t })}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
             placeholder="Search medicines..."
             placeholderTextColor={Colors.textSecondary}
             returnKeyType="search"
@@ -296,7 +299,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.textSecondary, borderRadius: Radius.sm,
     paddingHorizontal: Spacing.md, backgroundColor: Colors.surfacePrimary, minHeight: 48,
   },
-  searchInput: { flex: 1, ...Type.body, color: Colors.textPrimary, paddingVertical: Spacing.sm },
+  searchBoxFocused: { borderColor: Colors.statusWarning },
+  searchInput: { flex: 1, ...Type.body, color: Colors.textPrimary, paddingVertical: 0, outlineWidth: 0 },
   filterBtn: { padding: Spacing.xs },
   filterDot: {
     position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9,

@@ -140,6 +140,7 @@ export default function AddEditProfileScreen() {
               placeholder="e.g. Maria Batumbakal"
               placeholderTextColor="#A0AEC0"
               autoCapitalize="words"
+              maxLength={150}
               value={fullname}
               onChangeText={(t) => {
                 setFullname(t);
@@ -155,6 +156,7 @@ export default function AddEditProfileScreen() {
               placeholder="e.g. Me, Mama, Papa"
               placeholderTextColor="#A0AEC0"
               autoCapitalize="words"
+              maxLength={150}
               value={displayName}
               onChangeText={(t) => {
                 setDisplayName(t);

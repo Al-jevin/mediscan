@@ -180,6 +180,7 @@ export default function ManualEntryScreen() {
             }}
             placeholder="Type to search, e.g. Paracetamol"
             placeholderTextColor={Placeholder}
+            maxLength={150}
             autoCorrect={false}
             returnKeyType="search"
             accessibilityLabel="Medicine name"

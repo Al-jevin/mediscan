@@ -16,7 +16,7 @@ import { getNoteDraft, setNoteDraft } from '@/services/noteDraft';
 import { getMedicineById, updateNote } from '@/services/vaultStore';
 import { medicineName } from '@/utils/medicine';
 
-const MAX_LENGTH = 500;
+const MAX_LENGTH = 150;
 
 export default function AddNoteScreen() {
   const params = useLocalSearchParams<{ id?: string; draft?: string; name?: string }>();
@@ -32,6 +32,7 @@ export default function AddNoteScreen() {
   const [text, setText] = useState(startText);
   const [saving, setSaving] = useState(false);
   const [savedPopup, setSavedPopup] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   const changed = text.trim() !== startText.trim();
 
@@ -69,9 +70,11 @@ export default function AddNoteScreen() {
 
           <Text style={styles.label}>Your Note</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, focused && styles.inputFocused]}
             value={text}
             onChangeText={setText}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             placeholder="e.g. Take after meals, causes drowsiness..."
             placeholderTextColor={Colors.textSecondary}
             multiline
@@ -118,7 +121,8 @@ const styles = StyleSheet.create({
   input: {
     ...Type.body, color: Colors.textPrimary, minHeight: 160,
     borderWidth: 1, borderColor: Colors.borderDefault, borderRadius: Radius.sm,
-    padding: Spacing.md, backgroundColor: Colors.surfacePrimary,
+    padding: Spacing.md, backgroundColor: Colors.surfacePrimary, outlineWidth: 0,
   },
+  inputFocused: { borderColor: Colors.statusWarning },
   counter: { ...Type.caption, color: Colors.textSecondary, alignSelf: 'flex-end', marginBottom: Spacing.sm },
 });

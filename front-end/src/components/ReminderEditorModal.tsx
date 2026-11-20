@@ -373,6 +373,7 @@ export default function ReminderEditorModal({
               placeholder="Add notes about this reminder (optional)"
               placeholderTextColor={colors.mutedForeground}
               multiline
+              maxLength={150}
               textAlignVertical="top"
               style={[
                 styles.notesInput,

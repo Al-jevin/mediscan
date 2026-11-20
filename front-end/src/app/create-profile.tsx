@@ -133,6 +133,7 @@ export default function CreateProfileScreen() {
           invalid={missing.includes('Full Name')}
           placeholder="e.g. Maria Batumbakal"
           autoCapitalize="words"
+          maxLength={150}
           value={fullName}
           onChangeText={(t) => {
             setFullName(t);
@@ -145,6 +146,7 @@ export default function CreateProfileScreen() {
           invalid={missing.includes('Nickname / Display Name')}
           placeholder="e.g. Me, Mama, Papa"
           autoCapitalize="words"
+          maxLength={150}
           value={displayName}
           onChangeText={(t) => {
             setDisplayName(t);
