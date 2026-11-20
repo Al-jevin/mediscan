@@ -284,6 +284,8 @@ This backlog expands the current GitHub issue set into parallel frontend, backen
     - Ensure `pg_dump` / `psql` database snapshot sync (`mediscan_full.sql`) works cross-environment and surfaces clear error messages instead of failing silently.
     - Document the one-command hook setup in `README.md` / onboarding docs so every teammate's local DB stays in sync.
 
+19. Whenever scanning an image, the result should allow the user to choose a generic type of medicine. This should be applicable in all medicines so generic medicines are covered.
+
 
 ## Suggested sequencing
 

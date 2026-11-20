@@ -108,8 +108,64 @@ export function getConfidenceTier(telemetry: ScanTelemetry): ConfidenceTier | nu
 // params because medicine names can contain "%" (e.g. "5% Dextrose"), which is unsafe in a URL.
 let latestScan: ScanResult | null = null;
 let latestScanTelemetry: ScanTelemetry | null = null;
+let latestScanMedicines: FdaMedicine[] = [];
 export const getLatestScan = () => latestScan;
 export const getLatestScanTelemetry = () => latestScanTelemetry;
+export const getLatestScanMedicines = () => latestScanMedicines;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isFdaMedicine(value: unknown): value is FdaMedicine {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.fda_id === 'number' &&
+    Number.isInteger(value.fda_id) &&
+    value.fda_id > 0 &&
+    typeof value.fda_registration_id === 'string' &&
+    typeof value.fda_approval_id === 'string' &&
+    typeof value.fda_genericname === 'string' &&
+    (value.fda_brandname === null || typeof value.fda_brandname === 'string') &&
+    (value.fda_dosage_form === null || typeof value.fda_dosage_form === 'string') &&
+    (value.fda_dosage_strength === null || typeof value.fda_dosage_strength === 'string') &&
+    (value.fda_manufacturer === null || typeof value.fda_manufacturer === 'string') &&
+    (value.fda_pharmacologic_category === null ||
+      typeof value.fda_pharmacologic_category === 'string') &&
+    (value.fda_classification === null || typeof value.fda_classification === 'string')
+  );
+}
+
+export async function searchFdaMedicines(query: string): Promise<FdaMedicine[]> {
+  const term = query.trim();
+  if (!term) return [];
+  if (!API_V1_URL) throw new Error('EXPO_PUBLIC_API_URL is not set (see front-end/.env)');
+
+  const authorization = MockAuth.getAuthorizationHeader();
+  const response = await fetch(
+    `${API_V1_URL}/medicines/search?q=${encodeURIComponent(term)}&limit=20`,
+    { headers: authorization ? { Authorization: authorization } : {} },
+  );
+  const responseBody: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail =
+      isRecord(responseBody) && typeof responseBody.detail === 'string'
+        ? responseBody.detail
+        : isRecord(responseBody) && typeof responseBody.message === 'string'
+          ? responseBody.message
+          : `The FDA medicine search failed (${response.status}).`;
+    throw new Error(detail);
+  }
+  if (!isRecord(responseBody) || !Array.isArray(responseBody.data)) {
+    throw new Error('The FDA medicine search returned an invalid response.');
+  }
+
+  const medicines = responseBody.data.filter(isFdaMedicine);
+  if (medicines.length !== responseBody.data.length) {
+    throw new Error('The FDA medicine search returned an invalid medicine record.');
+  }
+  return medicines;
+}
 
 function toInfoRows(rows: (MedicineInfoRow | false)[]): MedicineInfoRow[] {
   return rows.filter((row): row is MedicineInfoRow => row !== false);
@@ -270,6 +326,7 @@ export async function scanLabel(imageUri: string): Promise<ScanResult> {
     }
 
     const ocrResponse = responseBody as OcrResponse;
+    latestScanMedicines = ocrResponse.suggested_medicines;
     latestScanTelemetry = toScanTelemetry(ocrResponse);
     latestScan = toScanResult(ocrResponse);
     return latestScan;

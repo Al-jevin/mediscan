@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -18,15 +18,56 @@ import ScanActions from '@/components/ScanActions';
 import VerificationBanner from '@/components/VerificationBanner';
 import { Colors, Radius, Spacing, Type } from '@/constants/display';
 import { findPossibleMatch, isScanState, mockScanResults } from '@/data/mockScanResults';
-import { getConfidenceTier, getLatestScan, getLatestScanTelemetry } from '@/services/scanApi';
+import {
+  getConfidenceTier,
+  getLatestScan,
+  getLatestScanMedicines,
+  getLatestScanTelemetry,
+  searchFdaMedicines,
+} from '@/services/scanApi';
 import type { ScanTelemetry } from '@/services/scanApi';
 import { addMedicine } from '@/services/vaultStore';
+import type { FdaMedicine } from '@/types/medicine';
 import { formatDateInput } from '@/utils/date';
 import { getMedicineForm, mdyToYMD, ymdToMDY } from '@/utils/medicine';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
 const CategoryText = '#938B8B';
 const EmptyText = '#B9B9B9';
+
+function normalizeGenericName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+
+function uniqueGenericMedicines(
+  medicines: (FdaMedicine | null | undefined)[],
+): FdaMedicine[] {
+  const seen = new Set<string>();
+  return medicines.filter((medicine): medicine is FdaMedicine => {
+    if (!medicine?.fda_genericname.trim()) return false;
+    const key = normalizeGenericName(medicine.fda_genericname);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function preferredGenericMedicine(
+  medicines: FdaMedicine[],
+  genericName: string,
+  preferredId?: number,
+): FdaMedicine | null {
+  return (
+    medicines.find((medicine) => medicine.fda_id === preferredId) ??
+    medicines.find(
+      (medicine) =>
+        normalizeGenericName(medicine.fda_genericname) ===
+        normalizeGenericName(genericName),
+    ) ??
+    medicines[0] ??
+    null
+  );
+}
 
 // Scan Result screen. The header comes from AppHeader via app/_layout.tsx.
 // Shows the latest real scan. To preview a mock state, use /result?state=verified | needs_verification | no_results
@@ -36,6 +77,62 @@ export default function ResultScreen() {
   const realScan = isScanState(state) ? null : getLatestScan();
   const telemetry = realScan ? getLatestScanTelemetry() : null;
   const result = realScan ?? (isScanState(state) ? mockScanResults[state] : null);
+  const ocrMedicines = getLatestScanMedicines();
+  const initialGenericOptions = useMemo(
+    () => {
+      const resultMedicines =
+        result?.status === 'verified'
+          ? [result.medicine.linkedMedicine]
+          : result?.status === 'needs_verification'
+            ? result.matches.map((match) => match.medicine)
+            : [];
+      return uniqueGenericMedicines([...resultMedicines, ...ocrMedicines]);
+    },
+    [result, ocrMedicines],
+  );
+  const genericSearchTerm =
+    result?.status === 'verified'
+      ? result.medicine.linkedMedicine?.fda_genericname ?? result.medicine.category
+      : result?.status === 'needs_verification'
+        ? result.matches[0]?.medicine?.fda_genericname ?? result.matches[0]?.category ?? ''
+        : result?.status === 'no_results'
+          ? result.detected?.find((row) => row.label === 'Name')?.value ?? ''
+          : '';
+  const preferredMedicineId =
+    result?.status === 'verified'
+      ? result.medicine.linkedMedicine?.fda_id
+      : result?.status === 'needs_verification'
+        ? result.matches[0]?.medicine?.fda_id
+        : undefined;
+  const [catalogResults, setCatalogResults] = useState<{
+    query: string;
+    medicines: FdaMedicine[];
+  }>({ query: '', medicines: [] });
+  const [catalogError, setCatalogError] = useState<{
+    query: string;
+    message: string;
+  } | null>(null);
+  const [selectedGenericId, setSelectedGenericId] = useState<number | null>(() =>
+    preferredGenericMedicine(
+      initialGenericOptions,
+      genericSearchTerm,
+      preferredMedicineId,
+    )?.fda_id ?? null,
+  );
+  const genericOptions = useMemo(
+    () =>
+      uniqueGenericMedicines([
+        ...initialGenericOptions,
+        ...(catalogResults.query === genericSearchTerm ? catalogResults.medicines : []),
+      ]),
+    [catalogResults, genericSearchTerm, initialGenericOptions],
+  );
+  const genericOptionsLoading =
+    Boolean(genericSearchTerm.trim()) &&
+    catalogResults.query !== genericSearchTerm &&
+    catalogError?.query !== genericSearchTerm;
+  const genericOptionsError =
+    catalogError?.query === genericSearchTerm ? catalogError.message : '';
   const confidenceTier = telemetry ? getConfidenceTier(telemetry) : null;
   const trustScore = telemetry?.trust_score;
   const fallbackFdaMatchPercentage =
@@ -64,12 +161,57 @@ export default function ResultScreen() {
   const [expiry, setExpiry] = useState('');
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
+  const selectedGenericMedicine =
+    genericOptions.find((medicine) => medicine.fda_id === selectedGenericId) ?? null;
   const savedName =
-    result?.status === 'verified' ? result.medicine.name : findPossibleMatch(selectedId ?? undefined)?.name ?? '';
+    selectedGenericMedicine?.fda_genericname ??
+    (result?.status === 'verified'
+      ? result.medicine.category
+      : findPossibleMatch(selectedId ?? undefined)?.category ?? '');
   const goToVault = () => {
     setAddedOpen(false);
     router.navigate('/vault');
   };
+
+  useEffect(() => {
+    let active = true;
+    if (!genericSearchTerm.trim()) {
+      return () => {
+        active = false;
+      };
+    }
+
+    void searchFdaMedicines(genericSearchTerm)
+      .then((searchResults) => {
+        if (!active) return;
+        const options = uniqueGenericMedicines([...initialGenericOptions, ...searchResults]);
+        setCatalogResults({ query: genericSearchTerm, medicines: searchResults });
+        setCatalogError((previous) =>
+          previous?.query === genericSearchTerm ? null : previous,
+        );
+        setSelectedGenericId((previousId) => {
+          if (previousId !== null && options.some((medicine) => medicine.fda_id === previousId)) {
+            return previousId;
+          }
+          return preferredGenericMedicine(
+            options,
+            genericSearchTerm,
+            preferredMedicineId,
+          )?.fda_id ?? null;
+        });
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setCatalogError({
+          query: genericSearchTerm,
+          message: error instanceof Error ? error.message : 'Could not load FDA generic options.',
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [genericSearchTerm, initialGenericOptions, preferredMedicineId]);
 
   const verifiedInfo =
     result?.status === 'verified'
@@ -87,9 +229,13 @@ export default function ResultScreen() {
     setExpiryModalOpen(true);
   };
 
-  const saveVerifiedMedicine = async () => {
-    if (result?.status !== 'verified' || !result.medicine.linkedMedicine) {
-      setSaveError('This scan is not linked to a current FDA medicine record.');
+  const saveSelectedMedicine = async () => {
+    if (!selectedGenericMedicine) {
+      setSaveError('Select a generic medicine from the FDA catalog before saving.');
+      return;
+    }
+    if (!result) {
+      setSaveError('No scan result is available.');
       return;
     }
     const expiryDate = mdyToYMD(expiry);
@@ -101,11 +247,11 @@ export default function ResultScreen() {
     setSaveError('');
     try {
       await addMedicine({
-        ...result.medicine.linkedMedicine,
+        ...selectedGenericMedicine,
         vault_expiry_date: expiryDate,
-        vault_status: 'verified',
+        vault_status: result.status === 'verified' ? 'verified' : 'needs_verification',
         vault_source: 'scan',
-        vault_confidence: result.confidence,
+        vault_confidence: result.status === 'no_results' ? null : result.confidence,
         vault_note: '',
       });
       setExpiryModalOpen(false);
@@ -196,6 +342,58 @@ export default function ResultScreen() {
           </>
         )}
 
+        <View style={styles.genericSelector}>
+          <Text style={styles.genericTitle}>Generic Medicine Type</Text>
+          <Text style={styles.genericDescription}>
+            Choose the generic medicine to save. Your OCR-matched generic is selected when available.
+          </Text>
+          {genericOptionsLoading && (
+            <ActivityIndicator size="small" color={Colors.actionPrimary} />
+          )}
+          {genericOptionsError ? (
+            <Text style={styles.genericOptionsError}>
+              Could not load more FDA options: {genericOptionsError}
+            </Text>
+          ) : null}
+          {genericOptions.length ? (
+            genericOptions.map((medicine) => {
+              const selected = medicine.fda_id === selectedGenericId;
+              return (
+                <Pressable
+                  key={medicine.fda_id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`Generic medicine type: ${medicine.fda_genericname}${selected ? ', selected' : ''}`}
+                  onPress={() => setSelectedGenericId(medicine.fda_id)}
+                  style={[
+                    styles.genericOption,
+                    selected && styles.genericOptionSelected,
+                  ]}
+                >
+                  <Text style={styles.genericOptionName}>{medicine.fda_genericname}</Text>
+                </Pressable>
+              );
+            })
+          ) : !genericOptionsLoading ? (
+            <Text style={styles.genericNoOptions}>
+              No matching FDA generic options were found. Try scanning a clearer label.
+            </Text>
+          ) : null}
+          {result.status !== 'verified' && (
+            <Pressable
+              onPress={openSaveDialog}
+              disabled={!selectedGenericMedicine}
+              accessibilityRole="button"
+              style={[
+                styles.genericSaveButton,
+                !selectedGenericMedicine && styles.genericSaveButtonDisabled,
+              ]}
+            >
+              <Text style={styles.genericSaveButtonText}>Save Selected Medicine to Vault</Text>
+            </Pressable>
+          )}
+        </View>
+
         {telemetry && <ScanTelemetryDrawer telemetry={telemetry} />}
       </ScrollView>
 
@@ -238,7 +436,7 @@ export default function ResultScreen() {
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
               <Pressable
-                onPress={() => void saveVerifiedMedicine()}
+                onPress={() => void saveSelectedMedicine()}
                 disabled={saving}
                 style={[styles.saveButton, saving && { opacity: 0.6 }]}
                 accessibilityRole="button"
@@ -469,6 +667,42 @@ const styles = StyleSheet.create({
   medicineCategory: { ...Type.body, color: CategoryText },
 
   detectedHeading: { ...Type.label, fontWeight: '700', color: Colors.textPrimary },
+  genericSelector: {
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.borderDefault,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfacePrimary,
+    padding: Spacing.md,
+  },
+  genericTitle: { ...Type.h2, color: Colors.textPrimary },
+  genericDescription: { ...Type.body, color: Colors.textSecondary },
+  genericOption: {
+    gap: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.borderDefault,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surfacePrimary,
+    padding: Spacing.md,
+  },
+  genericOptionSelected: {
+    borderColor: Colors.actionPrimary,
+    backgroundColor: Colors.surfaceSecondary,
+  },
+  genericOptionName: { ...Type.label, fontWeight: '700', color: Colors.textPrimary },
+  genericOptionsError: { ...Type.caption, color: Colors.statusDanger },
+  genericNoOptions: { ...Type.body, color: Colors.textSecondary },
+  genericSaveButton: {
+    minHeight: 45,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.actionPrimary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  genericSaveButtonDisabled: { opacity: 0.55 },
+  genericSaveButtonText: { ...Type.label, color: Colors.onAction },
 
   empty: { flex: 1, minHeight: 200, alignItems: 'center', justifyContent: 'center' },
   emptyText: { ...Type.label, lineHeight: 30, color: EmptyText },

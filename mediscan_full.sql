@@ -2,7 +2,11 @@
 -- PostgreSQL database dump
 --
 
+<<<<<<< HEAD
 \restrict M5OHjpWyImHWmPgS69A8s6SsrpPPN13VHPO9VMg39CvUnFoILfNphTZk3SKcloY
+=======
+\restrict wPP8SRZ1H4ENfF2zmRo56MI0ER7liDmNxPBhB9E9v0k83ThQjMIswaXPH3cqYtm
+>>>>>>> 2b13c55 (Fixed issue #53)
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -62829,5 +62833,9 @@ ALTER TABLE ONLY public.vault_items
 -- PostgreSQL database dump complete
 --
 
+<<<<<<< HEAD
 \unrestrict M5OHjpWyImHWmPgS69A8s6SsrpPPN13VHPO9VMg39CvUnFoILfNphTZk3SKcloY
+=======
+\unrestrict wPP8SRZ1H4ENfF2zmRo56MI0ER7liDmNxPBhB9E9v0k83ThQjMIswaXPH3cqYtm
+>>>>>>> 2b13c55 (Fixed issue #53)
 
