@@ -84,11 +84,18 @@ export default function CreateProfileScreen() {
       profile_birthdate: birthdate,
     });
     setLoading(false);
-    if (!res.success || !res.data) return setError(res.message);
+    if (!res.success || !res.data) {
+      if (res.code === 401 || !MockAuth.isLoggedIn()) {
+        router.replace({ pathname: '/login', params: { email: MockAuth.getEmail() ?? undefined } });
+        return;
+      }
+      return setError(res.message);
+    }
 
     if (isFirst) {
       MockAuth.selectProfile(res.data);
-      router.replace('/'); // straight into the app
+      // Use the tabs group explicitly so Expo Router does not fall through a bare "/" guard.
+      router.replace('/(tabs)');
     } else {
       goBack(); // back to Choose your profile
     }
@@ -146,7 +153,7 @@ export default function CreateProfileScreen() {
           invalid={missing.includes('Nickname / Display Name')}
           placeholder="e.g. Me, Mama, Papa"
           autoCapitalize="words"
-          maxLength={150}
+          maxLength={10}
           value={displayName}
           onChangeText={(t) => {
             setDisplayName(t);

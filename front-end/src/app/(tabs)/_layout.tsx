@@ -24,8 +24,11 @@ const tab = (title: string, icon: (c: any) => any, showLogo = false) => ({
 
 export default function TabsLayout() {
   const { colors } = useDisplayTheme();
-  // START SCREEN: hangga't walang naka-login + napiling profile, Log In muna (walang tabs/icons).
-  if (!MockAuth.getActiveProfile()) return <Redirect href="/login" />;
+  // Not signed in → Log In. Signed in but no profile picked yet → Choose / Create Profile.
+  // (Previously any missing active profile sent users to /login, which bounced new accounts
+  // right after they tapped "Create Profile".)
+  if (!MockAuth.isLoggedIn()) return <Redirect href="/login" />;
+  if (!MockAuth.getActiveProfile()) return <Redirect href="/choose-profile" />;
   return (
     <Tabs
       backBehavior="history"

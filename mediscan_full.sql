@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict bXOvgjXLu67fQlRzKKYzEkEAyrq8fjDcQcIWulEIuojh6o68EZW1ywQPuFkrdKB
+\restrict xYDc2zuj0KsF1gXEzBtp1ts5fgQnhmEedZpAovhi8xNXj3unOykCaa1sUfaI5p2
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
@@ -465,7 +465,6 @@ c4f44bfd-541a-418f-8bb3-43b38a311b90	combined-572b8f88a4814c6997f56eac6defca37@e
 2844ccb6-9de0-48ea-a831-671d7d72291c	combined-755718b066bb4876ab15c48614d9846a@example.test	combined-hash	f	t	2026-10-23 08:30:33.802313	2026-10-23 08:30:34.10644	\N	\N
 37fe087f-208b-43a9-8aa6-2604c4a9a817	frontend-updated-2e4eeaa2d88440858abde80ec34e8211@example.test	frontend-test-hash	t	t	2026-10-23 08:37:49.159584	2026-10-23 08:37:49.506179	\N	\N
 4a0718be-6249-4690-ac1e-30971ce82101	combined-2e4eeaa2d88440858abde80ec34e8211@example.test	combined-hash	f	t	2026-10-23 08:37:49.176605	2026-10-23 08:37:49.513587	\N	\N
-917ef719-c1ce-46c5-9f37-207a05a23395	charlesfrancischua14@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$q/sY+eahKEk3t6lgunlOUg$1SOT2WYYQ7z1hv6XkxVkt+5Cb+1FD5zw6gmY+6klUG0	t	f	2026-11-07 02:29:52.422718	2026-11-07 02:30:07.960923	\N	\N
 1da84f3c-7854-4509-85c5-7ae41b798c13	frontend-updated-a6f80f1a1a354e4c99c03d2ba8b123c4@example.test	frontend-test-hash	t	t	2026-11-07 09:44:22.352929	2026-11-07 09:44:23.11473	\N	\N
 bc47e527-86f7-482c-9f06-8216ac68acb6	combined-a6f80f1a1a354e4c99c03d2ba8b123c4@example.test	combined-hash	f	t	2026-11-07 09:44:22.390086	2026-11-07 09:44:23.134382	\N	\N
 c9c8f2f7-a6eb-4455-9d09-20851e67d6af	frontend-updated-179757d2c4424830b2aeb2838d12b479@example.test	frontend-test-hash	t	t	2026-11-07 09:39:00.819898	2026-11-07 09:39:01.512336	\N	\N
@@ -496,7 +495,7 @@ c9012295-48d6-4f97-a8e3-ab5ae9f9c0fe	combined-c2c146db81db41dab7b7779e6030c6d6@e
 82e30038-7b3c-4c61-9c00-f19761491c46	frontend-updated-9a08cffbcc7a4653832a6211a5e47e7e@example.test	frontend-test-hash	t	t	2026-10-23 09:19:31.022791	2026-10-23 09:19:31.38687	\N	\N
 58f42e71-9f36-4309-bacb-5d14c233ae31	combined-9a08cffbcc7a4653832a6211a5e47e7e@example.test	combined-hash	f	t	2026-10-23 09:19:31.040325	2026-10-23 09:19:31.394699	\N	\N
 3d74ea17-386d-4119-950c-f256af7154ff	kadihek599@artegin.com	$argon2id$v=19$m=65536,t=3,p=4$KVinGGmMncskdW1iXk8mrA$yDmzMbw6AXxc6LWsFsTYAciLTTw5of2h9nIbgb+c3ZE	t	f	2026-11-10 16:44:00.432869	2026-11-10 16:44:28.039027	\N	\N
-a226baee-1463-42e6-b6de-bf52c0dea78a	ccchua1290@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$6QI5xLqQqUN8zxdIfa/VfA$B0TO1tP0NK87rDGU5crBO4eEAChey5i+BAIqr/seKIw	t	f	2026-11-20 15:44:54.078927	2026-11-20 15:58:45.966428	\N	\N
+0e1a6aed-f9d9-4323-a51b-1a81c3074061	ccchua1290@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$kxfegVYsPHnhr9ctAq+Xdg$f1KIK4JUT/CRaJ+STVYCh2WX+g7MGsHktKPKtqRQTCM	t	f	2026-11-20 19:09:06.147991	2026-11-20 19:09:29.523612	2026-11-20 19:09:06.147991	1.0
 \.
 
 
@@ -513,10 +512,8 @@ COPY public.alembic_version (version_num) FROM stdin;
 --
 
 COPY public.email_verifications (verification_id, account_id, purpose, code_hash, attempts, expires_at, created_at, consumed_at) FROM stdin;
-0a5d3de4-e98f-4e91-a2ca-b326868145da	917ef719-c1ce-46c5-9f37-207a05a23395	verify_email	54110b326a11a853505a715b156cfb78ffc32e59f8ef653b5ce0ad99cae0d12f	0	2026-11-07 02:39:52.430788	2026-11-07 02:29:52.422718	2026-11-07 02:30:07.960923
 cc9f3b2f-dab5-4b35-9d59-ffb408e16c3d	3d74ea17-386d-4119-950c-f256af7154ff	verify_email	c29514433bf5747fd0bba34631ad283e7c175d179633349e9a1a5468655fe648	0	2026-11-10 16:54:00.435846	2026-11-10 16:44:00.432869	2026-11-10 16:44:28.039027
-36363c64-1164-470d-a7cb-8324ae8d28e4	a226baee-1463-42e6-b6de-bf52c0dea78a	verify_email	979f7bf3eb61408074a51b1f8deb3d54cda14c527f801d3e650908ff36b52996	0	2026-11-20 15:54:54.078979	2026-11-20 15:44:54.078927	2026-11-20 15:45:05.593013
-1bb7438b-0c09-4dd9-8f49-a46146e9dae2	a226baee-1463-42e6-b6de-bf52c0dea78a	reset_password	12dd6a12a86f7787cf9f2735fe4e3011f243f70c135c2ef04fe05cd320a32509	0	2026-11-20 16:08:17.281354	2026-11-20 15:58:17.266701	2026-11-20 15:58:45.966428
+56ec51da-c7be-48f3-aa4e-d3157baedfdf	0e1a6aed-f9d9-4323-a51b-1a81c3074061	verify_email	b6c35e225b8c0e9c3a3e6ec1076d8a77a4eef1acba4da9b67218d34b8e12a3d9	0	2026-11-20 19:19:06.152905	2026-11-20 19:09:06.147991	2026-11-20 19:09:29.523612
 \.
 
 
@@ -537,7 +534,6 @@ COPY public.medication_schedules (schedule_id, profile_id, fda_id, sched_is_acti
 402	38fb4db62a4e83cf	33136	t	daily	{10:00:00}	2020-01-01	\N	123	2026-11-20 03:18:01.061745	2026-11-20 03:18:01.061745
 404	38fb4db62a4e83cf	55065	t	daily	{10:00:00}	2026-11-20	\N	\N	2026-11-20 03:19:27.191757	2026-11-20 03:19:27.191757
 405	38fb4db62a4e83cf	33636	t	daily	{10:00:00}	2026-11-20	\N	\N	2026-11-20 03:19:43.524915	2026-11-20 03:19:43.524915
-441	9487c43185b25bc1	33097	t	daily	{10:00:00}	2026-11-21	\N	\N	2026-11-20 16:41:31.863329	2026-11-20 16:41:31.863329
 \.
 
 
@@ -31548,7 +31544,6 @@ f55a745c8dbb9350	bc47e527-86f7-482c-9f06-8216ac68acb6	f	Combined	combined	2	1990
 538dadcb55d1f720	bc005b76-0050-44e8-8fd2-af17158567c5	t	Updated Frontend	updated	3	1992-03-04	2026-10-23 08:37:24.725594	2026-10-23 08:37:25.01853
 b3a29479d297233e	309aefeb-0379-469d-868e-a55bfe776031	f	Combined	combined	2	1990-01-01	2026-11-07 09:46:44.981971	2026-11-07 09:46:44.981971
 c7bb925314d464b8	6643b4c9-e924-4c93-bc6d-6746b50227fb	t	Updated Frontend	updated	3	1992-03-04	2026-10-23 08:30:48.865465	2026-10-23 08:30:49.159031
-229171f35577cae5	917ef719-c1ce-46c5-9f37-207a05a23395	f	Hello	Hello	3	2000-12-31	2026-11-07 09:34:42.761717	2026-11-07 09:34:42.761717
 2fb40df3083bd64b	68b54135-6063-4d17-8d31-655e57c22ab9	f	Combined	combined	2	1990-01-01	2026-11-07 09:39:00.867455	2026-11-07 09:39:00.867455
 f6e38ebe64f18686	ecaab2e7-97bc-458a-8ddb-e68f0530bda5	t	Updated Frontend	updated	3	1992-03-04	2026-11-07 09:39:16.062017	2026-11-07 09:39:16.610174
 3e4593e4aaaee510	1da84f3c-7854-4509-85c5-7ae41b798c13	t	Updated Frontend	updated	3	1992-03-04	2026-11-07 09:44:22.411026	2026-11-07 09:44:23.096289
@@ -31578,8 +31573,7 @@ c553cb5dc22c1eb6	31882017-2018-4b8f-8cbd-453624302ae4	t	Updated Frontend	updated
 9bc2c7a685c836d0	58f42e71-9f36-4309-bacb-5d14c233ae31	f	Combined	combined	2	1990-01-01	2026-10-23 09:19:31.040325	2026-10-23 09:19:31.040325
 bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated	3	1992-03-04	2026-10-23 09:19:31.049025	2026-10-23 09:19:31.378935
 38fb4db62a4e83cf	3d74ea17-386d-4119-950c-f256af7154ff	f	Jamal	Neckhurts	3	2001-01-01	2026-11-10 16:44:42.002993	2026-11-10 16:44:42.002993
-9487c43185b25bc1	a226baee-1463-42e6-b6de-bf52c0dea78a	f	123	123	3	2000-11-11	2026-11-20 15:56:25.862524	2026-11-20 15:56:25.862524
-f585e4b2de8bfd88	a226baee-1463-42e6-b6de-bf52c0dea78a	f	asd	asd	3	1990-10-10	2026-11-20 17:13:29.213968	2026-11-20 17:13:29.213968
+aad809f6d6ee0bb3	0e1a6aed-f9d9-4323-a51b-1a81c3074061	f	hello	hello	3	2006-10-10	2026-11-20 19:09:40.121227	2026-11-20 19:09:40.121227
 \.
 
 
@@ -31588,8 +31582,8 @@ f585e4b2de8bfd88	a226baee-1463-42e6-b6de-bf52c0dea78a	f	asd	asd	3	1990-10-10	202
 --
 
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
+4e5d0af1-d2d9-4e27-bb38-f07292b74804	0e1a6aed-f9d9-4323-a51b-1a81c3074061	8f55550c897ad8ae6aa3026e97a40d39f950ae575a25ef70a70cc73fa6a1347b	2026-11-20 19:10:08.019206	2026-11-27 19:10:08.016762
 4d277e69-03a0-4f37-ac83-483a8836a1da	3d74ea17-386d-4119-950c-f256af7154ff	ac64df9ed84308c6b53367410b892e29c286819ac67aa07906a5eaa56b9d6722	2026-11-20 04:18:29.85974	2026-11-27 04:18:29.856292
-95363eae-96c7-4f85-94d9-d3312ab9b087	a226baee-1463-42e6-b6de-bf52c0dea78a	a7185b016455f18ca9b78775b1dd56d820eab8cf8e3e362d47c0b9f15cde004d	2026-11-20 18:29:42.64032	2026-11-27 18:29:42.637024
 \.
 
 
@@ -62575,8 +62569,6 @@ COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_
 406	38fb4db62a4e83cf	33136	2026-11-24	2026-11-10 17:47:03.567191	2026-11-10 17:47:03.567191		needs_verification	scan	80
 407	38fb4db62a4e83cf	45901	2025-09-09	2026-11-11 05:34:03.615626	2026-11-11 05:34:03.615626		verified	scan	100
 409	38fb4db62a4e83cf	41816	2022-01-01	2026-11-11 07:02:25.685843	2026-11-11 07:02:25.685843		needs_verification	manual	\N
-448	9487c43185b25bc1	33097	2040-10-10	2026-11-20 16:40:53.733459	2026-11-20 16:40:53.733459		needs_verification	scan	80
-449	9487c43185b25bc1	60382	2050-10-10	2026-11-20 17:40:51.89922	2026-11-20 17:40:51.89922		needs_verification	scan	80
 \.
 
 
@@ -62584,28 +62576,28 @@ COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_
 -- Name: medication_logs_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 433, true);
+SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 435, true);
 
 
 --
 -- Name: medication_schedules_schedule_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 442, true);
+SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 444, true);
 
 
 --
 -- Name: philippines_fda_medicines_fda_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62584, true);
+SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62586, true);
 
 
 --
 -- Name: vault_items_vault_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 451, true);
+SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 454, true);
 
 
 --
@@ -62891,5 +62883,5 @@ ALTER TABLE ONLY public.notification_push_tokens
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bXOvgjXLu67fQlRzKKYzEkEAyrq8fjDcQcIWulEIuojh6o68EZW1ywQPuFkrdKB
+\unrestrict xYDc2zuj0KsF1gXEzBtp1ts5fgQnhmEedZpAovhi8xNXj3unOykCaa1sUfaI5p2
 
