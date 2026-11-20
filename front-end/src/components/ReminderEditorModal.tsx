@@ -1,19 +1,33 @@
 import React, { useMemo, useState } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
+import CalendarDatePicker from '@/components/medicine/CalendarDatePicker';
 import { useColors } from '@/hooks/useColors';
 import { type Reminder, type ReminderFrequency } from '@/components/reminderTypes';
 import { useProfile } from '@/context/ProfileContext';
 import { useVault } from '@/services/vaultStore';
+import { mdyToYMD, ymdToMDY } from '@/utils/medicine';
+import {
+  formatDateDigits,
+  formatReminderStartDate,
+  formatReminderTime,
+  formatTimeDigits,
+  parseDateInput,
+  parseReminderStartDate,
+  parseReminderTime,
+  parseTimeInput,
+} from '@/utils/reminderDates';
 
 type Props = {
   visible: boolean;
@@ -36,15 +50,23 @@ export default function ReminderEditorModal({
   const insets = useSafeAreaInsets();
   const { activeProfile, profiles } = useProfile();
   const { medicines } = useVault();
+  const initialTime = parseReminderTime(reminder?.time) ?? new Date(2000, 0, 1, 10, 0);
   const [medicine, setMedicine] = useState(reminder?.medicine ?? '');
-  const [time, setTime] = useState(reminder?.time ?? '10:00 AM');
+  const [timeValue, setTimeValue] = useState(initialTime);
+  const [timeInput, setTimeInput] = useState(() => {
+    const hour = initialTime.getHours() % 12 || 12;
+    return `${String(hour).padStart(2, '0')}:${String(initialTime.getMinutes()).padStart(2, '0')}`;
+  });
+  const [timePeriod, setTimePeriod] = useState<'AM' | 'PM'>(
+    initialTime.getHours() < 12 ? 'AM' : 'PM',
+  );
   const [frequency, setFrequency] = useState<ReminderFrequency>(
     reminder?.frequency ?? 'Daily',
   );
-  const [startDate, setStartDate] = useState(
-    reminder?.startDate ??
-      new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-  );
+  const initialStartDate = parseReminderStartDate(reminder?.startDate) ?? new Date();
+  const [startDateInput, setStartDateInput] = useState(() => {
+    return `${String(initialStartDate.getMonth() + 1).padStart(2, '0')}/${String(initialStartDate.getDate()).padStart(2, '0')}/${initialStartDate.getFullYear()}`;
+  });
   const [member, setMember] = useState(
     reminder?.member ?? activeProfile?.profile_display_name ?? profiles[0]?.profile_display_name ?? '',
   );
@@ -53,6 +75,8 @@ export default function ReminderEditorModal({
   const [medicineSearch, setMedicineSearch] = useState('');
   const [frequencyOpen, setFrequencyOpen] = useState(false);
   const [memberOpen, setMemberOpen] = useState(false);
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
   const [saving, setSaving] = useState(false);
@@ -93,8 +117,16 @@ export default function ReminderEditorModal({
       setValidationMessage('Choose a medicine before saving.');
       return;
     }
-    if (!time.trim()) {
-      setValidationMessage('Enter a reminder time before saving.');
+    const selectedTime = Platform.OS === 'web'
+      ? parseTimeInput(timeInput, timePeriod)
+      : timeValue;
+    if (!selectedTime) {
+      setValidationMessage('Enter an hour from 1 to 12 and minutes from 00 to 59.');
+      return;
+    }
+    const selectedStartDate = parseDateInput(startDateInput);
+    if (!selectedStartDate) {
+      setValidationMessage('Choose a valid reminder start date.');
       return;
     }
     if (!selectedMedicine) {
@@ -119,9 +151,9 @@ export default function ReminderEditorModal({
         medicine: selectedMedicine.name,
         category: selectedMedicine.category,
         instructions: selectedMedicine.instructions,
-        time: time.trim(),
+        time: formatReminderTime(selectedTime),
         frequency,
-        startDate: startDate.trim(),
+        startDate: formatReminderStartDate(selectedStartDate),
         member: selectedProfile.profile_display_name,
         notes: notes.trim(),
         enabled: reminder?.enabled ?? true,
@@ -137,6 +169,7 @@ export default function ReminderEditorModal({
   const borderColor = { borderColor: colors.border };
 
   return (
+    <>
     <Modal
       visible={visible}
       transparent
@@ -227,16 +260,71 @@ export default function ReminderEditorModal({
               <Text style={[styles.fieldLabel, { color: colors.foreground }]}>
                 Reminder Time
               </Text>
-              <TextInput
-                accessibilityLabel="Reminder time"
-                testID="reminder-time-input"
-                value={time}
-                onChangeText={setTime}
-                placeholder="10:00 AM"
-                placeholderTextColor={colors.mutedForeground}
-                style={[styles.inlineInput, { color: colors.foreground }]}
-                returnKeyType="done"
-              />
+              {Platform.OS === 'web' ? (
+                <View style={styles.timeEntry}>
+                  <TextInput
+                    accessibilityLabel="Reminder time"
+                    testID="reminder-time-input"
+                    value={timeInput}
+                    onChangeText={(value) => setTimeInput(formatTimeDigits(value))}
+                    placeholder="hh:mm"
+                    placeholderTextColor={colors.mutedForeground}
+                    keyboardType="number-pad"
+                    maxLength={5}
+                    style={[styles.timeEntryInput, { color: colors.foreground }]}
+                    returnKeyType="done"
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Set ${timePeriod} for reminder time`}
+                    testID="reminder-time-period"
+                    onPress={() => setTimePeriod((period) => period === 'AM' ? 'PM' : 'AM')}
+                    style={[styles.periodToggle, { borderColor: colors.border }]}
+                  >
+                    <Text style={[styles.selectText, { color: colors.foreground }]}>
+                      {timePeriod}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : Platform.OS === 'ios' ? (
+                <DateTimePicker
+                  testID="reminder-time-input"
+                  value={timeValue}
+                  mode="time"
+                  display="compact"
+                  locale="en_US"
+                  accentColor={colors.primary}
+                  onValueChange={(_, selectedTime) => setTimeValue(selectedTime)}
+                />
+              ) : (
+                <>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Reminder time"
+                    testID="reminder-time-input"
+                    onPress={() => setTimePickerOpen(true)}
+                    style={styles.pickerValue}
+                  >
+                    <Text style={[styles.selectText, { color: colors.foreground }]}>
+                      {formatReminderTime(timeValue)}
+                    </Text>
+                    <Ionicons name="chevron-down" size={15} color={colors.mutedForeground} />
+                  </Pressable>
+                  {timePickerOpen ? (
+                    <DateTimePicker
+                      value={timeValue}
+                      mode="time"
+                      presentation="dialog"
+                      is24Hour={false}
+                      onValueChange={(_, selectedTime) => {
+                        setTimePickerOpen(false);
+                        setTimeValue(selectedTime);
+                      }}
+                      onDismiss={() => setTimePickerOpen(false)}
+                    />
+                  ) : null}
+                </>
+              )}
             </View>
 
             <View style={[styles.fieldRow, borderColor]}>
@@ -297,16 +385,32 @@ export default function ReminderEditorModal({
               <Text style={[styles.fieldLabel, { color: colors.foreground }]}>
                 Start Date
               </Text>
-              <TextInput
-                accessibilityLabel="Start date"
-                testID="start-date-input"
-                value={startDate}
-                onChangeText={setStartDate}
-                placeholder="Aug 13, 2026"
-                placeholderTextColor={colors.mutedForeground}
-                style={[styles.inlineInput, { color: colors.foreground }]}
-                returnKeyType="done"
-              />
+              <View style={styles.dateEntry}>
+                <TextInput
+                  accessibilityLabel="Start date"
+                  testID="start-date-input"
+                  value={startDateInput}
+                  onChangeText={(value) => {
+                    setStartDateInput(formatDateDigits(value));
+                    setValidationMessage('');
+                  }}
+                  placeholder="MM/DD/YYYY"
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType="number-pad"
+                  maxLength={10}
+                  style={[styles.dateEntryInput, { color: colors.foreground }]}
+                  returnKeyType="done"
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Open start date calendar"
+                  testID="start-date-calendar"
+                  onPress={() => setDatePickerOpen(true)}
+                  style={styles.dateEntryCalendar}
+                >
+                  <Ionicons name="calendar-outline" size={19} color={colors.mutedForeground} />
+                </Pressable>
+              </View>
             </View>
 
             <View style={[styles.fieldRow, borderColor]}>
@@ -578,6 +682,18 @@ export default function ReminderEditorModal({
         ) : null}
       </View>
     </Modal>
+    <CalendarDatePicker
+      visible={visible && datePickerOpen}
+      value={mdyToYMD(startDateInput)}
+      title="Start Date"
+      onSelect={(date) => {
+        setStartDateInput(ymdToMDY(date));
+        setValidationMessage('');
+        setDatePickerOpen(false);
+      }}
+      onClose={() => setDatePickerOpen(false)}
+    />
+    </>
   );
 }
 
@@ -651,6 +767,61 @@ const styles = StyleSheet.create({
     fontSize: 12,
     paddingVertical: 8,
     paddingHorizontal: 3,
+  },
+  pickerValue: {
+    minWidth: 92,
+    maxWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 7,
+    paddingVertical: 8,
+  },
+  dateEntry: {
+    minWidth: 150,
+    maxWidth: '58%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+  },
+  dateEntryInput: {
+    flex: 1,
+    minWidth: 95,
+    textAlign: 'right',
+    fontSize: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 3,
+  },
+  dateEntryCalendar: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timeEntry: {
+    minWidth: 132,
+    maxWidth: '50%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  timeEntryInput: {
+    flex: 1,
+    minWidth: 70,
+    textAlign: 'center',
+    fontSize: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 3,
+  },
+  periodToggle: {
+    minWidth: 42,
+    height: 34,
+    borderWidth: 1,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
   },
   selectField: {
     minWidth: 112,
