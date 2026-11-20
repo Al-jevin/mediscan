@@ -100,7 +100,26 @@ export default function CameraScreen() {
 
       if (result.canceled || !result.assets?.length) return;
 
-      await handleImage(result.assets[0].uri);
+      // Only PNG and JPG/JPEG can be scanned
+      const asset = result.assets[0];
+      console.log("Picked file:", asset.mimeType, asset.fileName, asset.uri);
+      const mime = (asset.mimeType ?? "").toLowerCase();
+      const name = (asset.fileName ?? asset.uri).toLowerCase().split("?")[0];
+      const allowedMime = ["image/png", "image/jpeg", "image/jpg"];
+      const allowedExt = [".png", ".jpg", ".jpeg"];
+      const isAllowed = mime
+        ? allowedMime.includes(mime)
+        : allowedExt.some((ext) => name.endsWith(ext));
+
+      if (!isAllowed) {
+        Alert.alert(
+          "Unsupported image",
+          "Please choose a PNG or JPG image. GIFs and other file types can't be scanned."
+        );
+        return;
+      }
+
+      await handleImage(asset.uri);
     } catch (e) {
       console.log("Image picker failed:", e);
       Alert.alert("Error", "Could not open the image picker. Please try again.");
@@ -237,7 +256,13 @@ export default function CameraScreen() {
               </View>
             </Pressable>
 
-            <Pressable onPress={onFlip} hitSlop={12}>
+            <Pressable
+              onPress={onFlip}
+              hitSlop={12}
+              style={styles.flipButton}
+              accessibilityRole="button"
+              accessibilityLabel="Flip camera"
+            >
               <Ionicons name="sync-outline" size={30} color="#fff" />
             </Pressable>
           </View>
@@ -265,6 +290,7 @@ const styles = StyleSheet.create({
   permBtnText: { color: "#fff", fontWeight: "600" },
   permUploadButton: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 18, padding: 8 },
   permUploadText: { color: "#1F5C4D", fontWeight: "600" },
+  flipButton: { width: 84, alignItems: "center", justifyContent: "center", paddingVertical: 6 },
   permLink: { color: "#1F5C4D", fontWeight: "500" },
 
   // Top bar
