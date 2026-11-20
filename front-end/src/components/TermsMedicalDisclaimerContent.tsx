@@ -147,27 +147,7 @@ export default function TermsMedicalDisclaimerContent({
 }) {
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => onBack?.()}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel="Back to hamburger menu"
-          hitSlop={12}
-        >
-          <Ionicons name="arrow-back" size={24} color={GREEN} />
-        </Pressable>
-
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Terms & Disclaimer
-        </Text>
-
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <View style={styles.divider} />
-
+      
       {/* Terms, Conditions and Medical Disclaimer */}
       <ScrollView
         style={styles.scroll}
