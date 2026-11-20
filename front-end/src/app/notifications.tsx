@@ -97,7 +97,6 @@ export default function NotificationsScreen() {
   const [prefs, setPrefs] = useState<AlertPrefs>(EMPTY_PREFS);
   const [now, setNow] = useState(() => Date.now());
 
-  // Refresh clock and local snooze/archive preferences whenever this screen is focused
   useFocusEffect(
     useCallback(() => {
       let active = true;
