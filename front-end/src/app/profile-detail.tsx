@@ -82,16 +82,20 @@ export default function ProfileDetailScreen() {
   const targetTag = memberName === 'Self' ? 'Me' : memberName;
 
   const memberReminders: ReminderItem[] = allReminders
-    .filter((reminder: Reminder) => reminder.member.toLowerCase() === targetTag.toLowerCase())
-    .map((reminder) => ({
-      id: reminder.id,
-      medicineName: reminder.medicine,
-      type: reminder.category,
-      dosage: reminder.instructions,
-      time: reminder.time,
-      frequency: reminder.frequency,
-      expiry: 'Not tracked',
-      notes: reminder.notes,
+  .filter((reminder: Reminder) =>
+    reminder.members.some(
+      (member) => member.toLowerCase() === targetTag.toLowerCase()
+    )
+  )
+  .map((reminder) => ({
+    id: reminder.id,
+    medicineName: reminder.medicine,
+    type: reminder.category,
+    dosage: reminder.instructions,
+    time: reminder.time,
+    frequency: reminder.frequency,
+    expiry: 'Not tracked',
+    notes: reminder.notes,
     }));
 
   const handleDeletePress = () => {

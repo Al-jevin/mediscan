@@ -19,7 +19,8 @@ export function FabCircle({ icon }: { icon: 'add' | 'close' }) {
 // The raised + button in the middle of the bottom bar.
 export default function AddTabButton() {
   const { openAdd } = useMenu();
-  const ref = useRef<View>(null);
+  const ref = useRef<React.ElementRef<typeof View>>(null);
+
 
   // naka measure dito yung button so that the "Add medicine" sheet can be positioned exactly on top of it.
   const onPress = () => {

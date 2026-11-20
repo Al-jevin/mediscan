@@ -58,7 +58,7 @@ function toReminder(schedule: Schedule, profile: Profile): Reminder {
     time: formatTime(schedule.sched_reminder_time[0] ?? ''),
     frequency: frequencyToDisplay(schedule.sched_frequency_type),
     startDate: displayDate(schedule.sched_start_date),
-    member: profile.profile_display_name,
+    members: [profile.profile_display_name],
     notes: schedule.sched_notes ?? '',
     enabled: schedule.sched_is_active,
   };

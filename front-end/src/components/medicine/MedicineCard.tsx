@@ -17,7 +17,7 @@ type Props = {
 
 // One row in the Medicine Vault list (Figma: Medicine Vault Page).
 export default function MedicineCard({ medicine, onPress, onMenu }: Props) {
-  const menuRef = useRef<View>(null);
+  const menuRef = useRef<React.ElementRef<typeof View>>(null);
   const form = getMedicineForm(medicine.fda_dosage_form);
   const expired = isExpired(medicine);
   const days = daysUntilExpiry(medicine);

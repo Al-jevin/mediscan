@@ -1,0 +1,49 @@
+[1mdiff --git a/front-end/src/app/(tabs)/_layout.tsx b/front-end/src/app/(tabs)/_layout.tsx[m
+[1mindex 80131e9..48fdb16 100644[m
+[1m--- a/front-end/src/app/(tabs)/_layout.tsx[m
+[1m+++ b/front-end/src/app/(tabs)/_layout.tsx[m
+[36m@@ -7,7 +7,7 @@[m [mimport { useColors } from '@/hooks/useColors';[m
+ import AddTabButton from '@/components/AddTabButton';[m
+ import AppHeader from '@/components/AppHeader';[m
+ import ReminderIcon from '@/components/ReminderIcon';[m
+[31m-import { Colors } from '@/constants/display';[m
+[32m+[m[32mimport { useAppTheme } from '@/hooks/useAppTheme';[m
+ import { MockAuth } from '@/mock/mockAuth';[m
+ import { HeaderFilterProvider, useHeaderFilter } from '@/components/HeaderFilterContext';[m
+ [m
+[36m@@ -91,17 +91,29 @@[m [mfunction RemindersHeader() {[m
+ }[m
+ [m
+ export default function TabsLayout() {[m
+[31m-  // START SCREEN: hangga't walang naka-login + napiling profile, Log In muna (walang tabs/icons).[m
+[31m-  if (!MockAuth.getActiveProfile()) return <Redirect href="/login" />;[m
+[32m+[m[32m  const { colors } = useAppTheme();[m
+[32m+[m
+[32m+[m[32m  // Redirect to login if no active profile exists[m
+[32m+[m[32m  if (!MockAuth.getActiveProfile()) {[m
+[32m+[m[32m    return <Redirect href="/login" />;[m
+[32m+[m[32m  }[m
+   return ([m
+     <HeaderFilterProvider>[m
+       <Tabs[m
+         backBehavior="history"[m
+         screenOptions={{[m
+[31m-          tabBarActiveTintColor: Colors.active,[m
+[31m-          tabBarInactiveTintColor: Colors.text,[m
+[31m-          tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },[m
+[31m-          tabBarStyle: { height: 64, backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border },[m
+[32m+[m[32m          tabBarActiveTintColor: colors.actionPrimary,[m
+[32m+[m[32m          tabBarInactiveTintColor: colors.textSecondary,[m
+[32m+[m[32m          tabBarLabelStyle: {[m
+[32m+[m[32m            fontSize: 12,[m
+[32m+[m[32m            fontWeight: '600',[m
+[32m+[m[32m          },[m
+[32m+[m[32m          tabBarStyle: {[m
+[32m+[m[32m            height: 64,[m
+[32m+[m[32m            backgroundColor: colors.surfacePrimary,[m
+[32m+[m[32m            borderTopWidth: 1,[m
+[32m+[m[32m            borderTopColor: colors.borderDefault,[m
+[32m+[m[32m          },[m
+         }}[m
+       >[m
+         {/* Bottom bar */}[m

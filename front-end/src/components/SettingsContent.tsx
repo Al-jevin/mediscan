@@ -80,6 +80,10 @@ const translations = {
   Dark: 'Madilim',
   System: 'Sistema',
   Notifications: 'Mga Abiso',
+  General: 'Pangkalahatan', 'Push Notifications': 'Mga Push Notification',
+  Reminders: 'Mga Paalala', 'Medication Reminders': 'Mga Paalala sa Gamot','Sound & Vibration': 'Tunog at Panginginig',
+  Sound: 'Tunog',
+  Vibration: 'Panginginig',
   Privacy: 'Pribasiya',
   English: 'Ingles',
   Filipino: 'Filipino',
@@ -542,20 +546,20 @@ const t = (text: string): string => {
 
   const NotificationsScreen = () => (
     <>
-      <Header title="Notifications" />
+      <Header title={t('Notifications')} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <SectionTitle>General</SectionTitle>
+        <SectionTitle>{t('General')}</SectionTitle>
         <View style={styles.group}>
-          <ToggleRow title="Push Notifications" value={pushNotifications} onValueChange={togglePushNotifications} />
+          <ToggleRow title={t('Push Notifications')} value={pushNotifications} onValueChange={togglePushNotifications} />
         </View>
-        <SectionTitle>Reminders</SectionTitle>
+        <SectionTitle>{t('Reminders')}</SectionTitle>
         <View style={styles.group}>
-          <ToggleRow title="Medication Reminders" value={medicationReminders} onValueChange={toggleMedicationReminders} />
+          <ToggleRow title={t('Medication Reminders')} value={medicationReminders} onValueChange={toggleMedicationReminders} />
         </View>
-        <SectionTitle>Sound &amp; Vibration</SectionTitle>
+        <SectionTitle>{t('Sound & Vibration')}</SectionTitle>
         <View style={styles.group}>
-          <ToggleRow title="Sound" value={sound} onValueChange={toggleSound} />
-          <ToggleRow title="Vibration" value={vibration} onValueChange={toggleVibration} />
+          <ToggleRow title={t('Sound')} value={sound} onValueChange={toggleSound} />
+          <ToggleRow title={t('Vibration')} value={vibration} onValueChange={toggleVibration} />
         </View>
       </ScrollView>
     </>
@@ -834,7 +838,7 @@ const createStyles = (colors: typeof Colors) => StyleSheet.create({
   rowValue: { fontSize: 12, color: colors.textSecondary },
   pressed: { backgroundColor: colors.surfaceSecondary },
   appearanceRow: { flexDirection: 'row', gap: 10, marginBottom: 30 },
-  appearanceCard: { flex: 1, height: 82, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: '#E5E9E8', borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 7, elevation: 1 },
+  appearanceCard: { flex: 1, height: 82, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.borderDefault, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 7, elevation: 1 },
   appearanceSelected: { backgroundColor: colors.actionPrimary, borderColor: colors.actionPrimary },
   appearanceIcon: { minHeight: 23, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   systemIcon: { width: 30, height: 21, position: 'relative', alignItems: 'center', justifyContent: 'center' },
@@ -863,17 +867,27 @@ const createStyles = (colors: typeof Colors) => StyleSheet.create({
   syncModalBackdrop: { flex: 1, backgroundColor: 'rgba(99, 117, 116, 0.68)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 35 },
   syncModalCard: { width: '100%', maxWidth: 300, backgroundColor: colors.surfaceSecondary, borderRadius: 13, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 16, alignItems: 'center', elevation: 8 },
   syncModalIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#DDF1E1', alignItems: 'center', justifyContent: 'center', marginBottom: 9 },
-  syncModalTitle: { color: TEXT, fontSize: 19, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
+  syncModalTitle: { color: colors.textPrimary, fontSize: 19, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
   syncModalDescription: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 12 },
   progressTrack: { width: '100%', height: 4, backgroundColor: '#E4EAE7', borderRadius: 3, overflow: 'hidden', marginTop: 1 },
   progressFill: { width: '65%', height: '100%', backgroundColor: '#3FA58D', borderRadius: 3 },
   progressPercent: { color: '#3FA58D', fontSize: 11, marginTop: 8 },
   doneButton: { width: '100%', minHeight: 34, borderRadius: 7, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
   doneButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  appearanceText: { fontSize: 14, color: '#315B53', fontWeight: '500' },
+  appearanceText: { fontSize: 14, color: colors.textPrimary, fontWeight: '500' },
   selectedText: { color: colors.onAction, fontWeight: '600' },
-  sliderCard: { minHeight: 90, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, backgroundColor: 'white', borderRadius: 14, borderWidth: 1, borderColor: colors.surfaceSecondary, marginBottom: 28, elevation: 1 },
-  smallA: { color: GREEN, fontSize: 18, fontWeight: '600' },
+  sliderCard: {
+    minHeight: 90,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.borderDefault,
+    marginBottom: 28,
+    elevation: 1,
+  },  smallA: { color: GREEN, fontSize: 18, fontWeight: '600' },
   largeA: { color: GREEN, fontSize: 28, fontWeight: '600' },
   sliderWrap: { flex: 1, height: 54, justifyContent: 'center', marginHorizontal: 10 },
   slider: { width: '100%', height: 44, zIndex: 2 },
@@ -881,14 +895,14 @@ const createStyles = (colors: typeof Colors) => StyleSheet.create({
   sliderTick: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#B8BFBD' },
   sliderTickActive: { backgroundColor: GREEN, width: 9, height: 9 },
   previewCard: { minHeight: 100, padding: 16, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.borderDefault, borderRadius: 12 },
-  previewTitle: { fontWeight: '700', color: TEXT, marginBottom: 8 },
+  previewTitle: { fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
   previewDescription: { color: colors.textSecondary, lineHeight: 20 },
   languageCard: { minHeight: 48, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.borderDefault, borderRadius: 10, paddingHorizontal: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  languageText: { color: TEXT, fontSize: 14, fontWeight: '600' },
+  languageText: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
   toggleRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 13, borderBottomWidth: 1, borderBottomColor: colors.borderDefault },
-  toggleTitle: { color: TEXT, fontSize: 15, fontWeight: '600', flex: 1 },
+  toggleTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '600', flex: 1 },
   searchBox: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: BORDER, borderRadius: 10, backgroundColor: colors.surfaceSecondary , marginBottom: 12 },
-  searchInput: { flex: 1, minHeight: 42, color: TEXT, fontSize: 15 },
+  searchInput: { flex: 1, minHeight: 42, color: colors.textPrimary, fontSize: 15 },
   faqCard: { backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: BORDER, borderRadius: 10, padding: 13, marginBottom: 9 },
   faqTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   faqAnswer: { color: colors.textSecondary, fontSize: 15, lineHeight: 23, marginTop: 10 },
@@ -916,7 +930,7 @@ const createStyles = (colors: typeof Colors) => StyleSheet.create({
   licenseSubtitle: { color: colors.textSecondary, fontSize: 12, lineHeight: 16, marginTop: 3 },
   clearCacheModalCard: { width: '100%', maxWidth: 320, backgroundColor: colors.surfaceSecondary, borderRadius: 13, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 14, alignItems: 'center', elevation: 8 },
   clearCacheModalIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFF0F0', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  clearCacheModalTitle: { color: TEXT, fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
+  clearCacheModalTitle: { color: colors.textPrimary, fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
   clearCacheModalDescription: { color: '#6B7C78', fontSize: 13, lineHeight: 18, textAlign: 'center', marginBottom: 12 },
   clearCacheActions: { width: '100%', flexDirection: 'row', gap: 8 },
   cancelCacheButton: { flex: 1, minHeight: 36, borderWidth: 1, borderColor: '#AAB9B5', borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceSecondary },

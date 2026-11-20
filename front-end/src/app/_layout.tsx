@@ -1,4 +1,3 @@
-
 import '@/services/appSettings';
 
 import { Stack } from 'expo-router';

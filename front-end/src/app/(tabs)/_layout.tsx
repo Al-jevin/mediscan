@@ -7,7 +7,7 @@ import { useColors } from '@/hooks/useColors';
 import AddTabButton from '@/components/AddTabButton';
 import AppHeader from '@/components/AppHeader';
 import ReminderIcon from '@/components/ReminderIcon';
-import { Colors } from '@/constants/display';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { MockAuth } from '@/mock/mockAuth';
 import { HeaderFilterProvider, useHeaderFilter } from '@/components/HeaderFilterContext';
 
@@ -91,17 +91,29 @@ function RemindersHeader() {
 }
 
 export default function TabsLayout() {
-  // START SCREEN: hangga't walang naka-login + napiling profile, Log In muna (walang tabs/icons).
-  if (!MockAuth.getActiveProfile()) return <Redirect href="/login" />;
+  const { colors } = useAppTheme();
+
+  // Redirect to login if no active profile exists
+  if (!MockAuth.getActiveProfile()) {
+    return <Redirect href="/login" />;
+  }
   return (
     <HeaderFilterProvider>
       <Tabs
         backBehavior="history"
         screenOptions={{
-          tabBarActiveTintColor: Colors.active,
-          tabBarInactiveTintColor: Colors.text,
-          tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
-          tabBarStyle: { height: 64, backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border },
+          tabBarActiveTintColor: colors.actionPrimary,
+          tabBarInactiveTintColor: colors.textSecondary,
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+          },
+          tabBarStyle: {
+            height: 64,
+            backgroundColor: colors.surfacePrimary,
+            borderTopWidth: 1,
+            borderTopColor: colors.borderDefault,
+          },
         }}
       >
         {/* Bottom bar */}

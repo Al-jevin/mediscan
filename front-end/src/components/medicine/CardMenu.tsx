@@ -20,7 +20,7 @@ const ITEM_H = 48;
 export default function CardMenu({ anchor, items, onClose }: Props) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const [origin, setOrigin] = useState({ x: 0, y: 0 });
-  const rootRef = useRef<View>(null);
+  const rootRef = useRef<React.ElementRef<typeof View>>(null);
   // measure where the modal starts on screen, so the menu lines up with the ⋮ button
   const onLayout = () => {
     rootRef.current?.measureInWindow((x, y) => {

@@ -1,0 +1,48 @@
+src/app/profile-detail.tsx(85,46): error TS2551: Property 'member' does not exist on type 'Reminder'. Did you mean 'members'?
+src/components/AddMenu.tsx(60,25): error TS2339: Property 'measureInWindow' does not exist on type '(props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode'.
+src/components/AddMenu.tsx(60,42): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/components/AddMenu.tsx(60,45): error TS7006: Parameter 'y' implicitly has an 'any' type.
+src/components/AddMenu.tsx(77,11): error TS2322: Type 'RefObject<((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null>' is not assignable to type 'Ref<ReactNativeElement> | undefined'.
+  Type 'RefObject<((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null>' is not assignable to type 'RefObject<ReactNativeElement | null>'.
+    Type '((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null' is not assignable to type 'ReactNativeElement | null'.
+      Type '(props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode' is not assignable to type 'ReactNativeElement'.
+src/components/AddTabButton.tsx(27,19): error TS2339: Property 'measureInWindow' does not exist on type '(props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode'.
+src/components/AddTabButton.tsx(27,36): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/components/AddTabButton.tsx(27,39): error TS7006: Parameter 'y' implicitly has an 'any' type.
+src/components/AddTabButton.tsx(27,42): error TS7006: Parameter 'w' implicitly has an 'any' type.
+src/components/AddTabButton.tsx(27,45): error TS7006: Parameter 'h' implicitly has an 'any' type.
+src/components/AddTabButton.tsx(35,13): error TS2322: Type 'RefObject<((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null>' is not assignable to type 'Ref<ReactNativeElement> | undefined'.
+  Type 'RefObject<((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null>' is not assignable to type 'RefObject<ReactNativeElement | null>'.
+    Type '((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null' is not assignable to type 'ReactNativeElement | null'.
+      Type '(props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode' is not assignable to type 'ReactNativeElement'.
+src/components/app-tabs.tsx(8,25): error TS2367: This comparison appears to be unintentional because the types 'ColorSchemeName | null' and '"unspecified"' have no overlap.
+src/components/app-tabs.tsx(8,25): error TS2538: Type 'null' cannot be used as an index type.
+src/components/app-tabs.web.tsx(38,6): error TS2322: Type '{ children: Element; style: ({ pressed }: PressableStateCallbackType) => false | { opacity: number; }; id?: string | undefined; pointerEvents?: "auto" | "none" | "box-none" | "box-only" | undefined; ... 129 more ...; href?: string | undefined; }' is not assignable to type '{ ref?: Ref<ReactNativeElement> | undefined; }'.
+  Types of property 'ref' are incompatible.
+    Type 'Ref<(props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode> | undefined' is not assignable to type 'Ref<ReactNativeElement> | undefined'.
+      Type 'RefObject<((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null>' is not assignable to type 'Ref<ReactNativeElement> | undefined'.
+        Type 'RefObject<((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null>' is not assignable to type 'RefObject<ReactNativeElement | null>'.
+          Type '((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null' is not assignable to type 'ReactNativeElement | null'.
+            Type '(props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode' is not assignable to type 'ReactNativeElement'.
+src/components/app-tabs.web.tsx(52,25): error TS2367: This comparison appears to be unintentional because the types 'ColorSchemeName | null' and '"unspecified"' have no overlap.
+src/components/app-tabs.web.tsx(52,25): error TS2538: Type 'null' cannot be used as an index type.
+src/components/HealthInfo.tsx(187,29): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof import("C:/Users/Julianne/OneDrive/Documents/GitHub/mediscan/front-end/node_modules/react-native/types_generated/Libraries/StyleSheet/StyleSheetExports")'. Did you mean 'absoluteFill'?
+src/components/medicine/CardMenu.tsx(26,22): error TS2339: Property 'measureInWindow' does not exist on type '(props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode'.
+src/components/medicine/CardMenu.tsx(26,39): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/components/medicine/CardMenu.tsx(26,42): error TS7006: Parameter 'y' implicitly has an 'any' type.
+src/components/medicine/CardMenu.tsx(42,13): error TS2322: Type 'RefObject<((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null>' is not assignable to type 'Ref<ReactNativeElement> | undefined'.
+  Type 'RefObject<((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null>' is not assignable to type 'RefObject<ReactNativeElement | null>'.
+    Type '((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null' is not assignable to type 'ReactNativeElement | null'.
+      Type '(props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode' is not assignable to type 'ReactNativeElement'.
+src/components/medicine/MedicineCard.tsx(29,22): error TS2339: Property 'measureInWindow' does not exist on type '(props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode'.
+src/components/medicine/MedicineCard.tsx(29,39): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/components/medicine/MedicineCard.tsx(29,42): error TS7006: Parameter 'y' implicitly has an 'any' type.
+src/components/medicine/MedicineCard.tsx(29,45): error TS7006: Parameter 'w' implicitly has an 'any' type.
+src/components/medicine/MedicineCard.tsx(29,48): error TS7006: Parameter 'h' implicitly has an 'any' type.
+src/components/medicine/MedicineCard.tsx(57,11): error TS2322: Type 'RefObject<((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null>' is not assignable to type 'Ref<ReactNativeElement> | undefined'.
+  Type 'RefObject<((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null>' is not assignable to type 'RefObject<ReactNativeElement | null>'.
+    Type '((props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode) | null' is not assignable to type 'ReactNativeElement | null'.
+      Type '(props: Omit<ViewProps, "ref"> & { ref?: Ref<ReactNativeElement> | undefined; }) => ReactNode' is not assignable to type 'ReactNativeElement'.
+src/hooks/use-theme.ts(11,17): error TS2367: This comparison appears to be unintentional because the types 'ColorSchemeName | null' and '"unspecified"' have no overlap.
+src/hooks/use-theme.ts(13,17): error TS2538: Type 'null' cannot be used as an index type.
+src/services/remindersApi.ts(61,5): error TS2561: Object literal may only specify known properties, but 'member' does not exist in type 'Reminder'. Did you mean to write 'members'?

@@ -71,6 +71,69 @@ const colors = {
     shadow: '#163A36',
   },
 
+  dark: {
+    // Legacy aliases
+    text: '#F1F7F5',
+    tint: '#68C6A5',
+
+    // Core surfaces
+    background: '#101C1A',
+    foreground: '#F1F7F5',
+
+    // Cards / elevated surfaces
+    card: '#1B2B28',
+    cardForeground: '#F1F7F5',
+
+    // Primary action color
+    primary: '#68C6A5',
+    primaryForeground: '#10211C',
+
+    // Secondary surfaces
+    secondary: '#263A35',
+    secondaryForeground: '#E0F2EA',
+
+    // Muted elements
+    muted: '#26332F',
+    mutedForeground: '#A8BDB5',
+
+    // Accent highlights
+    accent: '#254B3E',
+    accentForeground: '#E0F7EC',
+
+    // Destructive actions
+    destructive: '#F17B77',
+    destructiveForeground: '#1C1010',
+
+    // Borders and input outlines
+    border: '#40534D',
+    input: '#40534D',
+
+    // Dashboard status colors
+    expiredBackground: '#48292E',
+    expiredBorder: '#A75B65',
+    expiredForeground: '#FFB9C1',
+
+    expiringBackground: '#493628',
+    expiringBorder: '#AE8051',
+    expiringForeground: '#FFD2A4',
+
+    todayBackground: '#203F30',
+    todayBorder: '#4B9068',
+    todayForeground: '#B4E8C4',
+
+    totalBackground: '#203A47',
+    totalBorder: '#4E8EA9',
+    totalForeground: '#B6E5FA',
+
+    overlay: 'rgba(0, 0, 0, 0.55)',
+    overlayStrong: 'rgba(0, 0, 0, 0.75)',
+
+    addRing: '#345D4C',
+    confirmBackground: '#46282B',
+    shadow: '#000000',
+  },
+
+
   // Border radius in px
   radius: 8,
 };

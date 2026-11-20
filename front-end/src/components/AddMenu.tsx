@@ -29,7 +29,7 @@ export default function AddMenu() {
   const [mounted, setMounted] = useState(false);
   const [origin, setOrigin] = useState({ x: 0, y: 0 });
   const [overlayH, setOverlayH] = useState(0);
-  const overlayRef = useRef<View>(null);
+  const overlayRef = useRef<React.ElementRef<typeof View>>(null);
   const t = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
