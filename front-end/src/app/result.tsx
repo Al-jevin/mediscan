@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,15 +14,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import MedicineAddedModal from '@/components/MedicineAddedModal';
 import MedicineIcon from '@/components/medicine/MedicineIcon';
 import MedicineInfoCard from '@/components/MedicineInfoCard';
+import ModerateConfidenceModal from '@/components/ModerateConfidenceModal';
 import PossibleMatches from '@/components/PossibleMatches';
 import ScanActions from '@/components/ScanActions';
 import VerificationBanner from '@/components/VerificationBanner';
 import { Colors, Spacing, Type } from '@/constants/display';
-import { findPossibleMatch, isScanState, mockScanResults } from '@/data/mockScanResults';
+import { isScanState, mockScanResults } from '@/data/mockScanResults';
 import { getLatestScan } from '@/services/scanApi';
 import { addMedicine } from '@/services/vaultStore';
 import { formatDateInput } from '@/utils/date';
-import { getMedicineForm, mdyToYMD, ymdToMDY } from '@/utils/medicine';
+import { formatLongDate, getMedicineForm, mdyToYMD, ymdToMDY } from '@/utils/medicine';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
 const CategoryText = '#938B8B';
@@ -29,6 +31,15 @@ const EmptyText = '#B9B9B9';
 
 // Scan Result screen. The header comes from AppHeader via app/_layout.tsx.
 // Shows the latest real scan. To preview a mock state, use /result?state=verified | needs_verification | no_results
+//
+// Save to Vault:
+//   - verified (high confidence):      expiration date -> saved as Verified
+//   - needs_verification (moderate):   pick a match -> expiration date -> ModerateConfidenceModal
+//                                      (user must confirm name, dosage, expiry) -> saved as Needs Verification
+
+// iOS can't open a new popup while another one is still closing, so wait for it.
+const afterModalCloses = (fn: () => void) => setTimeout(fn, Platform.OS === 'ios' ? 350 : 0);
+
 export default function ResultScreen() {
   const router = useRouter();
   const { state } = useLocalSearchParams<{ state?: string }>();
@@ -43,8 +54,12 @@ export default function ResultScreen() {
   const [expiry, setExpiry] = useState('');
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
-  const savedName =
-    result?.status === 'verified' ? result.medicine.name : findPossibleMatch(selectedId ?? undefined)?.name ?? '';
+  const [moderateOpen, setModerateOpen] = useState(false);
+  const [moderateError, setModerateError] = useState('');
+  const isModerate = result?.status === 'needs_verification';
+  const selectedMatch =
+    result?.status === 'needs_verification' ? result.matches.find((m) => m.id === selectedId) : undefined;
+  const savedName = result?.status === 'verified' ? result.medicine.name : selectedMatch?.name ?? '';
   const goToVault = () => {
     setAddedOpen(false);
     router.navigate('/vault');
@@ -84,16 +99,62 @@ export default function ResultScreen() {
         vault_expiry_date: expiryDate,
         vault_status: 'verified',
         vault_source: 'scan',
-        vault_confidence: result.confidence,
+        vault_confidence: Math.round(result.confidence), // backend accepts whole numbers only
         vault_note: '',
       });
       setExpiryModalOpen(false);
-      setAddedOpen(true);
+      afterModalCloses(() => setAddedOpen(true));
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'Could not save this medicine.');
     } finally {
       setSaving(false);
     }
+  };
+
+  // Moderate confidence, step 1: check the expiration date, then show the safety confirmation.
+  const continueModerateSave = () => {
+    if (!selectedMatch?.medicine) {
+      setSaveError('This match is not linked to a current FDA medicine record. Use Edit or Redo Scan instead.');
+      return;
+    }
+    if (!mdyToYMD(expiry)) {
+      setSaveError('Enter a valid expiration date in MM/DD/YYYY format.');
+      return;
+    }
+    setSaveError('');
+    setModerateError('');
+    setExpiryModalOpen(false);
+    afterModalCloses(() => setModerateOpen(true));
+  };
+
+  // Moderate confidence, step 2: the user confirmed the details, so save it as Needs Verification.
+  const saveModerateMedicine = async () => {
+    const expiryDate = mdyToYMD(expiry);
+    if (!selectedMatch?.medicine || !expiryDate) return;
+    setSaving(true);
+    setModerateError('');
+    try {
+      await addMedicine({
+        ...selectedMatch.medicine,
+        vault_expiry_date: expiryDate,
+        vault_status: 'needs_verification',
+        vault_source: 'scan',
+        vault_confidence: Math.round(selectedMatch.similarity), // backend accepts whole numbers only
+        vault_note: '',
+      });
+      setModerateOpen(false);
+      afterModalCloses(() => setAddedOpen(true));
+    } catch (error) {
+      setModerateError(error instanceof Error ? error.message : 'Could not save this medicine.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // "Go Back" on the safety popup: return to the expiration date so it can be corrected.
+  const backToExpiry = () => {
+    setModerateOpen(false);
+    afterModalCloses(() => setExpiryModalOpen(true));
   };
 
   if (!result) {
@@ -186,7 +247,9 @@ export default function ResultScreen() {
           <View style={styles.expiryModal}>
             <Text style={styles.modalTitle}>Expiration Date</Text>
             <Text style={styles.modalMessage}>
-              Enter the expiration date shown on the package before saving this FDA match.
+              {isModerate
+                ? 'Enter the expiration date shown on the package. You will double-check all the details next.'
+                : 'Enter the expiration date shown on the package before saving this FDA match.'}
             </Text>
             <TextInput
               value={expiry}
@@ -207,17 +270,31 @@ export default function ResultScreen() {
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
               <Pressable
-                onPress={() => void saveVerifiedMedicine()}
+                onPress={() => (isModerate ? continueModerateSave() : void saveVerifiedMedicine())}
                 disabled={saving}
                 style={[styles.saveButton, saving && { opacity: 0.6 }]}
                 accessibilityRole="button"
               >
-                {saving ? <ActivityIndicator color={Colors.onAction} /> : <Text style={styles.saveButtonText}>Save</Text>}
+                {saving
+                  ? <ActivityIndicator color={Colors.onAction} />
+                  : <Text style={styles.saveButtonText}>{isModerate ? 'Continue' : 'Save'}</Text>}
               </Pressable>
             </View>
           </View>
         </View>
       </Modal>
+
+      <ModerateConfidenceModal
+        visible={moderateOpen}
+        confidence={selectedMatch?.similarity ?? (result.status === 'needs_verification' ? result.confidence : 0)}
+        medicineName={selectedMatch?.name ?? ''}
+        dosage={selectedMatch?.strength ?? ''}
+        expirationDate={formatLongDate(mdyToYMD(expiry))}
+        saving={saving}
+        error={moderateError}
+        onConfirm={() => void saveModerateMedicine()}
+        onCancel={backToExpiry}
+      />
 
       <MedicineAddedModal
         visible={addedOpen}
