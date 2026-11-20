@@ -24,6 +24,40 @@ export function extractHostname(rawUriOrHost?: string | null): string | undefine
   return host;
 }
 
+export function isExpoTunnelHost(rawUriOrHost?: string | null): boolean {
+  const host = extractHostname(rawUriOrHost)?.toLowerCase();
+  return Boolean(
+    host &&
+      (host === 'exp.direct' ||
+        host.endsWith('.exp.direct') ||
+        host === 'expo.app' ||
+        host.endsWith('.expo.app')),
+  );
+}
+
+export function isLocalLanIpv4(rawUriOrHost?: string | null): boolean {
+  const host = extractHostname(rawUriOrHost);
+  if (!host || !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return false;
+
+  const octets = host.split('.').map(Number);
+  if (octets.some((octet) => octet < 0 || octet > 255)) return false;
+  const [first, second] = octets;
+  return (
+    first === 10 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168)
+  );
+}
+
+export function firstConfiguredApiUrl(
+  apiUrl?: string | null,
+  useUrl?: string | null,
+): string | undefined {
+  if (typeof apiUrl === 'string' && apiUrl.trim()) return apiUrl;
+  if (typeof useUrl === 'string' && useUrl.trim()) return useUrl;
+  return undefined;
+}
+
 /**
  * Formats a given host into a standardized MediScan API v1 URL.
  */

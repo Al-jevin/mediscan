@@ -1,33 +1,46 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { extractHostname, normalizeApiUrl } from './urlUtils';
+import {
+  extractHostname,
+  firstConfiguredApiUrl,
+  isExpoTunnelHost,
+  isLocalLanIpv4,
+  normalizeApiUrl,
+} from './urlUtils';
 
 export { extractHostname, buildApiUrl, normalizeApiUrl } from './urlUtils';
 
 const API_PORT = '8000';
 
+function getDynamicHostCandidates(): (string | null | undefined)[] {
+  const browserHost =
+    Platform.OS === 'web' && typeof window !== 'undefined'
+      ? window.location?.hostname
+      : undefined;
+  return [
+    browserHost,
+    Constants.expoConfig?.hostUri,
+    Constants.expoGoConfig?.debuggerHost,
+    (Constants as any).expoGoConfig?.hostUri,
+    Constants.experienceUrl,
+    Constants.linkingUri,
+    (Constants as any).manifest?.debuggerHost,
+    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost,
+    (Constants as any).manifest2?.extra?.expoClient?.hostUri,
+  ];
+}
+
 /**
- * Dynamically resolves the active laptop backend URL.
- * Preserves web browser mode and Android emulator mappings.
+ * Dynamically resolves the backend URL only for private LAN hosts.
  */
-export const getDynamicLocalUrl = (): string | undefined => {
-  // 1. Web browser: preserve existing working behavior (match browser hostname)
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.hostname) {
-    return `http://${window.location.hostname}:${API_PORT}/api/v1`;
-  }
-
-  // 2. Mobile (Expo Go / Dev Build): discover active Metro host across all known locations
-  const hostCandidate =
-    Constants.expoConfig?.hostUri ??
-    Constants.expoGoConfig?.debuggerHost ??
-    (Constants as any).expoGoConfig?.hostUri ??
-    Constants.experienceUrl ??
-    Constants.linkingUri ??
-    (Constants as any).manifest?.debuggerHost ??
-    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ??
-    (Constants as any).manifest2?.extra?.expoClient?.hostUri;
-
+export const getDynamicLocalUrl = (
+  candidates: (string | null | undefined)[] = getDynamicHostCandidates(),
+): string | undefined => {
+  if (candidates.some(isExpoTunnelHost)) return undefined;
+  const hostCandidate = candidates.find(
+    (candidate) => typeof candidate === 'string' && candidate.trim().length > 0,
+  );
   const resolvedHost = extractHostname(hostCandidate);
 
   if (resolvedHost) {
@@ -48,19 +61,33 @@ export const getDynamicLocalUrl = (): string | undefined => {
       return undefined;
     }
 
-    return `http://${resolvedHost}:${API_PORT}/api/v1`;
+    if (isLocalLanIpv4(resolvedHost)) {
+      return `http://${resolvedHost}:${API_PORT}/api/v1`;
+    }
   }
 
   return undefined;
 };
 
-const rawConfiguredUrl = (
-  (__DEV__ ? getDynamicLocalUrl() : undefined) ||
-  process.env.EXPO_PUBLIC_API_URL ||
-  process.env.EXPO_PUBLIC_USE_URL ||
-  getDynamicLocalUrl() ||
-  `http://127.0.0.1:${API_PORT}/api/v1`
+const configuredUrl = firstConfiguredApiUrl(
+  process.env.EXPO_PUBLIC_API_URL,
+  process.env.EXPO_PUBLIC_USE_URL,
 );
+const hostCandidates = configuredUrl ? [] : getDynamicHostCandidates();
+const tunnelDetected = !configuredUrl && hostCandidates.some(isExpoTunnelHost);
+
+if (tunnelDetected) {
+  console.warn(
+    '[MediScan API] Expo tunnel detected. Set EXPO_PUBLIC_API_URL or EXPO_PUBLIC_USE_URL to your backend URL.',
+  );
+}
+
+const rawConfiguredUrl =
+  configuredUrl ??
+  (tunnelDetected
+    ? undefined
+    : getDynamicLocalUrl(hostCandidates) ??
+      `http://127.0.0.1:${API_PORT}/api/v1`);
 
 export const API_V1_URL = normalizeApiUrl(rawConfiguredUrl);
 

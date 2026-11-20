@@ -5,6 +5,7 @@ from api.v1.medicines import router as medicines_router
 from api.v1.ocr import router as ocr_router
 from api.v1.vault import router as vault_router
 from api.v1.schedules import router as schedules_router
+from api.v1.notifications import router as notifications_router
 
 router = APIRouter()
 
@@ -15,6 +16,7 @@ router.include_router(auth_router, prefix="/auth", tags=["auth"])
 router.include_router(profiles_router, prefix="/accounts/me/profiles", tags=["profiles"])
 router.include_router(vault_router, prefix="/accounts/me/profiles", tags=["vault"])
 router.include_router(schedules_router, prefix="/accounts/me/profiles", tags=["schedules"])
+router.include_router(notifications_router, prefix="/accounts/me", tags=["notifications"])
 
 # Mount Medicines
 router.include_router(medicines_router, prefix="/medicines", tags=["medicines"])
