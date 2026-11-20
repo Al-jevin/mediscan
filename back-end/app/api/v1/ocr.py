@@ -11,10 +11,12 @@ from crud import crud_medicine
 from schemas.ocr import OCRLatencyMetrics, OCRResponse, ScanTelemetry
 from services.fda_matcher import (
     canonicalize_dosage,
+    dedupe_medicine_suggestions,
     find_dosages,
     find_fda_matches,
     score_suggestions_for_safety,
 )
+from services.image_format import validate_upload_image
 from services.nlp_service import extract_entities, strip_packaging_distractors
 from services.vision import OCRProcessingError, extract_ocr_result
 
@@ -79,6 +81,16 @@ async def extract_label(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"Image exceeds the maximum upload size of {MAX_IMAGE_BYTES} bytes.",
         )
+    format_decision = validate_upload_image(
+        image_bytes,
+        content_type=file.content_type,
+        filename=file.filename,
+    )
+    if not format_decision.allowed:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=format_decision.reason,
+        )
     try:
         ocr_result = await extract_ocr_result(image_bytes)
     except OCRProcessingError as error:
@@ -96,7 +108,9 @@ async def extract_label(
     db_match_started = perf_counter()
     # The dataset matcher tolerates OCR misreads and returns alternatives, so it goes first.
     dataset_suggestions = await find_fda_matches(raw_text)
-    suggested_medicines = await _resolve_database_medicines(dataset_suggestions)
+    suggested_medicines = dedupe_medicine_suggestions(
+        await _resolve_database_medicines(dataset_suggestions)
+    )
     db_match_ms = round((perf_counter() - db_match_started) * 1000)
 
     dosage_line_confidences = [

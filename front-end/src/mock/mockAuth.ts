@@ -144,9 +144,18 @@ export const MockAuth = {
   // New account -> unverified until the code is entered.
   // Do NOT probe /auth/login here: that burned the login rate limit and made
   // post-OTP auto-login (and later logins) return "Too many attempts".
-  async signUp(email: string, password: string): Promise<Result> {
+  async signUp(
+    email: string,
+    password: string,
+    terms?: { accepted: boolean; version: string },
+  ): Promise<Result> {
     const e = norm(email);
-    const res = await request('/auth/register', 'POST', { email: e, password });
+    const res = await request('/auth/register', 'POST', {
+      email: e,
+      password,
+      terms_accepted: Boolean(terms?.accepted),
+      terms_version: terms?.version ?? '',
+    });
     if (!res.ok) return fail(res.status, res.message);
 
     pendingSignupPassword = password;

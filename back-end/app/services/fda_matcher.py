@@ -345,6 +345,38 @@ def _find_matches_sync(raw_text: str) -> list[LinkedMedicineResponse]:
     return [_to_response(entry, confidence) for entry in (with_strength or candidates)[:_MAX_SUGGESTIONS]]
 
 
+def product_identity_key(medicine: LinkedMedicineResponse) -> tuple[str, str, str, str, str]:
+    """Clinically relevant identity used to collapse duplicate FDA choices."""
+    return (
+        (medicine.fda_brandname or "").casefold().strip(),
+        (medicine.fda_genericname or "").casefold().strip(),
+        (medicine.fda_dosage_form or "").casefold().strip(),
+        canonicalize_dosage(medicine.fda_dosage_strength),
+        (medicine.fda_manufacturer or "").casefold().strip(),
+    )
+
+
+def dedupe_medicine_suggestions(
+    suggestions: list[LinkedMedicineResponse],
+) -> list[LinkedMedicineResponse]:
+    """Keep one result per product identity, preferring the higher match score."""
+    order: list[tuple[str, str, str, str, str]] = []
+    best: dict[tuple[str, str, str, str, str], LinkedMedicineResponse] = {}
+    for suggestion in suggestions:
+        key = product_identity_key(suggestion)
+        current = best.get(key)
+        if current is None:
+            order.append(key)
+            best[key] = suggestion
+            continue
+        current_score = current.match_score or 0.0
+        next_score = suggestion.match_score or 0.0
+        if next_score > current_score:
+            best[key] = suggestion
+    return [best[key] for key in order]
+
+
 async def find_fda_matches(raw_text: str) -> list[LinkedMedicineResponse]:
     """Return FDA records for OCR text, best first, without needing a database."""
-    return await run_in_threadpool(_find_matches_sync, raw_text)
+    matches = await run_in_threadpool(_find_matches_sync, raw_text)
+    return dedupe_medicine_suggestions(matches)

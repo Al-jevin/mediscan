@@ -21,6 +21,17 @@ type Schedule = {
 
 type Envelope<T> = { success: boolean; data: T };
 
+const reminderChangeListeners = new Set<() => void>();
+
+export function subscribeToReminderChanges(listener: () => void): () => void {
+  reminderChangeListeners.add(listener);
+  return () => reminderChangeListeners.delete(listener);
+}
+
+function notifyReminderChanges(): void {
+  reminderChangeListeners.forEach((listener) => listener());
+}
+
 function displayDate(value: string): string {
   const [year, month, day] = value.slice(0, 10).split('-').map(Number);
   const date = new Date(year, month - 1, day);
@@ -102,13 +113,15 @@ export async function createReminder(reminder: Reminder): Promise<Reminder> {
     'POST',
     reminderPayload(reminder),
   );
-  return {
+  const created = {
     ...reminder,
     id: String(response.data.schedule_id),
     profile_id: response.data.profile_id,
     fda_id: response.data.fda_id,
     enabled: response.data.sched_is_active,
   };
+  notifyReminderChanges();
+  return created;
 }
 
 export async function updateReminder(reminder: Reminder): Promise<void> {
@@ -120,6 +133,7 @@ export async function updateReminder(reminder: Reminder): Promise<void> {
     'PATCH',
     { ...reminderPayload(reminder), sched_is_active: reminder.enabled },
   );
+  notifyReminderChanges();
 }
 
 export async function deleteReminder(reminder: Reminder): Promise<void> {
@@ -130,4 +144,5 @@ export async function deleteReminder(reminder: Reminder): Promise<void> {
     `/accounts/me/profiles/${encodeURIComponent(reminder.profile_id)}/schedules/${encodeURIComponent(reminder.id)}`,
     'DELETE',
   );
+  notifyReminderChanges();
 }

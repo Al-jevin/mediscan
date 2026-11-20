@@ -189,3 +189,44 @@ def test_extract_label_rejects_oversized_upload(monkeypatch):
 
     assert response.status_code == 413
     assert "maximum upload size" in response.json()["detail"]
+
+
+def test_extract_label_rejects_gif_before_ocr(monkeypatch):
+    called = {"ocr": False}
+
+    async def fake_extract_ocr_result(_image_bytes):
+        called["ocr"] = True
+        raise AssertionError("OCR must not run for unsupported formats")
+
+    monkeypatch.setattr(ocr, "extract_ocr_result", fake_extract_ocr_result)
+    response = TestClient(app).post(
+        "/api/v1/ocr/extract-label",
+        files={"file": ("label.gif", b"GIF89a" + b"\x00" * 20, "image/gif")},
+    )
+
+    assert response.status_code == 415
+    assert "JPEG and PNG" in response.json()["detail"]
+    assert called["ocr"] is False
+
+
+def test_extract_label_rejects_svg_even_with_spoofed_png_mime(monkeypatch):
+    called = {"ocr": False}
+
+    async def fake_extract_ocr_result(_image_bytes):
+        called["ocr"] = True
+        raise AssertionError("OCR must not run for SVG uploads")
+
+    monkeypatch.setattr(ocr, "extract_ocr_result", fake_extract_ocr_result)
+    response = TestClient(app).post(
+        "/api/v1/ocr/extract-label",
+        files={
+            "file": (
+                "label.png",
+                b'<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"></svg>',
+                "image/png",
+            )
+        },
+    )
+
+    assert response.status_code == 415
+    assert called["ocr"] is False

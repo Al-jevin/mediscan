@@ -231,6 +231,13 @@ class CredentialsRequest(BaseModel):
         return value
 
 
+class RegisterRequest(CredentialsRequest):
+    """Signup credentials plus required terms acceptance."""
+
+    terms_accepted: bool = False
+    terms_version: str = Field(default="", max_length=32)
+
+
 class EmailRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -518,7 +525,7 @@ async def _login_with_session(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def register(
-    payload: CredentialsRequest,
+    payload: RegisterRequest,
     request: Request,
     db: AsyncSession | None = Depends(get_db),
 ) -> AuthActionResponse:
@@ -530,6 +537,11 @@ async def register(
         ip_limit=20,
         window_seconds=60 * 60,
     )
+    if not payload.terms_accepted or not payload.terms_version.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must accept the Terms and Medical Disclaimer to create an account.",
+        )
     session = _database_required(db)
     password_hash = await _hash_password(payload.password)
     code = _new_verification_code()
@@ -537,6 +549,7 @@ async def register(
         "VERIFICATION_CODE_TTL_MINUTES", 10, 60
     )
     account_id: str | None = None
+    terms_version = payload.terms_version.strip()
 
     async with session.begin():
         result = await session.execute(
@@ -544,11 +557,12 @@ async def register(
                 """
                 INSERT INTO accounts (
                     account_id, email, password_hash, account_is_verified,
-                    account_is_deleted, account_created_at, account_updated_at
+                    account_is_deleted, terms_accepted_at, terms_version,
+                    account_created_at, account_updated_at
                 )
                 VALUES (
                     CAST(:account_id AS UUID), :email, :password_hash,
-                    FALSE, FALSE, now(), now()
+                    FALSE, FALSE, now(), :terms_version, now(), now()
                 )
                 ON CONFLICT (email) DO NOTHING
                 RETURNING account_id
@@ -558,6 +572,7 @@ async def register(
                 "account_id": str(uuid4()),
                 "email": email,
                 "password_hash": password_hash,
+                "terms_version": terms_version,
             },
         )
         created_id = result.scalar_one_or_none()

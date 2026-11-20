@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict rVrlfZ7KzhWnuXcYBeS6ffpoLXnPphLu01PN7rOOfOD079AuKcBjyt9VuYgzlLN
+\restrict LkaeNKoIguZzAhbePImJKp0JKzSrwcqjWFrYO0FSWE27pSeBjwZdem4Sa5Zgji5
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
@@ -19,6 +19,7 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+ALTER TABLE IF EXISTS ONLY public.notification_push_tokens DROP CONSTRAINT IF EXISTS notification_push_tokens_account_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.vault_items DROP CONSTRAINT IF EXISTS fk_vault_profile;
 ALTER TABLE IF EXISTS ONLY public.vault_items DROP CONSTRAINT IF EXISTS fk_vault_fda;
 ALTER TABLE IF EXISTS ONLY public.session_tokens DROP CONSTRAINT IF EXISTS fk_session_tokens_account;
@@ -47,6 +48,8 @@ ALTER TABLE IF EXISTS ONLY public.test_philippine_fda_medicines DROP CONSTRAINT 
 ALTER TABLE IF EXISTS ONLY public.session_tokens DROP CONSTRAINT IF EXISTS session_tokens_pkey;
 ALTER TABLE IF EXISTS ONLY public.profiles DROP CONSTRAINT IF EXISTS profiles_pkey;
 ALTER TABLE IF EXISTS ONLY public.philippines_fda_medicines DROP CONSTRAINT IF EXISTS philippines_fda_medicines_pkey;
+ALTER TABLE IF EXISTS ONLY public.notification_push_tokens DROP CONSTRAINT IF EXISTS notification_push_tokens_push_token_key;
+ALTER TABLE IF EXISTS ONLY public.notification_push_tokens DROP CONSTRAINT IF EXISTS notification_push_tokens_pkey;
 ALTER TABLE IF EXISTS ONLY public.medication_schedules DROP CONSTRAINT IF EXISTS medication_schedules_pkey;
 ALTER TABLE IF EXISTS ONLY public.medication_logs DROP CONSTRAINT IF EXISTS medication_logs_pkey;
 ALTER TABLE IF EXISTS ONLY public.email_verifications DROP CONSTRAINT IF EXISTS email_verifications_pkey;
@@ -63,6 +66,7 @@ DROP TABLE IF EXISTS public.session_tokens;
 DROP TABLE IF EXISTS public.profiles;
 DROP SEQUENCE IF EXISTS public.philippines_fda_medicines_fda_id_seq;
 DROP TABLE IF EXISTS public.philippines_fda_medicines;
+DROP TABLE IF EXISTS public.notification_push_tokens;
 DROP SEQUENCE IF EXISTS public.medication_schedules_schedule_id_seq;
 DROP TABLE IF EXISTS public.medication_schedules;
 DROP SEQUENCE IF EXISTS public.medication_logs_log_id_seq;
@@ -132,6 +136,8 @@ CREATE TABLE public.accounts (
     account_is_deleted boolean DEFAULT false NOT NULL,
     account_created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     account_updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    terms_accepted_at timestamp without time zone,
+    terms_version text,
     CONSTRAINT chk_accounts_email_format CHECK ((email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text)),
     CONSTRAINT chk_accounts_email_lower CHECK ((email = lower(email)))
 );
@@ -249,6 +255,21 @@ ALTER SEQUENCE public.medication_schedules_schedule_id_seq OWNER TO mediscan_adm
 
 ALTER SEQUENCE public.medication_schedules_schedule_id_seq OWNED BY public.medication_schedules.schedule_id;
 
+
+--
+-- Name: notification_push_tokens; Type: TABLE; Schema: public; Owner: mediscan_admin
+--
+
+CREATE TABLE public.notification_push_tokens (
+    token_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    account_id uuid NOT NULL,
+    push_token text NOT NULL,
+    platform character varying(10) NOT NULL,
+    token_updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.notification_push_tokens OWNER TO mediscan_admin;
 
 --
 -- Name: philippines_fda_medicines; Type: TABLE; Schema: public; Owner: mediscan_admin
@@ -427,55 +448,55 @@ ALTER TABLE ONLY public.vault_items ALTER COLUMN vault_id SET DEFAULT nextval('p
 -- Data for Name: accounts; Type: TABLE DATA; Schema: public; Owner: mediscan_admin
 --
 
-COPY public.accounts (account_id, email, password_hash, account_is_verified, account_is_deleted, account_created_at, account_updated_at) FROM stdin;
-9f5e8b2c-2fab-41b5-8c5a-b066c71d2eba	bruh@example.test	test-hash	f	f	2026-10-23 09:22:45.583802	2026-10-23 09:22:45.583802
-b7f9362e-43b7-483d-ab35-700fd0c0384c	sonion@gmail.com	hello-world	f	f	2026-10-23 06:11:29.614149	2026-10-23 06:11:29.614149
-c9906579-709f-4768-9814-9a8de33abbb3	sample@test.com	word-hash	f	f	2026-10-23 06:15:10.200249	2026-10-23 06:15:10.200249
-702c8578-86e4-4aac-b6a5-912702613c3b	updated@example.test	test-hash	f	t	2026-10-23 06:09:48.45426	2026-10-23 06:18:23.322741
-d3e4889f-8bd8-4509-b8ab-3cc6f827553d	frontend-updated-572b8f88a4814c6997f56eac6defca37@example.test	frontend-test-hash	t	t	2026-10-23 08:28:37.605066	2026-10-23 08:28:37.968286
-51e1dcd7-afa7-4515-8ca6-bc8ca83b65d5	frontend-updated-ccd76b2f30dd42e889c12d0f0768d6b5@example.test	frontend-test-hash	t	t	2026-10-23 06:28:31.443621	2026-10-23 06:28:31.769894
-a5c59d4d-1ec3-46d1-bf8b-364ef3c5c732	combined-ccd76b2f30dd42e889c12d0f0768d6b5@example.test	combined-hash	f	t	2026-10-23 06:28:31.459305	2026-10-23 06:28:31.77745
-a52fa648-9285-4415-9d0a-1dc054004748	frontend-updated-848861adefb4401cab9a13697fb4ba2e@example.test	frontend-test-hash	t	t	2026-10-23 08:26:18.192712	2026-10-23 08:26:18.557891
-4ce03b95-8e58-4df8-bdc2-2bc8a6eccb69	combined-848861adefb4401cab9a13697fb4ba2e@example.test	combined-hash	f	t	2026-10-23 08:26:18.212492	2026-10-23 08:26:18.565087
-23ad613b-fa7a-4768-be59-6bd47aa9e3ef	frontend-updated-732d6a41093f466d888dbfc96815dbb1@example.test	frontend-test-hash	t	t	2026-10-23 06:29:11.004293	2026-10-23 06:29:11.350454
-d658e62d-b588-41b8-8b03-476263f25ff2	combined-732d6a41093f466d888dbfc96815dbb1@example.test	combined-hash	f	t	2026-10-23 06:29:11.02223	2026-10-23 06:29:11.358521
-c4f44bfd-541a-418f-8bb3-43b38a311b90	combined-572b8f88a4814c6997f56eac6defca37@example.test	combined-hash	f	t	2026-10-23 08:28:37.624098	2026-10-23 08:28:37.974778
-58356590-70bb-4de1-afd9-137ee7935a34	frontend-updated-755718b066bb4876ab15c48614d9846a@example.test	frontend-test-hash	t	t	2026-10-23 08:30:33.78706	2026-10-23 08:30:34.099991
-2844ccb6-9de0-48ea-a831-671d7d72291c	combined-755718b066bb4876ab15c48614d9846a@example.test	combined-hash	f	t	2026-10-23 08:30:33.802313	2026-10-23 08:30:34.10644
-37fe087f-208b-43a9-8aa6-2604c4a9a817	frontend-updated-2e4eeaa2d88440858abde80ec34e8211@example.test	frontend-test-hash	t	t	2026-10-23 08:37:49.159584	2026-10-23 08:37:49.506179
-4a0718be-6249-4690-ac1e-30971ce82101	combined-2e4eeaa2d88440858abde80ec34e8211@example.test	combined-hash	f	t	2026-10-23 08:37:49.176605	2026-10-23 08:37:49.513587
-917ef719-c1ce-46c5-9f37-207a05a23395	charlesfrancischua14@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$q/sY+eahKEk3t6lgunlOUg$1SOT2WYYQ7z1hv6XkxVkt+5Cb+1FD5zw6gmY+6klUG0	t	f	2026-11-07 02:29:52.422718	2026-11-07 02:30:07.960923
-1da84f3c-7854-4509-85c5-7ae41b798c13	frontend-updated-a6f80f1a1a354e4c99c03d2ba8b123c4@example.test	frontend-test-hash	t	t	2026-11-07 09:44:22.352929	2026-11-07 09:44:23.11473
-bc47e527-86f7-482c-9f06-8216ac68acb6	combined-a6f80f1a1a354e4c99c03d2ba8b123c4@example.test	combined-hash	f	t	2026-11-07 09:44:22.390086	2026-11-07 09:44:23.134382
-c9c8f2f7-a6eb-4455-9d09-20851e67d6af	frontend-updated-179757d2c4424830b2aeb2838d12b479@example.test	frontend-test-hash	t	t	2026-11-07 09:39:00.819898	2026-11-07 09:39:01.512336
-68b54135-6063-4d17-8d31-655e57c22ab9	combined-179757d2c4424830b2aeb2838d12b479@example.test	combined-hash	f	t	2026-11-07 09:39:00.867455	2026-11-07 09:39:01.526702
-56f2524e-51a8-417f-a9fb-ca4cb26a90bb	frontend-updated-d000e59f43ec4fbf90b5c8ebcb9e373f@example.test	frontend-test-hash	t	t	2026-10-23 07:19:36.615379	2026-10-23 07:19:36.936173
-c11994ed-b10c-4b0f-a868-0d867eb81ba8	frontend-updated-a16f9c9896bd43ca87baff1106e06d03@example.test	frontend-test-hash	t	t	2026-10-23 07:19:15.692453	2026-10-23 07:19:16.048132
-5534767d-12c6-44cc-a49a-fe3f34d5a66e	combined-a16f9c9896bd43ca87baff1106e06d03@example.test	combined-hash	f	t	2026-10-23 07:19:15.716442	2026-10-23 07:19:16.055852
-4fe56dd9-a0de-4c39-a927-4ad9341ebe15	combined-d000e59f43ec4fbf90b5c8ebcb9e373f@example.test	combined-hash	f	t	2026-10-23 07:19:36.633403	2026-10-23 07:19:36.942903
-9bb9768e-3e7c-4e46-ad9f-2aedd245e9a7	helloworld@gmail.com	test-hash	f	f	2026-10-23 08:03:06.495969	2026-10-23 08:03:06.495969
-98bb2127-7e0f-4a0d-9f57-0a1993997108	frontend-updated-099483d14e1f45da9714c757dfdb44c6@example.test	frontend-test-hash	t	t	2026-10-23 08:22:32.45481	2026-10-23 08:22:32.789401
-81a4db3a-e766-431e-be67-8db9548b7c01	combined-099483d14e1f45da9714c757dfdb44c6@example.test	combined-hash	f	t	2026-10-23 08:22:32.47173	2026-10-23 08:22:32.796926
-95435183-d60e-48ac-85bf-54c8cf70a7d4	frontend-updated-45d32a3f42df40eea3e23e65a659b701@example.test	frontend-test-hash	t	t	2026-10-23 08:23:10.846956	2026-10-23 08:23:11.205273
-629497be-4e8e-42a1-a74e-f686fde81ee1	combined-45d32a3f42df40eea3e23e65a659b701@example.test	combined-hash	f	t	2026-10-23 08:23:10.863856	2026-10-23 08:23:11.212007
-6643b4c9-e924-4c93-bc6d-6746b50227fb	frontend-updated-d297d9e25c0d4fb0b1f6e7cc92e4f2bb@example.test	frontend-test-hash	t	t	2026-10-23 08:30:48.837935	2026-10-23 08:30:49.166666
-822dbea5-8a79-4657-b831-cae4be439e57	combined-d297d9e25c0d4fb0b1f6e7cc92e4f2bb@example.test	combined-hash	f	t	2026-10-23 08:30:48.854985	2026-10-23 08:30:49.174028
-15f4c271-5f65-4d6c-bcb9-723b7b52d7dc	frontend-updated-773c4902e15142c5ac6403ff5bd13da1@example.test	frontend-test-hash	t	t	2026-10-23 09:18:01.468733	2026-10-23 09:18:01.807684
-eff3caab-0228-4543-a8d0-ddf7617a2703	combined-773c4902e15142c5ac6403ff5bd13da1@example.test	combined-hash	f	t	2026-10-23 09:18:01.48194	2026-10-23 09:18:01.815844
-ecaab2e7-97bc-458a-8ddb-e68f0530bda5	frontend-updated-0eb8e6dcfbdd44819316059ff97732dd@example.test	frontend-test-hash	t	t	2026-11-07 09:39:16.013684	2026-11-07 09:39:16.624977
-64199015-e127-4bf5-9050-cf883344892b	combined-0eb8e6dcfbdd44819316059ff97732dd@example.test	combined-hash	f	t	2026-11-07 09:39:16.044075	2026-11-07 09:39:16.643067
-271a1dd5-8f0c-4a36-85cc-f8801532e86b	frontend-updated-6070bbdcc9804f9c9d686aeba61f6379@example.test	frontend-test-hash	t	t	2026-11-07 09:45:02.216638	2026-11-07 09:45:02.993283
-bc005b76-0050-44e8-8fd2-af17158567c5	frontend-updated-c2c146db81db41dab7b7779e6030c6d6@example.test	frontend-test-hash	t	t	2026-10-23 08:37:24.695804	2026-10-23 08:37:25.025555
-c9012295-48d6-4f97-a8e3-ab5ae9f9c0fe	combined-c2c146db81db41dab7b7779e6030c6d6@example.test	combined-hash	f	t	2026-10-23 08:37:24.713576	2026-10-23 08:37:25.034214
-0d576002-69eb-4138-a66e-8f3f7ee4b071	combined-6070bbdcc9804f9c9d686aeba61f6379@example.test	combined-hash	f	t	2026-11-07 09:45:02.253557	2026-11-07 09:45:03.010409
-31882017-2018-4b8f-8cbd-453624302ae4	frontend-updated-8ec414d726e648cc80ccec2bdb1a23b3@example.test	frontend-test-hash	t	t	2026-11-07 09:41:50.207104	2026-11-07 09:41:51.01554
-2769b2e5-2e43-48c5-a082-7b9b07e5aa12	combined-8ec414d726e648cc80ccec2bdb1a23b3@example.test	combined-hash	f	t	2026-11-07 09:41:50.247675	2026-11-07 09:41:51.03478
-80f90857-fc61-4f4e-ae62-e5d8fe6be230	frontend-updated-3926a7a1f31b4b35af1be680256e4155@example.test	frontend-test-hash	t	t	2026-11-07 09:46:44.942454	2026-11-07 09:46:45.739934
-309aefeb-0379-469d-868e-a55bfe776031	combined-3926a7a1f31b4b35af1be680256e4155@example.test	combined-hash	f	t	2026-11-07 09:46:44.981971	2026-11-07 09:46:45.756974
-82e30038-7b3c-4c61-9c00-f19761491c46	frontend-updated-9a08cffbcc7a4653832a6211a5e47e7e@example.test	frontend-test-hash	t	t	2026-10-23 09:19:31.022791	2026-10-23 09:19:31.38687
-58f42e71-9f36-4309-bacb-5d14c233ae31	combined-9a08cffbcc7a4653832a6211a5e47e7e@example.test	combined-hash	f	t	2026-10-23 09:19:31.040325	2026-10-23 09:19:31.394699
-3d74ea17-386d-4119-950c-f256af7154ff	kadihek599@artegin.com	$argon2id$v=19$m=65536,t=3,p=4$KVinGGmMncskdW1iXk8mrA$yDmzMbw6AXxc6LWsFsTYAciLTTw5of2h9nIbgb+c3ZE	t	f	2026-11-10 16:44:00.432869	2026-11-10 16:44:28.039027
-a226baee-1463-42e6-b6de-bf52c0dea78a	ccchua1290@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$6QI5xLqQqUN8zxdIfa/VfA$B0TO1tP0NK87rDGU5crBO4eEAChey5i+BAIqr/seKIw	t	f	2026-11-20 15:44:54.078927	2026-11-20 15:58:45.966428
+COPY public.accounts (account_id, email, password_hash, account_is_verified, account_is_deleted, account_created_at, account_updated_at, terms_accepted_at, terms_version) FROM stdin;
+9f5e8b2c-2fab-41b5-8c5a-b066c71d2eba	bruh@example.test	test-hash	f	f	2026-10-23 09:22:45.583802	2026-10-23 09:22:45.583802	\N	\N
+b7f9362e-43b7-483d-ab35-700fd0c0384c	sonion@gmail.com	hello-world	f	f	2026-10-23 06:11:29.614149	2026-10-23 06:11:29.614149	\N	\N
+c9906579-709f-4768-9814-9a8de33abbb3	sample@test.com	word-hash	f	f	2026-10-23 06:15:10.200249	2026-10-23 06:15:10.200249	\N	\N
+702c8578-86e4-4aac-b6a5-912702613c3b	updated@example.test	test-hash	f	t	2026-10-23 06:09:48.45426	2026-10-23 06:18:23.322741	\N	\N
+d3e4889f-8bd8-4509-b8ab-3cc6f827553d	frontend-updated-572b8f88a4814c6997f56eac6defca37@example.test	frontend-test-hash	t	t	2026-10-23 08:28:37.605066	2026-10-23 08:28:37.968286	\N	\N
+51e1dcd7-afa7-4515-8ca6-bc8ca83b65d5	frontend-updated-ccd76b2f30dd42e889c12d0f0768d6b5@example.test	frontend-test-hash	t	t	2026-10-23 06:28:31.443621	2026-10-23 06:28:31.769894	\N	\N
+a5c59d4d-1ec3-46d1-bf8b-364ef3c5c732	combined-ccd76b2f30dd42e889c12d0f0768d6b5@example.test	combined-hash	f	t	2026-10-23 06:28:31.459305	2026-10-23 06:28:31.77745	\N	\N
+a52fa648-9285-4415-9d0a-1dc054004748	frontend-updated-848861adefb4401cab9a13697fb4ba2e@example.test	frontend-test-hash	t	t	2026-10-23 08:26:18.192712	2026-10-23 08:26:18.557891	\N	\N
+4ce03b95-8e58-4df8-bdc2-2bc8a6eccb69	combined-848861adefb4401cab9a13697fb4ba2e@example.test	combined-hash	f	t	2026-10-23 08:26:18.212492	2026-10-23 08:26:18.565087	\N	\N
+23ad613b-fa7a-4768-be59-6bd47aa9e3ef	frontend-updated-732d6a41093f466d888dbfc96815dbb1@example.test	frontend-test-hash	t	t	2026-10-23 06:29:11.004293	2026-10-23 06:29:11.350454	\N	\N
+d658e62d-b588-41b8-8b03-476263f25ff2	combined-732d6a41093f466d888dbfc96815dbb1@example.test	combined-hash	f	t	2026-10-23 06:29:11.02223	2026-10-23 06:29:11.358521	\N	\N
+c4f44bfd-541a-418f-8bb3-43b38a311b90	combined-572b8f88a4814c6997f56eac6defca37@example.test	combined-hash	f	t	2026-10-23 08:28:37.624098	2026-10-23 08:28:37.974778	\N	\N
+58356590-70bb-4de1-afd9-137ee7935a34	frontend-updated-755718b066bb4876ab15c48614d9846a@example.test	frontend-test-hash	t	t	2026-10-23 08:30:33.78706	2026-10-23 08:30:34.099991	\N	\N
+2844ccb6-9de0-48ea-a831-671d7d72291c	combined-755718b066bb4876ab15c48614d9846a@example.test	combined-hash	f	t	2026-10-23 08:30:33.802313	2026-10-23 08:30:34.10644	\N	\N
+37fe087f-208b-43a9-8aa6-2604c4a9a817	frontend-updated-2e4eeaa2d88440858abde80ec34e8211@example.test	frontend-test-hash	t	t	2026-10-23 08:37:49.159584	2026-10-23 08:37:49.506179	\N	\N
+4a0718be-6249-4690-ac1e-30971ce82101	combined-2e4eeaa2d88440858abde80ec34e8211@example.test	combined-hash	f	t	2026-10-23 08:37:49.176605	2026-10-23 08:37:49.513587	\N	\N
+917ef719-c1ce-46c5-9f37-207a05a23395	charlesfrancischua14@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$q/sY+eahKEk3t6lgunlOUg$1SOT2WYYQ7z1hv6XkxVkt+5Cb+1FD5zw6gmY+6klUG0	t	f	2026-11-07 02:29:52.422718	2026-11-07 02:30:07.960923	\N	\N
+1da84f3c-7854-4509-85c5-7ae41b798c13	frontend-updated-a6f80f1a1a354e4c99c03d2ba8b123c4@example.test	frontend-test-hash	t	t	2026-11-07 09:44:22.352929	2026-11-07 09:44:23.11473	\N	\N
+bc47e527-86f7-482c-9f06-8216ac68acb6	combined-a6f80f1a1a354e4c99c03d2ba8b123c4@example.test	combined-hash	f	t	2026-11-07 09:44:22.390086	2026-11-07 09:44:23.134382	\N	\N
+c9c8f2f7-a6eb-4455-9d09-20851e67d6af	frontend-updated-179757d2c4424830b2aeb2838d12b479@example.test	frontend-test-hash	t	t	2026-11-07 09:39:00.819898	2026-11-07 09:39:01.512336	\N	\N
+68b54135-6063-4d17-8d31-655e57c22ab9	combined-179757d2c4424830b2aeb2838d12b479@example.test	combined-hash	f	t	2026-11-07 09:39:00.867455	2026-11-07 09:39:01.526702	\N	\N
+56f2524e-51a8-417f-a9fb-ca4cb26a90bb	frontend-updated-d000e59f43ec4fbf90b5c8ebcb9e373f@example.test	frontend-test-hash	t	t	2026-10-23 07:19:36.615379	2026-10-23 07:19:36.936173	\N	\N
+c11994ed-b10c-4b0f-a868-0d867eb81ba8	frontend-updated-a16f9c9896bd43ca87baff1106e06d03@example.test	frontend-test-hash	t	t	2026-10-23 07:19:15.692453	2026-10-23 07:19:16.048132	\N	\N
+5534767d-12c6-44cc-a49a-fe3f34d5a66e	combined-a16f9c9896bd43ca87baff1106e06d03@example.test	combined-hash	f	t	2026-10-23 07:19:15.716442	2026-10-23 07:19:16.055852	\N	\N
+4fe56dd9-a0de-4c39-a927-4ad9341ebe15	combined-d000e59f43ec4fbf90b5c8ebcb9e373f@example.test	combined-hash	f	t	2026-10-23 07:19:36.633403	2026-10-23 07:19:36.942903	\N	\N
+9bb9768e-3e7c-4e46-ad9f-2aedd245e9a7	helloworld@gmail.com	test-hash	f	f	2026-10-23 08:03:06.495969	2026-10-23 08:03:06.495969	\N	\N
+98bb2127-7e0f-4a0d-9f57-0a1993997108	frontend-updated-099483d14e1f45da9714c757dfdb44c6@example.test	frontend-test-hash	t	t	2026-10-23 08:22:32.45481	2026-10-23 08:22:32.789401	\N	\N
+81a4db3a-e766-431e-be67-8db9548b7c01	combined-099483d14e1f45da9714c757dfdb44c6@example.test	combined-hash	f	t	2026-10-23 08:22:32.47173	2026-10-23 08:22:32.796926	\N	\N
+95435183-d60e-48ac-85bf-54c8cf70a7d4	frontend-updated-45d32a3f42df40eea3e23e65a659b701@example.test	frontend-test-hash	t	t	2026-10-23 08:23:10.846956	2026-10-23 08:23:11.205273	\N	\N
+629497be-4e8e-42a1-a74e-f686fde81ee1	combined-45d32a3f42df40eea3e23e65a659b701@example.test	combined-hash	f	t	2026-10-23 08:23:10.863856	2026-10-23 08:23:11.212007	\N	\N
+6643b4c9-e924-4c93-bc6d-6746b50227fb	frontend-updated-d297d9e25c0d4fb0b1f6e7cc92e4f2bb@example.test	frontend-test-hash	t	t	2026-10-23 08:30:48.837935	2026-10-23 08:30:49.166666	\N	\N
+822dbea5-8a79-4657-b831-cae4be439e57	combined-d297d9e25c0d4fb0b1f6e7cc92e4f2bb@example.test	combined-hash	f	t	2026-10-23 08:30:48.854985	2026-10-23 08:30:49.174028	\N	\N
+15f4c271-5f65-4d6c-bcb9-723b7b52d7dc	frontend-updated-773c4902e15142c5ac6403ff5bd13da1@example.test	frontend-test-hash	t	t	2026-10-23 09:18:01.468733	2026-10-23 09:18:01.807684	\N	\N
+eff3caab-0228-4543-a8d0-ddf7617a2703	combined-773c4902e15142c5ac6403ff5bd13da1@example.test	combined-hash	f	t	2026-10-23 09:18:01.48194	2026-10-23 09:18:01.815844	\N	\N
+ecaab2e7-97bc-458a-8ddb-e68f0530bda5	frontend-updated-0eb8e6dcfbdd44819316059ff97732dd@example.test	frontend-test-hash	t	t	2026-11-07 09:39:16.013684	2026-11-07 09:39:16.624977	\N	\N
+64199015-e127-4bf5-9050-cf883344892b	combined-0eb8e6dcfbdd44819316059ff97732dd@example.test	combined-hash	f	t	2026-11-07 09:39:16.044075	2026-11-07 09:39:16.643067	\N	\N
+271a1dd5-8f0c-4a36-85cc-f8801532e86b	frontend-updated-6070bbdcc9804f9c9d686aeba61f6379@example.test	frontend-test-hash	t	t	2026-11-07 09:45:02.216638	2026-11-07 09:45:02.993283	\N	\N
+bc005b76-0050-44e8-8fd2-af17158567c5	frontend-updated-c2c146db81db41dab7b7779e6030c6d6@example.test	frontend-test-hash	t	t	2026-10-23 08:37:24.695804	2026-10-23 08:37:25.025555	\N	\N
+c9012295-48d6-4f97-a8e3-ab5ae9f9c0fe	combined-c2c146db81db41dab7b7779e6030c6d6@example.test	combined-hash	f	t	2026-10-23 08:37:24.713576	2026-10-23 08:37:25.034214	\N	\N
+0d576002-69eb-4138-a66e-8f3f7ee4b071	combined-6070bbdcc9804f9c9d686aeba61f6379@example.test	combined-hash	f	t	2026-11-07 09:45:02.253557	2026-11-07 09:45:03.010409	\N	\N
+31882017-2018-4b8f-8cbd-453624302ae4	frontend-updated-8ec414d726e648cc80ccec2bdb1a23b3@example.test	frontend-test-hash	t	t	2026-11-07 09:41:50.207104	2026-11-07 09:41:51.01554	\N	\N
+2769b2e5-2e43-48c5-a082-7b9b07e5aa12	combined-8ec414d726e648cc80ccec2bdb1a23b3@example.test	combined-hash	f	t	2026-11-07 09:41:50.247675	2026-11-07 09:41:51.03478	\N	\N
+80f90857-fc61-4f4e-ae62-e5d8fe6be230	frontend-updated-3926a7a1f31b4b35af1be680256e4155@example.test	frontend-test-hash	t	t	2026-11-07 09:46:44.942454	2026-11-07 09:46:45.739934	\N	\N
+309aefeb-0379-469d-868e-a55bfe776031	combined-3926a7a1f31b4b35af1be680256e4155@example.test	combined-hash	f	t	2026-11-07 09:46:44.981971	2026-11-07 09:46:45.756974	\N	\N
+82e30038-7b3c-4c61-9c00-f19761491c46	frontend-updated-9a08cffbcc7a4653832a6211a5e47e7e@example.test	frontend-test-hash	t	t	2026-10-23 09:19:31.022791	2026-10-23 09:19:31.38687	\N	\N
+58f42e71-9f36-4309-bacb-5d14c233ae31	combined-9a08cffbcc7a4653832a6211a5e47e7e@example.test	combined-hash	f	t	2026-10-23 09:19:31.040325	2026-10-23 09:19:31.394699	\N	\N
+3d74ea17-386d-4119-950c-f256af7154ff	kadihek599@artegin.com	$argon2id$v=19$m=65536,t=3,p=4$KVinGGmMncskdW1iXk8mrA$yDmzMbw6AXxc6LWsFsTYAciLTTw5of2h9nIbgb+c3ZE	t	f	2026-11-10 16:44:00.432869	2026-11-10 16:44:28.039027	\N	\N
+a226baee-1463-42e6-b6de-bf52c0dea78a	ccchua1290@gmail.com	$argon2id$v=19$m=65536,t=3,p=4$6QI5xLqQqUN8zxdIfa/VfA$B0TO1tP0NK87rDGU5crBO4eEAChey5i+BAIqr/seKIw	t	f	2026-11-20 15:44:54.078927	2026-11-20 15:58:45.966428	\N	\N
 \.
 
 
@@ -516,6 +537,15 @@ COPY public.medication_schedules (schedule_id, profile_id, fda_id, sched_is_acti
 402	38fb4db62a4e83cf	33136	t	daily	{10:00:00}	2020-01-01	\N	123	2026-11-20 03:18:01.061745	2026-11-20 03:18:01.061745
 404	38fb4db62a4e83cf	55065	t	daily	{10:00:00}	2026-11-20	\N	\N	2026-11-20 03:19:27.191757	2026-11-20 03:19:27.191757
 405	38fb4db62a4e83cf	33636	t	daily	{10:00:00}	2026-11-20	\N	\N	2026-11-20 03:19:43.524915	2026-11-20 03:19:43.524915
+441	9487c43185b25bc1	33097	t	daily	{10:00:00}	2026-11-21	\N	\N	2026-11-20 16:41:31.863329	2026-11-20 16:41:31.863329
+\.
+
+
+--
+-- Data for Name: notification_push_tokens; Type: TABLE DATA; Schema: public; Owner: mediscan_admin
+--
+
+COPY public.notification_push_tokens (token_id, account_id, push_token, platform, token_updated_at) FROM stdin;
 \.
 
 
@@ -31558,7 +31588,7 @@ bf2600d90adcdade	82e30038-7b3c-4c61-9c00-f19761491c46	t	Updated Frontend	updated
 
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
 4d277e69-03a0-4f37-ac83-483a8836a1da	3d74ea17-386d-4119-950c-f256af7154ff	ac64df9ed84308c6b53367410b892e29c286819ac67aa07906a5eaa56b9d6722	2026-11-20 04:18:29.85974	2026-11-27 04:18:29.856292
-bd9dc792-5ed5-4683-88db-7be5bb407f5f	a226baee-1463-42e6-b6de-bf52c0dea78a	b0d6e853e0b99c9e47290e33829d829d548f15866350b0d86f532573f0b54006	2026-11-20 15:58:50.675506	2026-11-27 15:58:50.672111
+48ba683d-5047-4041-8376-6bd06d41f2a1	a226baee-1463-42e6-b6de-bf52c0dea78a	13be60b0a0950019c752c26b77c4a96cebd0f36af1ba7da83e0952a044e29790	2026-11-20 16:37:07.994162	2026-11-27 16:37:07.991353
 \.
 
 
@@ -62544,6 +62574,7 @@ COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_
 406	38fb4db62a4e83cf	33136	2026-11-24	2026-11-10 17:47:03.567191	2026-11-10 17:47:03.567191		needs_verification	scan	80
 407	38fb4db62a4e83cf	45901	2025-09-09	2026-11-11 05:34:03.615626	2026-11-11 05:34:03.615626		verified	scan	100
 409	38fb4db62a4e83cf	41816	2022-01-01	2026-11-11 07:02:25.685843	2026-11-11 07:02:25.685843		needs_verification	manual	\N
+448	9487c43185b25bc1	33097	2040-10-10	2026-11-20 16:40:53.733459	2026-11-20 16:40:53.733459		needs_verification	scan	80
 \.
 
 
@@ -62551,28 +62582,28 @@ COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_
 -- Name: medication_logs_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 415, true);
+SELECT pg_catalog.setval('public.medication_logs_log_id_seq', 432, true);
 
 
 --
 -- Name: medication_schedules_schedule_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 423, true);
+SELECT pg_catalog.setval('public.medication_schedules_schedule_id_seq', 441, true);
 
 
 --
 -- Name: philippines_fda_medicines_fda_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62565, true);
+SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62583, true);
 
 
 --
 -- Name: vault_items_vault_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 428, true);
+SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 448, true);
 
 
 --
@@ -62613,6 +62644,22 @@ ALTER TABLE ONLY public.medication_logs
 
 ALTER TABLE ONLY public.medication_schedules
     ADD CONSTRAINT medication_schedules_pkey PRIMARY KEY (schedule_id);
+
+
+--
+-- Name: notification_push_tokens notification_push_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: mediscan_admin
+--
+
+ALTER TABLE ONLY public.notification_push_tokens
+    ADD CONSTRAINT notification_push_tokens_pkey PRIMARY KEY (token_id);
+
+
+--
+-- Name: notification_push_tokens notification_push_tokens_push_token_key; Type: CONSTRAINT; Schema: public; Owner: mediscan_admin
+--
+
+ALTER TABLE ONLY public.notification_push_tokens
+    ADD CONSTRAINT notification_push_tokens_push_token_key UNIQUE (push_token);
 
 
 --
@@ -62831,8 +62878,16 @@ ALTER TABLE ONLY public.vault_items
 
 
 --
+-- Name: notification_push_tokens notification_push_tokens_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mediscan_admin
+--
+
+ALTER TABLE ONLY public.notification_push_tokens
+    ADD CONSTRAINT notification_push_tokens_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(account_id) ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict rVrlfZ7KzhWnuXcYBeS6ffpoLXnPphLu01PN7rOOfOD079AuKcBjyt9VuYgzlLN
+\unrestrict LkaeNKoIguZzAhbePImJKp0JKzSrwcqjWFrYO0FSWE27pSeBjwZdem4Sa5Zgji5
 

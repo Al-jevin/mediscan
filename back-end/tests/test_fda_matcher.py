@@ -7,6 +7,7 @@ if str(APP_DIRECTORY) not in sys.path:
     sys.path.insert(0, str(APP_DIRECTORY))
 
 from services.fda_matcher import (
+    dedupe_medicine_suggestions,
     find_dosages,
     find_fda_matches,
     identify_medicine,
@@ -165,3 +166,50 @@ def test_safety_scoring_caps_conflicting_and_missing_dosage():
     assert missing_tier == "medium"
     assert missing_score <= 0.79
     assert missing[0].trust_tier == "medium"
+
+def test_dedupe_medicine_suggestions_keeps_best_equivalent_product():
+    first = LinkedMedicineResponse(
+        fda_id=1,
+        fda_registration_id="REG-A",
+        fda_approval_id="APP-A",
+        fda_brandname="Solmux",
+        fda_genericname="Carbocisteine",
+        fda_dosage_form="Capsule",
+        fda_dosage_strength="500 mg",
+        fda_manufacturer="Unilab",
+        match_type="fuzzy",
+        match_score=0.80,
+        confidence_percentage=80,
+    )
+    duplicate = LinkedMedicineResponse(
+        fda_id=2,
+        fda_registration_id="REG-B",
+        fda_approval_id="APP-B",
+        fda_brandname="Solmux",
+        fda_genericname="Carbocisteine",
+        fda_dosage_form="Capsule",
+        fda_dosage_strength="500 mg",
+        fda_manufacturer="Unilab",
+        match_type="fuzzy",
+        match_score=0.92,
+        confidence_percentage=92,
+    )
+    distinct = LinkedMedicineResponse(
+        fda_id=3,
+        fda_registration_id="REG-C",
+        fda_approval_id="APP-C",
+        fda_brandname="Solmux",
+        fda_genericname="Carbocisteine",
+        fda_dosage_form="Syrup",
+        fda_dosage_strength="200 mg / 5 ml",
+        fda_manufacturer="Unilab",
+        match_type="fuzzy",
+        match_score=0.88,
+        confidence_percentage=88,
+    )
+
+    result = dedupe_medicine_suggestions([first, duplicate, distinct])
+    assert len(result) == 2
+    assert result[0].fda_id == 2
+    assert result[0].match_score == 0.92
+    assert result[1].fda_id == 3

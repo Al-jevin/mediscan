@@ -6,12 +6,19 @@ import AddMenu from '@/components/AddMenu';
 import LogoutDialog from '@/components/LogoutDialog';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import { ProfileProvider } from '../context/ProfileContext';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+
+function NotificationRuntime() {
+  usePushNotifications();
+  return null;
+}
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <MenuProvider>
         <ProfileProvider>
+          <NotificationRuntime />
           <Stack screenOptions={{ headerShown: false }}>
             {/* Main app (bottom bar + top bar) */}
             <Stack.Screen name="(tabs)" />

@@ -7,6 +7,7 @@ import AuthHeader from '@/components/AuthHeader';
 import AuthInput from '@/components/AuthInput';
 import FormError from '@/components/FormError';
 import TermsConsentModal from '@/components/TermsConsentModal';
+import { TERMS_VERSION } from '@/components/TermsMedicalDisclaimerContent';
 import { MockAuth } from '@/mock/mockAuth';
 import { isValidEmail, MIN_PASSWORD } from '@/lib/validation';
 import { Colors, Radius, Spacing } from '@/constants/display';
@@ -36,7 +37,10 @@ export default function SignUpScreen() {
     if (password !== confirm) return setError('Passwords do not match.');
 
     setLoading(true);
-    const res = await MockAuth.signUp(e, password);
+    const res = await MockAuth.signUp(e, password, {
+      accepted: true,
+      version: TERMS_VERSION,
+    });
     setLoading(false);
     if (!res.success) return setError(res.message);
 

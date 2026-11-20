@@ -1,5 +1,5 @@
-import React from 'react';
 import {
+  ActivityIndicator,
   View,
   Text,
   ScrollView,
@@ -8,90 +8,72 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { useProfile } from '@/context/ProfileContext';
+import {
+  fetchNotifications,
+  type NotificationItem,
+} from '@/services/notificationsApi';
 
-const notifications = [
-  {
-    id: '1',
-    title: 'Medicine expiring soon',
-    message: 'Vitamin C 1000mg expires in 5 days',
-    time: '2h ago',
-    color: '#B85C00',
-  },
-  {
-    id: '2',
-    title: 'Verification needed',
-    message: 'Amoxicillin 500mg needs verification',
-    time: '5h ago',
-    color: '#B85C00',
-  },
-  {
-    id: '3',
-    title: 'Reminder',
-    message: 'Time to take Paracetamol 500mg',
-    time: 'Today, 9:00AM',
-    color: '#278238',
-  },
-  {
-    id: '4',
-    title: 'Medicine expired',
-    message: 'Ibuprofen 200mg has expired',
-    time: '1d ago',
-    color: '#FF1717',
-  },
-  {
-    id: '5',
-    title: 'Medicine expiring soon',
-    message: 'Vitamin C 1000mg expires in 5 days',
-    time: '2h ago',
-    color: '#B85C00',
-  },
-  {
-    id: '6',
-    title: 'Verification needed',
-    message: 'Amoxicillin 500mg needs verification',
-    time: '5h ago',
-    color: '#B85C00',
-  },
-  {
-    id: '7',
-    title: 'Reminder',
-    message: 'Time to take Paracetamol 500mg',
-    time: 'Today, 9:00AM',
-    color: '#278238',
-  },
-  {
-    id: '8',
-    title: 'Medicine expired',
-    message: 'Ibuprofen 200mg has expired',
-    time: '1d ago',
-    color: '#FF1717',
-  },
-  {
-    id: '9',
-    title: 'Medicine expiring soon',
-    message: 'Vitamin C 1000mg expires in 5 days',
-    time: '2h ago',
-    color: '#B85C00',
-  },
-  {
-    id: '10',
-    title: 'Verification needed',
-    message: 'Amoxicillin 500mg needs verification',
-    time: '5h ago',
-    color: '#B85C00',
-  },
-  {
-    id: '11',
-    title: 'Reminder',
-    message: 'Time to take Paracetamol 500mg',
-    time: 'Today, 9:00AM',
-    color: '#278238',
-  },
-];
+function formatScheduledTime(value: string): string {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
+
+  const now = new Date();
+  const dateLabel =
+    date.toDateString() === now.toDateString()
+      ? 'Today'
+      : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const timeLabel = date.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  return `${dateLabel}, ${timeLabel}`;
+}
+
+function notificationColor(item: NotificationItem): string {
+  return item.type === 'medication_reminder' ? '#278238' : '#B85C00';
+}
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { profiles } = useProfile();
+  const profileIdsKey = profiles
+    .map((profile) => profile.profile_id)
+    .sort()
+    .join(',');
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const profileIds = profileIdsKey ? profileIdsKey.split(',') : [];
+      setLoading(true);
+      setError(null);
+      fetchNotifications(profileIds)
+        .then((items) => {
+          if (active) setNotifications(items);
+        })
+        .catch((reason: unknown) => {
+          if (!active) return;
+          setNotifications([]);
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : 'Could not load notifications.',
+          );
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }, [profileIdsKey]),
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -122,22 +104,36 @@ export default function NotificationsScreen() {
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       >
-        {notifications.map((item) => (
-          <View key={item.id} style={styles.card}>
-            <View style={styles.cardHeading}>
-              <View
-                style={[styles.dot, { backgroundColor: item.color }]}
-              />
-              <Text style={styles.title}>{item.title}</Text>
-            </View>
-
-            <Text style={styles.message}>{item.message}</Text>
-
-            <Text style={[styles.time, { color: item.color }]}>
-              {item.time}
-            </Text>
+        {loading ? (
+          <View style={styles.status}>
+            <ActivityIndicator color="#278238" />
+            <Text style={styles.statusText}>Loading notifications…</Text>
           </View>
-        ))}
+        ) : error ? (
+          <Text style={styles.statusText} accessibilityRole="alert">
+            {error}
+          </Text>
+        ) : notifications.length === 0 ? (
+          <Text style={styles.statusText}>No upcoming medication reminders.</Text>
+        ) : (
+          notifications.map((item) => {
+            const color = notificationColor(item);
+            return (
+              <View key={item.id} style={styles.card}>
+                <View style={styles.cardHeading}>
+                  <View style={[styles.dot, { backgroundColor: color }]} />
+                  <Text style={styles.title}>{item.title}</Text>
+                </View>
+
+                <Text style={styles.message}>{item.message}</Text>
+
+                <Text style={[styles.time, { color }]}>
+                  {formatScheduledTime(item.scheduled_at)}
+                </Text>
+              </View>
+            );
+          })
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -182,6 +178,19 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 24,
     gap: 8,
+  },
+  status: {
+    minHeight: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  statusText: {
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#707070',
   },
   card: {
     backgroundColor: '#FFFFFF',
