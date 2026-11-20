@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildApiUrl, extractHostname, normalizeApiUrl } from '../urlUtils.ts';
+import { buildApiUrl, extractHostname, extractPort, normalizeApiUrl } from '../urlUtils.ts';
 
 test('extractHostname correctly parses hostnames and IPs across Expo environments', () => {
   // Plain IP with port (standard hostUri)
@@ -48,4 +48,12 @@ test('normalizeApiUrl cleanly normalizes base URLs', () => {
 test('buildApiUrl creates correct endpoints', () => {
   assert.equal(buildApiUrl('192.168.43.100'), 'http://192.168.43.100:8000/api/v1');
   assert.equal(buildApiUrl('exp://192.168.43.100:8081'), 'http://192.168.43.100:8000/api/v1');
+});
+
+test('extractPort reads Metro hostUri ports', () => {
+  assert.equal(extractPort('192.168.1.14:8081'), '8081');
+  assert.equal(extractPort('exp://192.168.1.14:8081'), '8081');
+  assert.equal(extractPort('exp://192.168.1.14:19000/--/'), '19000');
+  assert.equal(extractPort('192.168.1.14'), '8081');
+  assert.equal(extractPort(undefined), '8081');
 });

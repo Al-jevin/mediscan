@@ -7,8 +7,8 @@ MediScan Vault is a mobile app that scans medicine boxes and blister packs using
 ## Quick Overview: How the System Works
 
 * **PostgreSQL Database (Port 5432):** Stores FDA medicine records, user accounts, profiles, and reminders. Running it via Docker Desktop (WSL 2) is the easiest method.
-* **FastAPI Backend (Port 8000):** Runs OCR (PaddleOCR) and NER medicine-matching logic. Must listen on `--host 0.0.0.0` so physical phones can reach it.
-* **Expo Mobile App (Port 8081):** Runs on your computer via Metro bundler and opens on your physical phone through the **Expo Go** app.
+* **FastAPI Backend (Port 8000):** Runs OCR (PaddleOCR) and NER medicine-matching logic. Must listen on `--host 0.0.0.0` so it accepts connections from the laptop and Metro.
+* **Expo Mobile App (Port 8081):** Metro serves the app **and** proxies `/api/*` to the backend. Expo Go talks to Metro only, so the phone does not need a direct path to port 8000.
 
 ---
 
@@ -55,19 +55,28 @@ Get the `.env` files from your team lead / group chat:
 1. **Backend `.env`:** Place directly in the project root: `mediscan/.env`
 2. **Frontend `.env`:** Place inside the `front-end` folder: `mediscan/front-end/.env`
 
-*(Note: In `front-end/.env`, dynamic IP resolution is enabled by default so your phone connects automatically on any Wi-Fi or Hotspot).*
+*(In `front-end/.env`, leave `EXPO_PUBLIC_API_URL` commented out. Expo Go discovers the laptop IP from Metro automatically.)*
 
 ---
 
-## Step 3: One-Time Windows Firewall Rule (Allows Phone Access)
+## Step 3: One-Time Windows Network Tips (Phone Access)
 
-By default, Windows Firewall blocks incoming connections from physical phones. Run this **once** to permanently allow your phone to talk to FastAPI:
+Expo Go normally reaches the API through Metro on port **8081** (already open when Expo is running).
+
+Still do these once so defense day / hotspot is reliable:
+
+1. In Windows Settings -> **Network & internet** -> **Wi-Fi**, set your connection to **Private network**.
+2. (Optional) Allow direct backend access on port 8000 — useful for APK builds or if you bypass Metro:
 
 Open **PowerShell as Administrator** and run:
 ```powershell
 netsh advfirewall firewall add rule name="MediScan Port 8000" dir=in action=allow protocol=TCP localport=8000
 ```
-*(You will see `Ok.` You can delete this rule after defense day with `netsh advfirewall firewall delete rule name="MediScan Port 8000"`).*
+
+If login still times out on **Public** Wi‑Fi (Windows may block `python.exe` even with the rule above), run this elevated script once:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\fix-python-public-firewall.ps1
+```
 
 ---
 
@@ -138,38 +147,41 @@ You will see our startup banner:
  -> Mobile LAN (Expo Go): http://<your-laptop-ip>:8000/docs
 =======================================================
 ```
+*(The Mobile LAN line should match your Wi‑Fi/hotspot IP — the same one Metro shows.)*
 
 ### Terminal 2: Start Mobile App
 ```powershell
 cd front-end
-npx expo start -c
+npm run start:go
 ```
-* **On Phone:** Open **Expo Go** and scan the QR code.
+* **On Phone:** Open **Expo Go** and scan the QR code. Phone and laptop must be on the **same Wi‑Fi or hotspot**.
 * **On Laptop Browser:** Press **`w`** in the terminal or open `http://localhost:8081`.
+
+The app calls `http://<laptop-ip>:8081/api/v1/...`. Metro forwards those requests to FastAPI on port 8000.
 
 ---
 
-## 🏆 Defense Day Protocol (Saturday Bulletproof Setup)
+## Defense Day Protocol (Hotspot Setup)
 
-University/campus Wi-Fi networks frequently block device-to-device communication (AP Client Isolation). To guarantee a 100% reliable defense presentation:
+Campus Wi‑Fi often blocks phone ↔ laptop traffic. Use your phone hotspot instead:
 
 1. **Turn on Mobile Hotspot on your phone.**
-2. **Connect your laptop to your phone's hotspot Wi-Fi.**
-3. In Windows Settings -> **Network & internet** -> **Wi-Fi**, ensure the hotspot connection is set to **Private network**.
-4. Start database & backend in Terminal 1 (`python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000`).
-5. Start frontend in Terminal 2 (`npx expo start -c`).
-6. Scan the QR code in Expo Go!
+2. **Connect your laptop to that hotspot.**
+3. In Windows Settings -> **Network & internet** -> **Wi‑Fi**, set the hotspot network to **Private**.
+4. Start backend (Terminal 1) and Expo (Terminal 2) as in Step 5.
+5. Scan the QR code in Expo Go.
 
-**Why this works:** The phone and laptop communicate directly over their own private network (`192.168.43.x` or `10.x.x.x`). The app automatically discovers the new IP with **zero manual configuration**, and does not rely on venue Wi-Fi.
+No manual IP editing is needed — Expo Go follows Metro’s host, and Metro proxies the API.
 
 ---
 
 ## Common Errors & Quick Solutions
 
-### 1. Phone says: "Could not connect to backend..."
-* **Cause A:** Backend was started without `--host 0.0.0.0`. Ensure you use `--host 0.0.0.0 --port 8000`.
-* **Cause B:** Wi-Fi is set to "Public" in Windows. Switch it to **Private network** in Windows Settings -> Network & Internet -> Wi-Fi.
-* **Cause C:** Windows Firewall blocked port 8000. Run the `netsh advfirewall` command from Step 3 as Administrator.
+### 1. Phone says: "Request timed out" / "Could not connect to backend..."
+* **Cause A:** Backend was started without `--host 0.0.0.0`. Use `--host 0.0.0.0 --port 8000`.
+* **Cause B:** Metro was started before `metro.config.js` existed, or port 8081 is stale. Stop Expo, then run `npm run start:go` again and reload the app.
+* **Cause C:** Phone and laptop are on different networks. Use the same Wi‑Fi, or the hotspot protocol above.
+* **Cause D:** Windows Public network is blocking Python (less common now that Expo Go uses the Metro proxy). Set Wi‑Fi to **Private**, or run `scripts\fix-python-public-firewall.ps1` as Administrator.
 
 ### 2. Docker says: "port is already allocated (5432)"
 Another PostgreSQL instance is running locally on your computer. Stop it in PowerShell before running Docker:
@@ -190,6 +202,9 @@ Run inside your activated `.venv`:
 pip uninstall -y paddleocr paddlex
 pip install "paddleocr==2.9.1" "numpy<2.0" "opencv-python-headless<4.11"
 ```
+
+### 5. Expo Go shows a blue "Something went wrong" screen
+Reload after a clean Metro start (`npm run start:go`). Push notification code loads safely in Expo Go; remote push tokens still need a real APK/dev build.
 
 ---
 

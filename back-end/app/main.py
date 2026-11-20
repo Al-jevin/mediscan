@@ -39,16 +39,58 @@ app.add_middleware(
 app.include_router(router, prefix="/api/v1")
 app.include_router(crud_tester_router)
 
-@app.on_event("startup")
-async def startup_event():
+def _lan_ipv4_addresses() -> list[str]:
+    """Prefer the outbound/Wi-Fi address Metro uses; skip VirtualBox/WSL host-only NICs."""
     import socket
+
+    preferred: list[str] = []
+    others: list[str] = []
+
+    # Route trick: OS picks the NIC used for general outbound traffic (usually Wi-Fi/Ethernet).
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("8.8.8.8", 80))
+            route_ip = sock.getsockname()[0]
+        if route_ip and not route_ip.startswith("127."):
+            preferred.append(route_ip)
+    except OSError:
+        pass
+
     try:
         hostname = socket.gethostname()
-        local_ip = socket.gethostbyname(hostname)
+        for info in socket.getaddrinfo(hostname, None, socket.AF_INET):
+            ip = info[4][0]
+            if not ip or ip.startswith("127."):
+                continue
+            # VirtualBox Host-Only / similar adapters Windows often returns first via gethostbyname.
+            if ip.startswith("192.168.56."):
+                others.append(ip)
+            elif ip not in preferred:
+                preferred.append(ip)
+    except OSError:
+        pass
+
+    ordered: list[str] = []
+    for ip in preferred + others:
+        if ip not in ordered:
+            ordered.append(ip)
+    return ordered
+
+
+@app.on_event("startup")
+async def startup_event():
+    try:
+        lan_ips = _lan_ipv4_addresses()
         print("\n" + "=" * 55, flush=True)
         print(" [MediScan Backend] Server running on all interfaces", flush=True)
-        print(f" -> Localhost (Browser): http://127.0.0.1:8000/docs", flush=True)
-        print(f" -> Mobile LAN (Expo Go): http://{local_ip}:8000/docs", flush=True)
+        print(" -> Localhost (Browser): http://127.0.0.1:8000/docs", flush=True)
+        if lan_ips:
+            primary = lan_ips[0]
+            print(f" -> Mobile LAN (Expo Go): http://{primary}:8000/docs", flush=True)
+            for extra in lan_ips[1:]:
+                print(f" -> Also reachable at:     http://{extra}:8000/docs", flush=True)
+        else:
+            print(" -> Mobile LAN: could not detect a LAN IP (still listening on 0.0.0.0)", flush=True)
         print("=" * 55 + "\n", flush=True)
     except Exception:
         pass

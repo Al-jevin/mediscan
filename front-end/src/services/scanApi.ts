@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import type { MedicineInfoRow } from '@/components/MedicineInfoCard';
 import { Assets } from '@/constants/assets';
 import type { ScanResult } from '@/data/mockScanResults';
-import { API_V1_URL } from '@/services/apiUrl';
+import { getApiV1Url } from '@/services/apiUrl';
 import {
   getConfidenceTier,
   type ConfidenceTier,
@@ -112,11 +112,12 @@ function isFdaMedicine(value: unknown): value is FdaMedicine {
 export async function searchFdaMedicines(query: string): Promise<FdaMedicine[]> {
   const term = query.trim();
   if (!term) return [];
-  if (!API_V1_URL) throw new Error('EXPO_PUBLIC_API_URL is not set (see front-end/.env)');
+  const apiBase = getApiV1Url();
+  if (!apiBase) throw new Error('Backend URL is not ready yet. Wait a moment or check Wi-Fi/Hotspot.');
 
   const authorization = MockAuth.getAuthorizationHeader();
   const response = await fetch(
-    `${API_V1_URL}/medicines/search?q=${encodeURIComponent(term)}&limit=20`,
+    `${apiBase}/medicines/search?q=${encodeURIComponent(term)}&limit=20`,
     { headers: authorization ? { Authorization: authorization } : {} },
   );
   const responseBody: unknown = await response.json().catch(() => null);
@@ -265,7 +266,8 @@ function toScanTelemetry(response: OcrResponse): ScanTelemetry {
 
 // Sends a local JPEG to the OCR + NER pipeline and returns the state for the Scan Result screen.
 export async function scanLabel(imageUri: string): Promise<ScanResult> {
-  if (!API_V1_URL) throw new Error('EXPO_PUBLIC_API_URL is not set (see front-end/.env)');
+  const apiBase = getApiV1Url();
+  if (!apiBase) throw new Error('Backend URL is not ready yet. Wait a moment or check Wi-Fi/Hotspot.');
 
   const body = new FormData();
   if (Platform.OS === 'web') {
@@ -281,7 +283,7 @@ export async function scanLabel(imageUri: string): Promise<ScanResult> {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     const authorization = MockAuth.getAuthorizationHeader();
-    const response = await fetch(`${API_V1_URL}/ocr/extract-label`, {
+    const response = await fetch(`${apiBase}/ocr/extract-label`, {
       method: 'POST',
       body,
       headers: authorization ? { Authorization: authorization } : {},
@@ -309,7 +311,7 @@ export async function scanLabel(imageUri: string): Promise<ScanResult> {
     }
     if (error instanceof TypeError && error.message.includes('Network request failed')) {
       throw new Error(
-        `Network request failed when contacting ${API_V1_URL}/ocr/extract-label. Check that your phone and laptop are on the same Wi-Fi/Hotspot and the backend is running.`
+        `Network request failed when contacting ${apiBase}/ocr/extract-label. Check that your phone and laptop are on the same Wi-Fi/Hotspot and the backend is running.`
       );
     }
     throw error;

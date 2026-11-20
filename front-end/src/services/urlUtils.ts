@@ -25,6 +25,19 @@ export function extractHostname(rawUriOrHost?: string | null): string | undefine
 }
 
 /**
+ * Extracts the TCP port from a Metro/Expo hostUri (default 8081 when absent).
+ */
+export function extractPort(
+  rawUriOrHost?: string | null,
+  fallback = '8081',
+): string {
+  if (!rawUriOrHost || typeof rawUriOrHost !== 'string') return fallback;
+  const noScheme = rawUriOrHost.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//, '');
+  const match = noScheme.match(/^[^:/\\?#]+:(\d+)/);
+  return match?.[1] ?? fallback;
+}
+
+/**
  * Formats a given host into a standardized MediScan API v1 URL.
  */
 export function buildApiUrl(host: string, port = '8000'): string {

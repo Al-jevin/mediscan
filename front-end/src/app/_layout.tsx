@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,9 +10,19 @@ import HamburgerMenu from '@/components/HamburgerMenu';
 import { ProfileProvider } from '../context/ProfileContext';
 import { ThemeProvider, useAppTheme } from '../context/ThemeContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { ensureApiBaseUrlDiscovered } from '@/services/apiUrl';
 
 function NotificationRuntime() {
   usePushNotifications();
+  return null;
+}
+
+function ApiDiscoveryRuntime() {
+  useEffect(() => {
+    void ensureApiBaseUrlDiscovered().catch((error: unknown) => {
+      console.warn('[MediScan API] Discovery failed:', error);
+    });
+  }, []);
   return null;
 }
 
@@ -27,6 +38,7 @@ export default function RootLayout() {
       <MenuProvider>
         <ProfileProvider>
           <ThemedStatusBar />
+          <ApiDiscoveryRuntime />
           <NotificationRuntime />
           <Stack screenOptions={{ headerShown: false }}>
             {/* Main app (bottom bar + top bar) */}

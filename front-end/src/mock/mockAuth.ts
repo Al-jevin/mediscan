@@ -4,7 +4,7 @@
 //  Session and profiles live in memory, so reloading the app logs you out.
 // ============================================================
 import type { AddProfileRequest, EditProfileRequest, Profile } from '@/types/profile';
-import { API_V1_URL } from '@/services/apiUrl';
+import { getApiV1Url } from '@/services/apiUrl';
 
 // Profile shape lives in src/types/profile.ts. Re-exported here so old imports still work.
 export type { Profile };
@@ -72,12 +72,19 @@ function errorMessage(body: any, status: number): string {
 type ApiResult = { ok: true; status: number; body: any } | { ok: false; status: number; message: string };
 
 async function request(path: string, method: string, payload?: unknown): Promise<ApiResult> {
-  if (!API_V1_URL) return { ok: false, status: 0, message: 'Set EXPO_PUBLIC_API_URL in front-end/.env to the backend address.' };
+  const apiBase = getApiV1Url();
+  if (!apiBase) {
+    return {
+      ok: false,
+      status: 0,
+      message: 'Backend URL is not ready yet. Wait a moment or check Wi-Fi/Hotspot.',
+    };
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const response = await fetch(`${API_V1_URL}${path}`, {
+    const response = await fetch(`${apiBase}${path}`, {
       method,
       headers: {
         ...(payload === undefined ? {} : { 'Content-Type': 'application/json' }),
@@ -91,8 +98,8 @@ async function request(path: string, method: string, payload?: unknown): Promise
     return { ok: true, status: response.status, body };
   } catch {
     const message = controller.signal.aborted
-      ? `The request timed out. Check that the backend is running and reachable at ${API_V1_URL || 'EXPO_PUBLIC_API_URL'}.`
-      : `Could not connect to backend at ${API_V1_URL || 'configured API URL'}. Ensure FastAPI is running with --host 0.0.0.0 and your device is on the same Wi-Fi or Hotspot.`;
+      ? `The request timed out. Check that the backend is running and reachable at ${apiBase}.`
+      : `Could not connect to backend at ${apiBase}. Ensure FastAPI is running with --host 0.0.0.0 and your device is on the same Wi-Fi or Hotspot.`;
     return { ok: false, status: 0, message };
   } finally {
     clearTimeout(timeout);
