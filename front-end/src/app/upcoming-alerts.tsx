@@ -209,7 +209,7 @@ export default function UpcomingAlertsScreen() {
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
-    else router.navigate('/(tabs)' as never);
+    else router.navigate('/(tabs)/reminders' as never);
   };
 
   const persistPreferences = (next: AlertPreferences) => {
@@ -329,7 +329,7 @@ export default function UpcomingAlertsScreen() {
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel="Go back to all reminders"
           testID="upcoming-alerts-back"
           onPress={goBack}
           hitSlop={10}
