@@ -9,7 +9,12 @@ import { API_V1_URL } from '@/services/apiUrl';
 // Profile shape lives in src/types/profile.ts. Re-exported here so old imports still work.
 export type { Profile };
 export type NewProfile = AddProfileRequest;
-export type Result<T = undefined> = { success: boolean; code: number; message: string; data?: T };
+export type Result<T = undefined> = {
+  success: boolean;
+  code: number;
+  message: string;
+  data?: T;
+};
 
 // The backend spells it profile_displayname; the app uses profile_display_name.
 type ApiProfile = Omit<Profile, 'profile_display_name'> & { profile_displayname: string };
@@ -136,17 +141,13 @@ export const MockAuth = {
   },
 
   // ---------- Sign Up ----------
-  // Existing account -> code 409 (screen will silently log them in, no verification)
-  // New account -> unverified until the code is entered
+  // New account -> unverified until the code is entered.
+  // Do NOT probe /auth/login here: that burned the login rate limit and made
+  // post-OTP auto-login (and later logins) return "Too many attempts".
   async signUp(email: string, password: string): Promise<Result> {
     const e = norm(email);
     const res = await request('/auth/register', 'POST', { email: e, password });
     if (!res.ok) return fail(res.status, res.message);
-
-    // /register answers the same for existing emails so strangers can't probe who has an account.
-    // A login that succeeds proves this is the owner, who should not be sent to verification.
-    const existing = await request('/auth/login', 'POST', { email: e, password });
-    if (existing.ok) return fail(409, 'Account already exists.');
 
     pendingSignupPassword = password;
     return { success: true, code: res.status, message: 'A verification code was sent to your email.' };
@@ -163,10 +164,51 @@ export const MockAuth = {
     const res = await request('/auth/verify-email', 'POST', { email: norm(email), code });
     if (!res.ok) return fail(res.status, res.message);
 
-    if (!pendingSignupPassword) return fail(401, 'Your email is verified. Please log in.');
-    const login = await MockAuth.login(email, pendingSignupPassword);
+    if (!pendingSignupPassword) {
+      return {
+        success: true,
+        code: 200,
+        message: 'Your email is verified. Please log in.',
+      };
+    }
+    const password = pendingSignupPassword;
     pendingSignupPassword = null;
-    return login;
+    const login = await MockAuth.login(email, password);
+    if (login.success) return login;
+    // Account is verified even if auto-login is rate-limited or otherwise fails.
+    return {
+      success: true,
+      code: 200,
+      message: login.code === 429
+        ? 'Email verified. Please wait a moment, then log in.'
+        : 'Email verified. Please log in with your password.',
+      data: { needsLogin: true },
+    };
+  },
+
+  // ---------- Password reset ----------
+  async forgotPassword(email: string): Promise<Result> {
+    const res = await request('/auth/forgot-password', 'POST', { email: norm(email) });
+    if (!res.ok) return fail(res.status, res.message);
+    return {
+      success: true,
+      code: res.status,
+      message: 'If that email is registered, a reset code was sent.',
+    };
+  },
+
+  async resetPassword(email: string, code: string, password: string): Promise<Result> {
+    const res = await request('/auth/reset-password', 'POST', {
+      email: norm(email),
+      code,
+      password,
+    });
+    if (!res.ok) return fail(res.status, res.message);
+    return {
+      success: true,
+      code: res.status,
+      message: res.body?.header?.message ?? 'Password updated successfully.',
+    };
   },
 
   // ---------- Profiles (need a session) ----------

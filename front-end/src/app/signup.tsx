@@ -1,24 +1,22 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AuthHeader from '@/components/AuthHeader';
 import AuthInput from '@/components/AuthInput';
 import FormError from '@/components/FormError';
-import SaveLoginDialog from '@/components/SaveLoginDialog';
+import TermsConsentModal from '@/components/TermsConsentModal';
 import { MockAuth } from '@/mock/mockAuth';
 import { isValidEmail, MIN_PASSWORD } from '@/lib/validation';
 import { Colors, Radius, Spacing } from '@/constants/display';
 
 // Sign Up ("Sign in" button sa Log In screen).
 //
-// Flow (from the requirements):
-//  1. User fills in email + password + confirm.
-//  2. Frontend sends JSON to backend (POST /auth/signup).
-//  3a. Existing account (409) -> silently log them in, WALANG verification ulit.
-//  3b. New account -> backend sends a code to their email -> go to Verify screen.
-//      Hindi pa usable ang account hangga't hindi verified.
+// Flow:
+//  1. User fills in email + password + confirm and accepts Terms.
+//  2. Frontend POST /auth/register -> verification email.
+//  3. Verify screen -> OTP -> auto-login (or redirect to Log In).
 export default function SignUpScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -28,7 +26,7 @@ export default function SignUpScreen() {
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [askSave, setAskSave] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
 
   const onSignUp = async () => {
     setError(null);
@@ -39,29 +37,33 @@ export default function SignUpScreen() {
 
     setLoading(true);
     const res = await MockAuth.signUp(e, password);
-
-    // 3a. Already exists -> silent log in
-    if (res.code === 409) {
-      const login = await MockAuth.login(e, password);
-      setLoading(false);
-      if (!login.success) {
-        return setError('An account with this email already exists, but the password is incorrect. Try Log In instead.');
-      }
-      setAskSave(true); // manual login -> ask to save
-      return;
-    }
-
     setLoading(false);
     if (!res.success) return setError(res.message);
 
-    // 3b. New account -> verify
+    // Always verify via email OTP (no login probe that burned rate limits).
     router.push({ pathname: '/verify-code', params: { email: e } });
   };
 
-  const onAnswerSave = (save: boolean) => {
-    setAskSave(false);
-    if (save) MockAuth.saveLogin(email, password);
-    router.replace('/choose-profile');
+  const handleSignUpClick = () => {
+    setError(null);
+    const e = email.trim();
+    if (!isValidEmail(e)) return setError('Please enter a valid email address.');
+    if (password.length < MIN_PASSWORD) return setError(`Password must be at least ${MIN_PASSWORD} characters.`);
+    if (password !== confirm) return setError('Passwords do not match.');
+    setShowConsentModal(true);
+  };
+
+  const handleAcceptTerms = () => {
+    setShowConsentModal(false);
+    void onSignUp();
+  };
+
+  const handleRejectTerms = () => {
+    setShowConsentModal(false);
+    Alert.alert(
+      'Terms Required',
+      'You must accept the Philippine-Compliant Terms of Service and Medical Disclaimer to create a MediScan account.',
+    );
   };
 
   return (
@@ -72,7 +74,7 @@ export default function SignUpScreen() {
 
         <View style={styles.body}>
           <Text style={styles.title}>Create your account</Text>
-          <Text style={styles.subtitle}>Sign up to start keeping your family's medicines organized.</Text>
+          <Text style={styles.subtitle}>Sign up to start keeping your family&apos;s medicines organized.</Text>
 
           <FormError message={error} />
 
@@ -99,10 +101,10 @@ export default function SignUpScreen() {
             autoComplete="new-password"
             value={confirm}
             onChangeText={setConfirm}
-            onSubmitEditing={onSignUp}
+            onSubmitEditing={handleSignUpClick}
           />
 
-          <Pressable style={[styles.primaryBtn, loading && styles.disabled]} onPress={onSignUp} disabled={loading}>
+          <Pressable style={[styles.primaryBtn, loading && styles.disabled]} onPress={handleSignUpClick} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Sign Up</Text>}
           </Pressable>
 
@@ -120,7 +122,11 @@ export default function SignUpScreen() {
         </Text>
       </ScrollView>
 
-      <SaveLoginDialog visible={askSave} onAnswer={onAnswerSave} />
+      <TermsConsentModal
+        visible={showConsentModal}
+        onAccept={handleAcceptTerms}
+        onReject={handleRejectTerms}
+      />
     </KeyboardAvoidingView>
   );
 }

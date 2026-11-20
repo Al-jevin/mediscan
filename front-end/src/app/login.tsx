@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AuthHeader from '@/components/AuthHeader';
@@ -22,6 +22,7 @@ import { isValidEmail } from '@/lib/validation';
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,11 +34,16 @@ export default function LoginScreen() {
   // Auto-fill from saved login info (replaces the old "Choose an account" sheet)
   useEffect(() => {
     const s = MockAuth.getSavedLogin();
-    if (!s) return;
-    setSaved(s);
-    setEmail(s.email);
-    setPassword(s.password);
-  }, []);
+    if (s) {
+      setSaved(s);
+      setEmail(s.email);
+      setPassword(s.password);
+      return;
+    }
+    if (typeof emailParam === 'string' && emailParam.trim()) {
+      setEmail(emailParam.trim());
+    }
+  }, [emailParam]);
 
   const usingSaved = !!saved && saved.email === email.trim() && saved.password === password;
 
@@ -115,7 +121,21 @@ export default function LoginScreen() {
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Log In</Text>}
           </Pressable>
 
-          <Text style={styles.hint}>Don't have an account?</Text>
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/forgot-password',
+                params: email.trim() ? { email: email.trim() } : undefined,
+              })
+            }
+            hitSlop={8}
+            disabled={loading}
+            style={styles.forgotWrap}
+          >
+            <Text style={styles.forgotLink}>Forgot password?</Text>
+          </Pressable>
+
+          <Text style={styles.hint}>Don&apos;t have an account?</Text>
           <Pressable style={styles.outlineBtn} onPress={() => router.replace('/signup')} disabled={loading}>
             <Text style={styles.outlineText}>Sign in</Text>
           </Pressable>
@@ -150,6 +170,8 @@ const styles = StyleSheet.create({
   },
   disabled: { opacity: 0.7 },
   primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  forgotWrap: { alignSelf: 'flex-end', marginTop: Spacing.sm },
+  forgotLink: { color: Colors.text, fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' },
   hint: { textAlign: 'center', color: Colors.textMuted, fontSize: 14, marginVertical: Spacing.md - 2 },
   outlineBtn: {
     height: 50, borderRadius: Radius.sm + 2, borderWidth: 1.5, borderColor: Colors.primary,

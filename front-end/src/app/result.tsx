@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import MedicineAddedModal from '@/components/MedicineAddedModal';
 import MedicineIcon from '@/components/medicine/MedicineIcon';
 import MedicineInfoCard from '@/components/MedicineInfoCard';
+import ModerateConfidenceModal from '@/components/ModerateConfidenceModal';
 import PossibleMatches from '@/components/PossibleMatches';
 import ScanActions from '@/components/ScanActions';
 import VerificationBanner from '@/components/VerificationBanner';
@@ -29,7 +31,10 @@ import type { ScanTelemetry } from '@/services/scanApi';
 import { addMedicine } from '@/services/vaultStore';
 import type { FdaMedicine } from '@/types/medicine';
 import { formatDateInput } from '@/utils/date';
-import { getMedicineForm, mdyToYMD, ymdToMDY } from '@/utils/medicine';
+import { formatLongDate, getMedicineForm, mdyToYMD, ymdToMDY } from '@/utils/medicine';
+
+// iOS can't open a new popup while another one is still closing, so wait for it.
+const afterModalCloses = (fn: () => void) => setTimeout(fn, Platform.OS === 'ios' ? 350 : 0);
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
 const CategoryText = '#938B8B';
@@ -161,13 +166,25 @@ export default function ResultScreen() {
   const [expiry, setExpiry] = useState('');
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [moderateOpen, setModerateOpen] = useState(false);
+  const [moderateError, setModerateError] = useState('');
+  const isModerate = result?.status === 'needs_verification';
+  const selectedMatch =
+    result?.status === 'needs_verification'
+      ? result.matches.find((match) => match.id === selectedId)
+      : undefined;
   const selectedGenericMedicine =
     genericOptions.find((medicine) => medicine.fda_id === selectedGenericId) ?? null;
   const savedName =
     selectedGenericMedicine?.fda_genericname ??
     (result?.status === 'verified'
       ? result.medicine.category
-      : findPossibleMatch(selectedId ?? undefined)?.category ?? '');
+      : selectedMatch?.category ?? findPossibleMatch(selectedId ?? undefined)?.category ?? '');
+  const moderateConfidence =
+    typeof trustScore === 'number' && Number.isFinite(trustScore)
+      ? Math.round(trustScore * 100)
+      : selectedMatch?.similarity ??
+        (result?.status === 'needs_verification' ? result.confidence : 0);
   const goToVault = () => {
     setAddedOpen(false);
     router.navigate('/vault');
@@ -229,13 +246,13 @@ export default function ResultScreen() {
     setExpiryModalOpen(true);
   };
 
-  const saveSelectedMedicine = async () => {
+  const saveVerifiedMedicine = async () => {
     if (!selectedGenericMedicine) {
       setSaveError('Select a generic medicine from the FDA catalog before saving.');
       return;
     }
-    if (!result) {
-      setSaveError('No scan result is available.');
+    if (!result || result.status !== 'verified') {
+      setSaveError('No verified scan result is available.');
       return;
     }
     const expiryDate = mdyToYMD(expiry);
@@ -249,18 +266,64 @@ export default function ResultScreen() {
       await addMedicine({
         ...selectedGenericMedicine,
         vault_expiry_date: expiryDate,
-        vault_status: result.status === 'verified' ? 'verified' : 'needs_verification',
+        vault_status: 'verified',
         vault_source: 'scan',
-        vault_confidence: result.status === 'no_results' ? null : result.confidence,
+        vault_confidence: result.confidence,
         vault_note: '',
       });
       setExpiryModalOpen(false);
-      setAddedOpen(true);
+      afterModalCloses(() => setAddedOpen(true));
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'Could not save this medicine.');
     } finally {
       setSaving(false);
     }
+  };
+
+  // Moderate confidence, step 1: check the expiration date, then show the safety confirmation.
+  const continueModerateSave = () => {
+    if (!selectedGenericMedicine) {
+      setSaveError('Select a generic medicine from the FDA catalog before saving.');
+      return;
+    }
+    if (!mdyToYMD(expiry)) {
+      setSaveError('Enter a valid expiration date in MM/DD/YYYY format.');
+      return;
+    }
+    setSaveError('');
+    setModerateError('');
+    setExpiryModalOpen(false);
+    afterModalCloses(() => setModerateOpen(true));
+  };
+
+  // Moderate confidence, step 2: the user confirmed the details, so save it as Needs Verification.
+  const saveModerateMedicine = async () => {
+    const expiryDate = mdyToYMD(expiry);
+    if (!selectedGenericMedicine || !expiryDate || !result || result.status === 'no_results') return;
+    setSaving(true);
+    setModerateError('');
+    try {
+      await addMedicine({
+        ...selectedGenericMedicine,
+        vault_expiry_date: expiryDate,
+        vault_status: 'needs_verification',
+        vault_source: 'scan',
+        vault_confidence: result.confidence,
+        vault_note: '',
+      });
+      setModerateOpen(false);
+      afterModalCloses(() => setAddedOpen(true));
+    } catch (error) {
+      setModerateError(error instanceof Error ? error.message : 'Could not save this medicine.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // "Go Back" on the safety popup: return to the expiration date so it can be corrected.
+  const backToExpiry = () => {
+    setModerateOpen(false);
+    afterModalCloses(() => setExpiryModalOpen(true));
   };
 
   if (!result) {
@@ -415,7 +478,9 @@ export default function ResultScreen() {
           <View style={styles.expiryModal}>
             <Text style={styles.modalTitle}>Expiration Date</Text>
             <Text style={styles.modalMessage}>
-              Enter the expiration date shown on the package before saving this FDA match.
+              {isModerate
+                ? 'Enter the expiration date shown on the package. You will double-check all the details next.'
+                : 'Enter the expiration date shown on the package before saving this FDA match.'}
             </Text>
             <TextInput
               value={expiry}
@@ -436,17 +501,39 @@ export default function ResultScreen() {
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
               <Pressable
-                onPress={() => void saveSelectedMedicine()}
+                onPress={() => (isModerate ? continueModerateSave() : void saveVerifiedMedicine())}
                 disabled={saving}
                 style={[styles.saveButton, saving && { opacity: 0.6 }]}
                 accessibilityRole="button"
               >
-                {saving ? <ActivityIndicator color={Colors.onAction} /> : <Text style={styles.saveButtonText}>Save</Text>}
+                {saving
+                  ? <ActivityIndicator color={Colors.onAction} />
+                  : <Text style={styles.saveButtonText}>{isModerate ? 'Continue' : 'Save'}</Text>}
               </Pressable>
             </View>
           </View>
         </View>
       </Modal>
+
+      <ModerateConfidenceModal
+        visible={moderateOpen}
+        confidence={moderateConfidence}
+        medicineName={
+          selectedGenericMedicine?.fda_genericname ??
+          selectedMatch?.name ??
+          ''
+        }
+        dosage={
+          selectedGenericMedicine?.fda_dosage_strength ??
+          selectedMatch?.strength ??
+          ''
+        }
+        expirationDate={formatLongDate(mdyToYMD(expiry))}
+        saving={saving}
+        error={moderateError}
+        onConfirm={() => void saveModerateMedicine()}
+        onCancel={backToExpiry}
+      />
 
       <MedicineAddedModal
         visible={addedOpen}

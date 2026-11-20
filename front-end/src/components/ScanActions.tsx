@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +17,7 @@ type Props = {
   status: ScanState;
   hasSelection?: boolean;     // needs_verification: a possible match is selected
   onViewDetails?: () => void; // verified
-  onSave?: () => void;        // verified
+  onSave?: () => void;        // verified, and needs_verification with a selection (moderate confidence)
   onEdit?: () => void;        // needs_verification (with a selection)
   onRedoScan?: () => void;    // needs_verification, no_results
 };
@@ -44,7 +45,7 @@ export default function ScanActions({ status, hasSelection, onViewDetails, onSav
 
       {status === 'needs_verification' && !hasSelection && (
         <>
-          <Text style={styles.hint}>Tap the correct medicine above to add its expiration date and save.</Text>
+          <Text style={styles.hint}>Tap the correct medicine above to save it to your Vault or edit it.</Text>
           <Pressable style={[styles.button, { backgroundColor: Amber }]} onPress={onRedoScan} accessibilityRole="button">
             <Image source={Assets.icons.scanWhite} style={styles.icon} contentFit="contain" />
             <Text style={[styles.text, { color: Colors.surfacePrimary }]}>Redo Scan</Text>
@@ -54,6 +55,16 @@ export default function ScanActions({ status, hasSelection, onViewDetails, onSav
 
       {status === 'needs_verification' && hasSelection && (
         <>
+          {/* Moderate confidence: saving is allowed, behind the ModerateConfidenceModal safety check */}
+          <Pressable
+            style={[styles.button, { backgroundColor: Colors.actionPrimary }]}
+            onPress={onSave}
+            accessibilityRole="button"
+            accessibilityHint="Asks you to double-check the details before saving"
+          >
+            <Ionicons name="bookmark-outline" size={20} color={Colors.onAction} />
+            <Text style={[styles.text, { color: Colors.onAction }]}>Save to Vault</Text>
+          </Pressable>
           <Pressable style={[styles.button, styles.editButton]} onPress={onEdit} accessibilityRole="button">
             <Image source={Assets.icons.edit} style={styles.icon} contentFit="contain" />
             <Text style={[styles.text, { color: Colors.textPrimary }]}>Edit</Text>

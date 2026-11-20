@@ -174,6 +174,7 @@ async def extract_label(
     total_ms = round((perf_counter() - request_started) * 1000)
     telemetry = ScanTelemetry(
         stage=2,
+        raw_ocr_text=raw_text,
         grounded_text=grounded_text,
         applied_preprocessing=preprocessing,
         quarantined_distractors=quarantined_distractors,

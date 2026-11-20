@@ -47,6 +47,11 @@ export default function VerifyCodeScreen() {
       setCode('');
       return setError(res.message);
     }
+    if ((res.data as { needsLogin?: boolean } | undefined)?.needsLogin || !MockAuth.isLoggedIn()) {
+      setInfo(res.message || 'Email verified. Please log in.');
+      router.replace({ pathname: '/login', params: { email } });
+      return;
+    }
     setAskSave(true); // signup = manual login -> ask to save
   };
 

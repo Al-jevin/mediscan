@@ -99,7 +99,25 @@ export default function CameraScreen() {
 
       if (result.canceled || !result.assets?.length) return;
 
-      await handleImage(result.assets[0].uri);
+      // Only PNG and JPG/JPEG can be scanned
+      const asset = result.assets[0];
+      const mime = (asset.mimeType ?? "").toLowerCase();
+      const name = (asset.fileName ?? asset.uri).toLowerCase().split("?")[0];
+      const allowedMime = ["image/png", "image/jpeg", "image/jpg"];
+      const allowedExt = [".png", ".jpg", ".jpeg"];
+      const isAllowed = mime
+        ? allowedMime.includes(mime)
+        : allowedExt.some((ext) => name.endsWith(ext));
+
+      if (!isAllowed) {
+        Alert.alert(
+          "Unsupported image",
+          "Please choose a PNG or JPG image. GIFs and other file types can't be scanned."
+        );
+        return;
+      }
+
+      await handleImage(asset.uri);
     } catch (e) {
       console.log("Image picker failed:", e);
       Alert.alert("Error", "Could not open the image picker. Please try again.");

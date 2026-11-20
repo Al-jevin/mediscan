@@ -28,7 +28,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import get_db
-from services.email_service import send_verification_code
+from services.email_service import send_auth_code, send_verification_code
 
 
 router = APIRouter(tags=["auth"])
@@ -241,6 +241,10 @@ class VerificationRequest(EmailRequest):
     code: str = Field(pattern=r"^\d{6}$")
 
 
+class ResetPasswordRequest(CredentialsRequest):
+    code: str = Field(pattern=r"^\d{6}$")
+
+
 class AuthActionResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -272,6 +276,22 @@ def _configured_ttl(variable: str, default: int, maximum: int) -> int:
     return min(max(value, 1), maximum)
 
 
+def _throttle_keys(request: Request, identity: str) -> tuple[str, str]:
+    client_ip = request.client.host if request.client else "unknown"
+    email_key = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    path = request.url.path
+    return (f"ip:{client_ip}:{path}", f"identity:{email_key}:{path}")
+
+
+def _clear_throttle(request: Request, identity: str, *, path: str | None = None) -> None:
+    """Drop rate-limit history for one identity (and optionally a specific path)."""
+    client_ip = request.client.host if request.client else "unknown"
+    email_key = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    target_path = path or request.url.path
+    _rate_buckets.pop(f"ip:{client_ip}:{target_path}", None)
+    _rate_buckets.pop(f"identity:{email_key}:{target_path}", None)
+
+
 def _throttle(
     request: Request,
     identity: str,
@@ -281,11 +301,10 @@ def _throttle(
     window_seconds: int,
 ) -> None:
     now = time.monotonic()
-    client_ip = request.client.host if request.client else "unknown"
-    email_key = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    ip_key, identity_key = _throttle_keys(request, identity)
     keys = (
-        (f"ip:{client_ip}:{request.url.path}", ip_limit),
-        (f"identity:{email_key}:{request.url.path}", identity_limit),
+        (ip_key, ip_limit),
+        (identity_key, identity_limit),
     )
 
     for key, _ in keys:
@@ -376,11 +395,13 @@ async def _login_with_session(
     database: AsyncSession | None,
 ) -> LoginResponse:
     email = _normalize_email(payload.email)
+    # Keep this above the signup/verify auto-login path; 5 was too tight once
+    # signup probed login and users retried while waiting for OTP.
     _throttle(
         request,
         email,
-        identity_limit=5,
-        ip_limit=30,
+        identity_limit=20,
+        ip_limit=60,
         window_seconds=15 * 60,
     )
     db = _database_required(database)
@@ -601,8 +622,8 @@ async def verify_email(
     _throttle(
         request,
         email,
-        identity_limit=5,
-        ip_limit=30,
+        identity_limit=10,
+        ip_limit=40,
         window_seconds=15 * 60,
     )
     session = _database_required(db)
@@ -690,6 +711,9 @@ async def verify_email(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The verification code is invalid or expired.",
         )
+    # Signup used to probe /login before verify; clear leftover login throttle so
+    # the post-verify auto-login is not blocked by "Too many attempts".
+    _clear_throttle(request, email, path="/api/v1/auth/login")
     return AuthActionResponse(
         header=AuthHeader(
             success=True,
@@ -903,6 +927,260 @@ async def require_router_access(
     profile_id = request.path_params.get("profile_id")
     if profile_id is not None:
         await require_owned_profile(str(profile_id), account["account_id"], db)
+
+
+@router.post(
+    "/forgot-password",
+    response_model=AuthActionResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def forgot_password(
+    payload: EmailRequest,
+    request: Request,
+    db: AsyncSession | None = Depends(get_db),
+) -> AuthActionResponse:
+    """Email a password-reset code when the account exists and is verified."""
+    email = _normalize_email(payload.email)
+    _throttle(
+        request,
+        email,
+        identity_limit=5,
+        ip_limit=20,
+        window_seconds=60 * 60,
+    )
+    session = _database_required(db)
+    code = _new_verification_code()
+    verification_ttl = _configured_ttl(
+        "VERIFICATION_CODE_TTL_MINUTES", 10, 60
+    )
+    send_to_email = False
+
+    async with session.begin():
+        result = await session.execute(
+            text(
+                """
+                SELECT account_id
+                FROM accounts
+                WHERE email = :email
+                  AND account_is_verified = TRUE
+                  AND account_is_deleted = FALSE
+                FOR UPDATE
+                """
+            ),
+            {"email": email},
+        )
+        account_id = result.scalar_one_or_none()
+        if account_id is not None:
+            account_id = str(account_id)
+            count_result = await session.execute(
+                text(
+                    """
+                    SELECT COUNT(*)
+                    FROM email_verifications
+                    WHERE account_id = CAST(:account_id AS UUID)
+                      AND purpose = 'reset_password'
+                      AND created_at > now() - interval '1 day'
+                    """
+                ),
+                {"account_id": account_id},
+            )
+            latest_result = await session.execute(
+                text(
+                    """
+                    SELECT created_at
+                    FROM email_verifications
+                    WHERE account_id = CAST(:account_id AS UUID)
+                      AND purpose = 'reset_password'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    """
+                ),
+                {"account_id": account_id},
+            )
+            latest = latest_result.scalar_one_or_none()
+            within_cooldown = (
+                latest is not None
+                and latest > _utc_now_naive() - timedelta(seconds=60)
+            )
+            if count_result.scalar_one() < 5 and not within_cooldown:
+                await session.execute(
+                    text(
+                        """
+                        UPDATE email_verifications
+                        SET consumed_at = now()
+                        WHERE account_id = CAST(:account_id AS UUID)
+                          AND purpose = 'reset_password'
+                          AND consumed_at IS NULL
+                        """
+                    ),
+                    {"account_id": account_id},
+                )
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO email_verifications
+                            (account_id, purpose, code_hash, expires_at)
+                        VALUES
+                            (CAST(:account_id AS UUID), 'reset_password', :code_hash,
+                             :expires_at)
+                        """
+                    ),
+                    {
+                        "account_id": account_id,
+                        "code_hash": _hash_code(code),
+                        "expires_at": _utc_now_naive()
+                        + timedelta(minutes=verification_ttl),
+                    },
+                )
+                send_to_email = True
+
+    if send_to_email and not await send_auth_code(
+        email,
+        code,
+        verification_ttl,
+        subject="Your MediScan password reset code",
+        purpose_label="password reset",
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to send reset email. Please try again later.",
+        )
+    return AuthActionResponse(
+        header=AuthHeader(
+            success=True,
+            code=status.HTTP_202_ACCEPTED,
+            message="Request accepted. If eligible, further instructions will be provided.",
+        )
+    )
+
+
+@router.post(
+    "/reset-password",
+    response_model=AuthActionResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def reset_password(
+    payload: ResetPasswordRequest,
+    request: Request,
+    db: AsyncSession | None = Depends(get_db),
+) -> AuthActionResponse:
+    """Confirm a password-reset code and set a new password."""
+    email = _normalize_email(payload.email)
+    _throttle(
+        request,
+        email,
+        identity_limit=10,
+        ip_limit=40,
+        window_seconds=15 * 60,
+    )
+    session = _database_required(db)
+    password_hash = await _hash_password(payload.password)
+    reset_ok = False
+
+    async with session.begin():
+        result = await session.execute(
+            text(
+                """
+                SELECT ev.verification_id, ev.account_id, ev.code_hash,
+                       ev.attempts, ev.expires_at
+                FROM email_verifications ev
+                JOIN accounts a ON a.account_id = ev.account_id
+                WHERE a.email = :email
+                  AND a.account_is_deleted = FALSE
+                  AND a.account_is_verified = TRUE
+                  AND ev.purpose = 'reset_password'
+                  AND ev.consumed_at IS NULL
+                ORDER BY ev.created_at DESC
+                LIMIT 1
+                FOR UPDATE OF ev
+                """
+            ),
+            {"email": email},
+        )
+        verification = result.mappings().first()
+        if verification is not None:
+            verification_id = verification["verification_id"]
+            account_id = str(verification["account_id"])
+            now = _utc_now_naive()
+            if verification["expires_at"] <= now:
+                await session.execute(
+                    text(
+                        """
+                        UPDATE email_verifications
+                        SET consumed_at = now()
+                        WHERE verification_id = :verification_id
+                        """
+                    ),
+                    {"verification_id": verification_id},
+                )
+            elif not secrets.compare_digest(
+                _hash_code(payload.code), verification["code_hash"]
+            ):
+                attempts = verification["attempts"] + 1
+                await session.execute(
+                    text(
+                        """
+                        UPDATE email_verifications
+                        SET attempts = :attempts,
+                            consumed_at = CASE WHEN :attempts >= 5
+                                               THEN now() ELSE consumed_at END
+                        WHERE verification_id = :verification_id
+                        """
+                    ),
+                    {
+                        "attempts": attempts,
+                        "verification_id": verification_id,
+                    },
+                )
+            else:
+                await session.execute(
+                    text(
+                        """
+                        UPDATE email_verifications
+                        SET consumed_at = now()
+                        WHERE verification_id = :verification_id
+                        """
+                    ),
+                    {"verification_id": verification_id},
+                )
+                await session.execute(
+                    text(
+                        """
+                        UPDATE accounts
+                        SET password_hash = :password_hash,
+                            account_updated_at = now()
+                        WHERE account_id = CAST(:account_id AS UUID)
+                        """
+                    ),
+                    {
+                        "account_id": account_id,
+                        "password_hash": password_hash,
+                    },
+                )
+                await session.execute(
+                    text(
+                        """
+                        DELETE FROM session_tokens
+                        WHERE account_id = CAST(:account_id AS UUID)
+                        """
+                    ),
+                    {"account_id": account_id},
+                )
+                reset_ok = True
+
+    if not reset_ok:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The reset code is invalid or expired.",
+        )
+    _clear_throttle(request, email, path="/api/v1/auth/login")
+    return AuthActionResponse(
+        header=AuthHeader(
+            success=True,
+            code=status.HTTP_200_OK,
+            message="Password updated successfully. You can log in with your new password.",
+        )
+    )
 
 
 @router.post(

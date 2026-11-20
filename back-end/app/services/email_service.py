@@ -30,12 +30,15 @@ def _send_smtp_message(
         return False
 
 
-async def send_verification_code(
+async def send_auth_code(
     email: str,
     code: str,
     expires_in_minutes: int = 10,
+    *,
+    subject: str = "Your MediScan verification code",
+    purpose_label: str = "verification",
 ) -> bool:
-    """Send a short-lived verification code without blocking the event loop."""
+    """Send a short-lived auth code without blocking the event loop."""
     host = os.getenv("BREVO_SMTP_HOST", "smtp-relay.brevo.com")
     username = os.getenv("BREVO_SMTP_USERNAME")
     password = os.getenv("BREVO_SMTP_PASSWORD")
@@ -52,17 +55,17 @@ async def send_verification_code(
 
     sender_name = os.getenv("BREVO_SENDER_NAME", "MediScan")
     text_content = (
-        f"Your MediScan verification code is {code}. "
+        f"Your MediScan {purpose_label} code is {code}. "
         f"It expires in {expires_in_minutes} minutes. "
         "Ignore this email if you did not request it."
     )
     message = EmailMessage()
     message["From"] = f"{sender_name} <{sender_email}>"
     message["To"] = email
-    message["Subject"] = "Your MediScan verification code"
+    message["Subject"] = subject
     message.set_content(text_content)
     message.add_alternative(
-        "<p>Use this MediScan verification code:</p>"
+        f"<p>Use this MediScan {purpose_label} code:</p>"
         f"<p><strong>{code}</strong></p>"
         f"<p>This code expires in {expires_in_minutes} minutes. "
         "Ignore this email if you did not request it.</p>",
@@ -76,4 +79,19 @@ async def send_verification_code(
         username,
         password,
         message,
+    )
+
+
+async def send_verification_code(
+    email: str,
+    code: str,
+    expires_in_minutes: int = 10,
+) -> bool:
+    """Send a short-lived verification code without blocking the event loop."""
+    return await send_auth_code(
+        email,
+        code,
+        expires_in_minutes,
+        subject="Your MediScan verification code",
+        purpose_label="verification",
     )

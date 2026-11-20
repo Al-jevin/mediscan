@@ -93,6 +93,9 @@ def test_extract_label_returns_database_medicine_identifier(monkeypatch, capsys)
     assert payload["dosage_match_status"] == "matched"
     assert payload["safety_cap_reason"] is None
     assert payload["telemetry"]["stage"] == 2
+    assert payload["telemetry"]["raw_ocr_text"] == (
+        "BIOGESIC PARACETAMOL\n500 mg Tablet\n100 Tablets"
+    )
     assert payload["telemetry"]["applied_preprocessing"] == ["CLAHE"]
     assert payload["telemetry"]["primary_header_lines"] == ["BIOGESIC PARACETAMOL"]
     assert payload["telemetry"]["secondary_body_lines"] == ["500 mg Tablet", "100 Tablets"]
