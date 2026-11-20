@@ -447,64 +447,6 @@ const t = (text: string): string => {
         })}
       </View>
 
-      <Text style={styles.displaySectionTitle}>
-        {t('Text Size')}
-      </Text>
-
-      <View style={styles.sliderCard}>
-        <Text style={styles.smallA}>A</Text>
-
-        <View style={styles.sliderWrap}>
-          <View pointerEvents="none" style={styles.sliderTicks}>
-            {[0, 1, 2, 3, 4].map(tick => (
-              <View
-                key={tick}
-                style={[
-                  styles.sliderTick,
-                  textSize >= 12 + tick * 3 &&
-                    styles.sliderTickActive,
-                ]}
-              />
-            ))}
-          </View>
-
-          <Slider
-            style={styles.slider}
-            minimumValue={12}
-            maximumValue={24}
-            step={3}
-            value={Math.round((textSize - 12) / 3) * 3 + 12}
-            onValueChange={setTextSize}
-            minimumTrackTintColor={colors.actionPrimary}
-            maximumTrackTintColor={colors.borderDefault}
-            thumbTintColor={colors.surfacePrimary}
-          />
-        </View>
-
-        <Text style={styles.largeA}>A</Text>
-      </View>
-
-      <SectionTitle>{t('Preview')}</SectionTitle>
-
-      <View style={styles.previewCard}>
-        <Text
-          style={[
-            styles.previewTitle,
-            { fontSize: textSize },
-          ]}
-        >
-          {t('Sample Reminder')}
-        </Text>
-
-        <Text
-          style={[
-            styles.previewDescription,
-            { fontSize: Math.max(11, textSize - 3) },
-          ]}
-        >
-          {t('This is how your medicine reminders and text will look throughout the app.')}
-        </Text>
-      </View>
     </ScrollView>
   </>
 );
