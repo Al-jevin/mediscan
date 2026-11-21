@@ -3,11 +3,14 @@ import { useMemo } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import AppHeader from '@/components/AppHeader';
 import ScanCard from '@/components/medicine/ScanCard';
-import { Colors, Spacing, Type } from '@/constants/display';
+import { Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { useVault } from '@/services/vaultStore';
 
 // Home > Recent Scans > "View All" (Figma: Recent Scans). Newest first.
 export default function RecentScansScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const { ready, error, medicines, retry } = useVault();
   const sorted = useMemo(
@@ -19,7 +22,7 @@ export default function RecentScansScreen() {
     <View style={styles.root}>
       <AppHeader title="Recent Scans" back />
       {!ready ? (
-        <ActivityIndicator color={Colors.actionPrimary} style={{ marginTop: Spacing.xl }} />
+        <ActivityIndicator color={colors.actionPrimary} style={{ marginTop: Spacing.xl }} />
       ) : error ? (
         <View style={styles.emptyState}>
           <Text style={styles.empty}>Could not load recent scans: {error}</Text>
@@ -46,10 +49,12 @@ export default function RecentScansScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.surfacePrimary },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.surfacePrimary },
   list: { padding: Spacing.md + 4, paddingBottom: Spacing.xl * 2 },
-  empty: { ...Type.body, color: Colors.textSecondary, textAlign: 'center', marginTop: Spacing.xl },
+  empty: { ...Type.body, color: colors.textSecondary, textAlign: 'center', marginTop: Spacing.xl },
   emptyState: { alignItems: 'center', paddingHorizontal: Spacing.lg },
-  retry: { ...Type.label, color: Colors.actionPrimary, marginTop: Spacing.md },
+  retry: { ...Type.label, color: colors.actionPrimary, marginTop: Spacing.md },
 });
+}

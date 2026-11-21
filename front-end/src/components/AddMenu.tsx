@@ -1,4 +1,5 @@
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -23,6 +24,8 @@ const OPTIONS: Option[] = [
 ];
 
 export default function AddMenu() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const { addOpen, closeAdd, addAnchor } = useMenu();
   const router = useRouter();
   const { width: screenW } = useWindowDimensions();
@@ -100,11 +103,11 @@ export default function AddMenu() {
         {OPTIONS.map((o) => (
           <Pressable
             key={o.label}
-            style={({ pressed }) => [styles.item, pressed && { backgroundColor: Colors.primarySoft }]}
+            style={({ pressed }) => [styles.item, pressed && { backgroundColor: colors.primarySoft }]}
             onPress={() => go(o)}
           >
             <View style={styles.iconBox}>
-              <Ionicons name={o.icon} size={20} color={Colors.primary} />
+              <Ionicons name={o.icon} size={20} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>{o.label}</Text>
@@ -124,20 +127,22 @@ export default function AddMenu() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   overlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 100, elevation: 100 },
   backdrop: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(5,31,32,0.45)' },
   card: {
-    position: 'absolute', width: CARD_W, backgroundColor: Colors.surface,
+    position: 'absolute', width: CARD_W, backgroundColor: colors.surface,
     borderRadius: Radius.md, padding: Spacing.sm + 4,
     elevation: 8, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
   },
-  header: { ...Type.caption, color: Colors.text, marginBottom: Spacing.sm, paddingHorizontal: 4 },
+  header: { ...Type.caption, color: colors.text, marginBottom: Spacing.sm, paddingHorizontal: 4 },
   item: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 4, padding: Spacing.sm, borderRadius: Radius.sm },
   iconBox: {
-    width: 40, height: 40, borderRadius: Radius.sm, backgroundColor: Colors.primarySoft,
+    width: 40, height: 40, borderRadius: Radius.sm, backgroundColor: colors.primarySoft,
     alignItems: 'center', justifyContent: 'center',
   },
-  label: { ...Type.label, fontSize: 14, color: Colors.text },
-  sub: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },
+  label: { ...Type.label, fontSize: 14, color: colors.text },
+  sub: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
 });
+}

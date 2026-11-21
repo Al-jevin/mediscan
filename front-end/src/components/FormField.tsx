@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
-// Colors used only by the form frames in Figma that are not in the display.ts tokens yet.
 export const FormColors = {
   inputBorder: '#C9D6CF',
   placeholder: '#9AAFA3',
@@ -14,39 +13,53 @@ type FieldProps = {
   label: string;
   required?: boolean;
   helper?: string;
-  children: ReactNode; // usually an <InputBox>
+  children: ReactNode;
 };
 
-// Label (with an optional red *), the input below it, and an optional helper line.
 export function FormField({ label, required, helper, children }: FieldProps) {
+  const { colors, isDark } = useDisplayTheme();
   return (
     <View style={styles.field}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>
         {required && <Text style={styles.star}>*</Text>}
       </View>
       {children}
-      {helper ? <Text style={styles.helper}>{helper}</Text> : null}
+      {helper ? (
+        <Text style={[styles.helper, { color: isDark ? colors.textSecondary : FormColors.helper }]}>
+          {helper}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
-// White 48px rounded box that holds a TextInput, a dropdown value, an icon, etc.
 export function InputBox({ children }: { children: ReactNode }) {
-  return <View style={styles.box}>{children}</View>;
+  const { colors, isDark } = useDisplayTheme();
+  return (
+    <View
+      style={[
+        styles.box,
+        {
+          backgroundColor: isDark ? colors.surfaceSecondary : colors.surfacePrimary,
+          borderColor: isDark ? colors.borderDefault : FormColors.inputBorder,
+        },
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   field: { gap: 6 },
   labelRow: { flexDirection: 'row', gap: 3 },
-  label: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  label: { fontSize: 14, fontWeight: '600' },
   star: { fontSize: 14, fontWeight: '700', color: FormColors.required },
-  helper: { fontSize: 13, color: FormColors.helper },
+  helper: { fontSize: 13 },
   box: {
     height: 48,
-    backgroundColor: Colors.onAction,
     borderWidth: 1,
-    borderColor: FormColors.inputBorder,
     borderRadius: 10,
     paddingHorizontal: 14,
     flexDirection: 'row',

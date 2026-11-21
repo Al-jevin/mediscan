@@ -1,45 +1,46 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Assets } from '@/constants/assets';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import type { ScanState } from '@/data/mockScanResults';
 import type { ConfidenceTier } from '@/services/scanApi';
 
-// Colors used only by this Figma frame that are not in the display.ts tokens yet.
 const SubtleText = '#7E7B77';
 const Amber = '#E89C38';
 const Red = '#D93025';
 
-// Per-state look of the banner (colors + icon).
-const variants = {
-  verified: {
-    bg: '#C5FFC8',
-    border: undefined,
-    icon: Assets.icons.verified,
-    iconSize: { width: 100, height: 90 },
-    title: Colors.statusSuccess,
-    badgeBg: '#78D07D',
-    badgeText: Colors.surfacePrimary,
-  },
-  needs_verification: {
-    bg: '#FFF0DD',
-    border: 'rgba(0,0,0,0.12)', // stands in for the inset shadow in Figma
-    icon: Assets.icons.warningAmber,
-    iconSize: { width: 90, height: 89 },
-    title: Amber,
-    badgeBg: '#FDE2B7',
-    badgeText: '#C58531',
-  },
-  no_results: {
-    bg: '#FDECEC',
-    border: 'rgba(0,0,0,0.12)',
-    icon: Assets.icons.warningRed,
-    iconSize: { width: 90, height: 89 },
-    title: Red,
-    badgeBg: Colors.statusDangerSoft,
-    badgeText: Colors.statusDanger,
-  },
-} as const;
+function bannerVariants(colors: { statusSuccess: string; surfacePrimary: string; statusDangerSoft: string; statusDanger: string }) {
+  return {
+    verified: {
+      bg: '#C5FFC8',
+      border: undefined as string | undefined,
+      icon: Assets.icons.verified,
+      iconSize: { width: 100, height: 90 },
+      title: colors.statusSuccess,
+      badgeBg: '#78D07D',
+      badgeText: colors.surfacePrimary,
+    },
+    needs_verification: {
+      bg: '#FFF0DD',
+      border: 'rgba(0,0,0,0.12)',
+      icon: Assets.icons.warningAmber,
+      iconSize: { width: 90, height: 89 },
+      title: Amber,
+      badgeBg: '#FDE2B7',
+      badgeText: '#C58531',
+    },
+    no_results: {
+      bg: '#FDECEC',
+      border: 'rgba(0,0,0,0.12)',
+      icon: Assets.icons.warningRed,
+      iconSize: { width: 90, height: 89 },
+      title: Red,
+      badgeBg: colors.statusDangerSoft,
+      badgeText: colors.statusDanger,
+    },
+  } as const;
+}
 
 type Props = {
   status: ScanState;
@@ -59,13 +60,15 @@ export default function VerificationBanner({
   confidenceLabel = 'Confidence',
   confidenceTier,
 }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const colorStatus: ScanState =
     status === 'no_results' || confidenceTier === 'low'
       ? 'no_results'
       : status === 'needs_verification' || confidenceTier === 'medium'
         ? 'needs_verification'
         : 'verified';
-  const v = variants[colorStatus];
+  const v = bannerVariants(colors)[colorStatus];
 
   return (
     <View
@@ -87,7 +90,8 @@ export default function VerificationBanner({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   banner: {
     minHeight: 251,
     borderRadius: Radius.md,
@@ -106,3 +110,4 @@ const styles = StyleSheet.create({
   },
   confidenceText: { ...Type.h3, fontWeight: '700' },
 });
+}

@@ -12,7 +12,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontSizes, Radius, Spacing } from '@/constants/display';
+import { FontSizes, Radius, Spacing } from '@/constants/display';
 import { useProfile } from '@/context/ProfileContext';
 import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import Logo from './Logo';
@@ -23,27 +23,17 @@ const PANEL_W = Dimensions.get('window').width * 0.78;
 
 // To add another menu item later: add another line here, then create its screen file.
 // `route` = the screen it opens (file name in src/app/).
-const ITEMS: { label: string; icon: React.ReactElement; route: string }[] = [
-  {
-    label: 'Settings',
-    icon: (
-      <Ionicons
-        name="settings-outline"
-        size={20}
-        color={Colors.primary}
-      />
-    ),
-    route: '/settings',
-  },
+const ITEMS: {
+  label: string;
+  icon: 'settings-outline' | 'receipt-text-outline';
+  iconSet: 'ion' | 'material';
+  route: string;
+}[] = [
+  { label: 'Settings', icon: 'settings-outline', iconSet: 'ion', route: '/settings' },
   {
     label: 'Terms & Medical Disclaimer',
-    icon: (
-      <MaterialCommunityIcons
-        name="receipt-text-outline"
-        size={20}
-        color={Colors.primary}
-      />
-    ),
+    icon: 'receipt-text-outline',
+    iconSet: 'material',
     route: '/terms',
   },
 ];
@@ -52,7 +42,8 @@ export default function HamburgerMenu() {
   const { open, closeMenu, openLogout } = useMenu();
   // The profile picked on "Choose your profile" + the logged-in account's email
   const { activeProfile, email } = useProfile();
-  const { colors } = useDisplayTheme();
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -160,7 +151,7 @@ export default function HamburgerMenu() {
           <Pressable
             style={({ pressed }) => [
               styles.profileCard,
-              pressed && { backgroundColor: Colors.primarySoft },
+              pressed && { backgroundColor: colors.primarySoft },
             ]}
             onPress={() => {
               router.navigate('/profile' as any);
@@ -183,7 +174,7 @@ export default function HamburgerMenu() {
             <Ionicons
               name="chevron-forward"
               size={16}
-              color={Colors.text}
+              color={colors.text}
             />
           </Pressable>
 
@@ -195,7 +186,7 @@ export default function HamburgerMenu() {
                 style={({ pressed }) => [
                   styles.item,
                   pressed && {
-                    backgroundColor: Colors.primarySoft,
+                    backgroundColor: colors.primarySoft,
                   },
                 ]}
                 onPress={() => {
@@ -204,14 +195,18 @@ export default function HamburgerMenu() {
                 }}
                 accessibilityRole="button"
               >
-                {item.icon}
+                {item.iconSet === 'ion' ? (
+                  <Ionicons name="settings-outline" size={20} color={colors.primary} />
+                ) : (
+                  <MaterialCommunityIcons name="receipt-text-outline" size={20} color={colors.primary} />
+                )}
                 <Text style={styles.itemText} numberOfLines={1}>
                   {item.label}
                 </Text>
                 <Ionicons
                   name="chevron-forward"
                   size={16}
-                  color={Colors.text}
+                  color={colors.text}
                 />
               </Pressable>
             ))}
@@ -243,7 +238,8 @@ export default function HamburgerMenu() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   overlay: {
     position: 'absolute',
     top: 0,
@@ -270,7 +266,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     width: PANEL_W,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopRightRadius: Radius.lg,
     borderBottomRightRadius: Radius.lg,
     overflow: 'hidden',
@@ -292,8 +288,8 @@ const styles = StyleSheet.create({
     padding: Spacing.sm + 4,
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border + '33',
-    backgroundColor: Colors.surface,
+    borderColor: colors.border + '33',
+    backgroundColor: colors.surface,
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.12,
@@ -305,12 +301,12 @@ const styles = StyleSheet.create({
   },
   name: {
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
     fontSize: FontSizes.body - 1,
   },
   email: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
 
   // Menu items: bigger space from the profile card and between boxes, very thin faint line, one-line text
@@ -327,26 +323,26 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm + 4,
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border + '33',
-    backgroundColor: Colors.surface,
+    borderColor: colors.border + '33',
+    backgroundColor: colors.surface,
   },
   itemText: {
     flex: 1,
-    color: Colors.text,
+    color: colors.text,
     fontSize: 13,
     fontWeight: '600',
   },
 
   // Footer: Log Out sits low
   footer: {
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     paddingTop: Spacing.sm + 2,
     paddingHorizontal: Spacing.md,
   },
   logout: {
     height: 44,
     borderRadius: Radius.sm,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -355,3 +351,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+}

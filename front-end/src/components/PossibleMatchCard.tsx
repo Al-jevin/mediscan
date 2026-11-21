@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Assets } from '@/constants/assets';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import type { PossibleMatch } from '@/data/mockScanResults';
 import { getMedicineForm } from '@/utils/medicine';
 import MedicineIcon from './medicine/MedicineIcon';
@@ -20,6 +21,8 @@ type Props = {
 
 // One medicine card: icon for the medicine form, name, category and similarity.
 export default function PossibleMatchCard({ match, selected, showCheck, onPress }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const content = (
     <>
       <MedicineIcon form={getMedicineForm(match.form)} size={96} />
@@ -53,15 +56,16 @@ export default function PossibleMatchCard({ match, selected, showCheck, onPress 
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm + 2,
     padding: Spacing.sm + 2,
-    backgroundColor: Colors.surfacePrimary,
+    backgroundColor: colors.surfacePrimary,
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
+    borderColor: colors.borderDefault,
     borderRadius: Radius.sm,
   },
   // 2px border instead of 1px, so the padding is 1px smaller to keep the content in place
@@ -69,11 +73,12 @@ const styles = StyleSheet.create({
     padding: Spacing.sm + 1,
     backgroundColor: SelectedBg,
     borderWidth: 2,
-    borderColor: Colors.actionPrimary,
+    borderColor: colors.actionPrimary,
   },
   text: { flex: 1, gap: Spacing.sm + 2 },
-  name: { ...Type.label, color: Colors.textPrimary },
+  name: { ...Type.label, color: colors.textPrimary },
   category: { ...Type.caption, color: SubtleText },
   similarity: { ...Type.label, fontSize: 14, color: Amber, textAlign: 'right' },
   check: { position: 'absolute', top: 2, left: 2, width: 24, height: 24 },
 });
+}

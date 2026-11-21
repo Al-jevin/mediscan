@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import type { PossibleMatch } from '@/data/mockScanResults';
 import PossibleMatchCard from './PossibleMatchCard';
 
@@ -16,6 +17,8 @@ type Props = {
 // "Possible Matches" heading, the tappable list of matches, and the warning note under it.
 // Only one match can be selected at a time (the parent keeps `selectedId`).
 export default function PossibleMatches({ matches, selectedId, onSelect }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Possible Matches</Text>
@@ -39,9 +42,10 @@ export default function PossibleMatches({ matches, selectedId, onSelect }: Props
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   container: { gap: Spacing.sm + 2 },
-  heading: { ...Type.h2, color: Colors.textPrimary, paddingVertical: Spacing.sm },
+  heading: { ...Type.h2, color: colors.textPrimary, paddingVertical: Spacing.sm },
 
   note: {
     backgroundColor: NoteBg,
@@ -54,3 +58,4 @@ const styles = StyleSheet.create({
   },
   noteText: { ...Type.body, fontWeight: '500', color: '#000', textAlign: 'center' },
 });
+}

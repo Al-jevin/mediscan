@@ -9,7 +9,8 @@ import AuthInput from '@/components/AuthInput';
 import FormError from '@/components/FormError';
 import SaveLoginDialog from '@/components/SaveLoginDialog';
 import { MockAuth } from '@/mock/mockAuth';
-import { Colors, Radius, Spacing } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { isValidEmail } from '@/lib/validation';
 
 // START SCREEN ng app (Log In). Walang tabs/icons dito, Log In or Sign in lang.
@@ -20,6 +21,8 @@ import { isValidEmail } from '@/lib/validation';
 //  3. Kung MANUAL login (tinype ni user / iba sa naka-save) -> tanungin kung i-save ang login info.
 //  4. -> "Choose your profile".
 export default function LoginScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
@@ -89,7 +92,7 @@ export default function LoginScreen() {
 
           {usingSaved ? (
             <View style={styles.savedNote}>
-              <Ionicons name="key-outline" size={16} color={Colors.textMuted} />
+              <Ionicons name="key-outline" size={16} color={colors.textMuted} />
               <Text style={styles.savedText}>Using your saved login info.</Text>
               <Pressable onPress={forgetSaved} hitSlop={8}>
                 <Text style={styles.savedLink}>Forget</Text>
@@ -152,34 +155,36 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
   body: { paddingHorizontal: Spacing.lg - 4, paddingTop: Spacing.lg },
-  title: { fontSize: 26, fontWeight: '800', color: Colors.text },
-  subtitle: { fontSize: 15, lineHeight: 22, color: Colors.textMuted, marginTop: Spacing.sm, marginBottom: Spacing.md },
+  title: { fontSize: 26, fontWeight: '800', color: colors.text },
+  subtitle: { fontSize: 15, lineHeight: 22, color: colors.textMuted, marginTop: Spacing.sm, marginBottom: Spacing.md },
   savedNote: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: Colors.primarySoft, borderRadius: Radius.sm,
+    backgroundColor: colors.primarySoft, borderRadius: Radius.sm,
     paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm + 4, marginBottom: Spacing.md - 2,
   },
-  savedText: { flex: 1, fontSize: 13, color: Colors.textMuted },
-  savedLink: { fontSize: 13, fontWeight: '700', color: Colors.text, textDecorationLine: 'underline' },
+  savedText: { flex: 1, fontSize: 13, color: colors.textMuted },
+  savedLink: { fontSize: 13, fontWeight: '700', color: colors.text, textDecorationLine: 'underline' },
   primaryBtn: {
-    height: 50, borderRadius: Radius.sm + 2, backgroundColor: Colors.primary,
+    height: 50, borderRadius: Radius.sm + 2, backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center', marginTop: 4,
   },
   disabled: { opacity: 0.7 },
   primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   forgotWrap: { alignSelf: 'flex-end', marginTop: Spacing.sm },
-  forgotLink: { color: Colors.text, fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' },
-  hint: { textAlign: 'center', color: Colors.textMuted, fontSize: 14, marginVertical: Spacing.md - 2 },
+  forgotLink: { color: colors.text, fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' },
+  hint: { textAlign: 'center', color: colors.textMuted, fontSize: 14, marginVertical: Spacing.md - 2 },
   outlineBtn: {
-    height: 50, borderRadius: Radius.sm + 2, borderWidth: 1.5, borderColor: Colors.primary,
-    backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center',
+    height: 50, borderRadius: Radius.sm + 2, borderWidth: 1.5, borderColor: colors.primary,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
   },
-  outlineText: { color: Colors.text, fontSize: 16, fontWeight: '700' },
+  outlineText: { color: colors.text, fontSize: 16, fontWeight: '700' },
   terms: {
-    textAlign: 'center', color: Colors.textMuted, fontSize: 12, lineHeight: 18,
+    textAlign: 'center', color: colors.textMuted, fontSize: 12, lineHeight: 18,
     paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg,
   },
 });
+}

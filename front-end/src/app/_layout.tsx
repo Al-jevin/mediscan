@@ -7,6 +7,7 @@ import { MenuProvider } from '@/components/MenuContext';
 import AddMenu from '@/components/AddMenu';
 import LogoutDialog from '@/components/LogoutDialog';
 import HamburgerMenu from '@/components/HamburgerMenu';
+import AppToast from '@/components/AppToast';
 import { ProfileProvider } from '../context/ProfileContext';
 import { ThemeProvider, useAppTheme } from '../context/ThemeContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -87,6 +88,7 @@ export default function RootLayout() {
           <HamburgerMenu />
           <AddMenu />
           <LogoutDialog />
+          <AppToast />
         </ProfileProvider>
       </MenuProvider>
       </ThemeProvider>

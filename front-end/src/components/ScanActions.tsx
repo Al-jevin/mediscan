@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Assets } from '@/constants/assets';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import type { ScanState } from '@/data/mockScanResults';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
@@ -24,6 +25,8 @@ type Props = {
 
 // Fixed bar at the bottom of the Scan Result screen. The buttons depend on the state.
 export default function ScanActions({ status, hasSelection, onViewDetails, onSave, onEdit, onRedoScan }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const insets = useSafeAreaInsets();
 
   return (
@@ -33,12 +36,12 @@ export default function ScanActions({ status, hasSelection, onViewDetails, onSav
           {onViewDetails && (
             <Pressable style={styles.verifiedPrimary} onPress={onViewDetails} accessibilityRole="button">
               <Image source={Assets.icons.details} style={styles.icon} contentFit="contain" />
-              <Text style={[styles.text, { color: Colors.surfacePrimary }]}>View Medicine Details</Text>
+              <Text style={[styles.text, { color: colors.surfacePrimary }]}>View Medicine Details</Text>
             </Pressable>
           )}
           <Pressable style={styles.verifiedSecondary} onPress={onSave} accessibilityRole="button">
             <Image source={Assets.icons.save} style={styles.icon} contentFit="contain" />
-            <Text style={[styles.text, { color: Colors.textPrimary }]}>Save to Vault</Text>
+            <Text style={[styles.text, { color: colors.textPrimary }]}>Save to Vault</Text>
           </Pressable>
         </>
       )}
@@ -48,7 +51,7 @@ export default function ScanActions({ status, hasSelection, onViewDetails, onSav
           <Text style={styles.hint}>Tap the correct medicine above to save it to your Vault or edit it.</Text>
           <Pressable style={[styles.button, { backgroundColor: Amber }]} onPress={onRedoScan} accessibilityRole="button">
             <Image source={Assets.icons.scanWhite} style={styles.icon} contentFit="contain" />
-            <Text style={[styles.text, { color: Colors.surfacePrimary }]}>Redo Scan</Text>
+            <Text style={[styles.text, { color: colors.surfacePrimary }]}>Redo Scan</Text>
           </Pressable>
         </>
       )}
@@ -57,20 +60,20 @@ export default function ScanActions({ status, hasSelection, onViewDetails, onSav
         <>
           {/* Moderate confidence: saving is allowed, behind the ModerateConfidenceModal safety check */}
           <Pressable
-            style={[styles.button, { backgroundColor: Colors.actionPrimary }]}
+            style={[styles.button, { backgroundColor: colors.actionPrimary }]}
             onPress={onSave}
             accessibilityRole="button"
             accessibilityHint="Asks you to double-check the details before saving"
           >
-            <Ionicons name="bookmark-outline" size={20} color={Colors.onAction} />
-            <Text style={[styles.text, { color: Colors.onAction }]}>Save to Vault</Text>
+            <Ionicons name="bookmark-outline" size={20} color={colors.onAction} />
+            <Text style={[styles.text, { color: colors.onAction }]}>Save to Vault</Text>
           </Pressable>
           <Pressable style={[styles.button, styles.editButton]} onPress={onEdit} accessibilityRole="button">
             <Image source={Assets.icons.edit} style={styles.icon} contentFit="contain" />
-            <Text style={[styles.text, { color: Colors.textPrimary }]}>Edit</Text>
+            <Text style={[styles.text, { color: colors.textPrimary }]}>Edit</Text>
           </Pressable>
           <Pressable
-            style={[styles.button, { backgroundColor: Colors.onAction, borderWidth: 1, borderColor: Amber }]}
+            style={[styles.button, { backgroundColor: colors.onAction, borderWidth: 1, borderColor: Amber }]}
             onPress={onRedoScan}
             accessibilityRole="button"
           >
@@ -97,9 +100,10 @@ export default function ScanActions({ status, hasSelection, onViewDetails, onSav
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   bar: {
-    backgroundColor: Colors.onAction,
+    backgroundColor: colors.onAction,
     paddingTop: Spacing.md,
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm + 2,
@@ -121,9 +125,9 @@ const styles = StyleSheet.create({
   },
   // Edit spans the full width; keeps the soft shadow it had in the Figma frame
   editButton: {
-    backgroundColor: Colors.onAction,
+    backgroundColor: colors.onAction,
     borderWidth: 1,
-    borderColor: Colors.actionPrimary,
+    borderColor: colors.actionPrimary,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
@@ -131,7 +135,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   verifiedPrimary: {
-    backgroundColor: Colors.statusSuccess,
+    backgroundColor: colors.statusSuccess,
     borderRadius: Radius.sm,
     minHeight: 45,
     flexDirection: 'row',
@@ -140,9 +144,9 @@ const styles = StyleSheet.create({
     gap: Spacing.sm + 2,
   },
   verifiedSecondary: {
-    backgroundColor: Colors.surfacePrimary,
+    backgroundColor: colors.surfacePrimary,
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
+    borderColor: colors.borderDefault,
     borderRadius: Radius.sm,
     minHeight: 45,
     flexDirection: 'row',
@@ -153,3 +157,4 @@ const styles = StyleSheet.create({
   icon: { width: 20, height: 20 },
   text: { ...Type.label },
 });
+}

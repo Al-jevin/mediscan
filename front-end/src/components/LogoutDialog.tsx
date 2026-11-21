@@ -3,11 +3,14 @@ import { Animated, BackHandler, Easing, Pressable, StyleSheet, Text, View } from
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { MockAuth } from '@/mock/mockAuth';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { useMenu } from './MenuContext';
 
 // "Log out of MediScan?" popup. Opened by the Log Out button in the burger menu.
 export default function LogoutDialog() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const { logoutOpen, closeLogout } = useMenu();
   const router = useRouter();
 
@@ -58,7 +61,7 @@ export default function LogoutDialog() {
           ]}
         >
           <View style={styles.iconCircle}>
-            <Ionicons name="log-out-outline" size={30} color={Colors.danger} />
+            <Ionicons name="log-out-outline" size={30} color={colors.danger} />
           </View>
 
           <Text style={styles.title}>Log out of MediScan?</Text>
@@ -80,28 +83,30 @@ export default function LogoutDialog() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   overlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 100, elevation: 100 },
   backdrop: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(5,31,32,0.45)' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.lg },
   card: {
-    width: '100%', maxWidth: 340, backgroundColor: Colors.surface,
+    width: '100%', maxWidth: 340, backgroundColor: colors.surface,
     borderRadius: Radius.lg, padding: Spacing.lg - 4, alignItems: 'center',
     elevation: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 6 },
   },
   iconCircle: {
-    width: 60, height: 60, borderRadius: Radius.pill, backgroundColor: Colors.statusDangerSoft,
+    width: 60, height: 60, borderRadius: Radius.pill, backgroundColor: colors.statusDangerSoft,
     alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md - 2,
   },
-  title: { ...Type.h3, color: Colors.text, textAlign: 'center' },
+  title: { ...Type.h3, color: colors.text, textAlign: 'center' },
   message: {
-    fontSize: 13, lineHeight: 19, color: Colors.textMuted, textAlign: 'center',
+    fontSize: 13, lineHeight: 19, color: colors.textMuted, textAlign: 'center',
     marginTop: Spacing.sm, marginBottom: Spacing.md + 4,
   },
   row: { flexDirection: 'row', gap: Spacing.sm + 4, width: '100%' },
   btn: { flex: 1, height: 46, borderRadius: Radius.sm, alignItems: 'center', justifyContent: 'center' },
-  cancel: { backgroundColor: Colors.surface, borderWidth: 1.5, borderColor: Colors.text },
-  cancelText: { ...Type.label, fontSize: 15, color: Colors.text },
-  logout: { backgroundColor: Colors.danger },
+  cancel: { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.text },
+  cancelText: { ...Type.label, fontSize: 15, color: colors.text },
+  logout: { backgroundColor: colors.danger },
   logoutText: { ...Type.label, fontSize: 15, color: '#fff' },
 });
+}

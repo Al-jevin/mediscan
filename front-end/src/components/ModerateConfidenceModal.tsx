@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import OverlayModal from './OverlayModal';
 
 type Props = {
@@ -22,6 +23,8 @@ type Props = {
 export default function ModerateConfidenceModal({
   visible, confidence, medicineName, dosage, expirationDate, saving, error, onConfirm, onCancel,
 }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const [checked, setChecked] = useState(false);
 
   // Ask again every time the popup opens.
@@ -36,7 +39,7 @@ export default function ModerateConfidenceModal({
   return (
     <OverlayModal visible={visible} onRequestClose={close}>
       <View style={styles.iconCircle}>
-        <Ionicons name="warning" size={32} color={Colors.statusWarning} />
+        <Ionicons name="warning" size={32} color={colors.statusWarning} />
       </View>
       <Text style={styles.title}>Double-check before saving</Text>
       <Text style={styles.message}>
@@ -60,7 +63,7 @@ export default function ModerateConfidenceModal({
         <Ionicons
           name={checked ? 'checkbox' : 'square-outline'}
           size={24}
-          color={checked ? Colors.actionPrimary : Colors.textSecondary}
+          color={checked ? colors.actionPrimary : colors.textSecondary}
         />
         <Text style={styles.checkText}>
           I checked the medicine name, dosage, and expiration date against the package.
@@ -79,7 +82,7 @@ export default function ModerateConfidenceModal({
           accessibilityState={{ disabled: !checked || !!saving }}
         >
           {saving
-            ? <ActivityIndicator color={Colors.onAction} />
+            ? <ActivityIndicator color={colors.onAction} />
             : <Text style={styles.primaryText}>Confirm & Save to Vault</Text>}
         </Pressable>
         <Pressable style={styles.secondary} onPress={close} disabled={saving} accessibilityRole="button">
@@ -91,26 +94,29 @@ export default function ModerateConfidenceModal({
 }
 
 function SummaryRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   return (
     <View style={styles.row}>
-      <Ionicons name={icon} size={18} color={Colors.textSecondary} />
+      <Ionicons name={icon} size={18} color={colors.textSecondary} />
       <Text style={styles.rowLabel}>{label}</Text>
       <Text style={styles.rowValue}>{value.trim() ? value : 'Not available'}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   iconCircle: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.statusWarningSoft,
+    backgroundColor: colors.statusWarningSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center' },
-  message: { ...Type.caption, color: Colors.textSecondary, textAlign: 'center', alignSelf: 'stretch' },
+  title: { fontSize: 20, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
+  message: { ...Type.caption, color: colors.textSecondary, textAlign: 'center', alignSelf: 'stretch' },
 
   summary: {
     alignSelf: 'stretch',
@@ -118,21 +124,21 @@ const styles = StyleSheet.create({
     padding: Spacing.sm + 4,
     borderRadius: Radius.sm,
     borderWidth: 1,
-    borderColor: Colors.statusWarning,
-    backgroundColor: Colors.statusWarningSoft,
+    borderColor: colors.statusWarning,
+    backgroundColor: colors.statusWarningSoft,
   },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
-  rowLabel: { ...Type.caption, color: Colors.textSecondary, width: 112 },
-  rowValue: { ...Type.caption, fontWeight: '700', color: Colors.textPrimary, flex: 1 },
+  rowLabel: { ...Type.caption, color: colors.textSecondary, width: 112 },
+  rowValue: { ...Type.caption, fontWeight: '700', color: colors.textPrimary, flex: 1 },
 
   checkRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, minHeight: 44 },
-  checkText: { ...Type.caption, color: Colors.textPrimary, flex: 1 },
-  note: { ...Type.caption, color: Colors.statusWarning, textAlign: 'center' },
-  error: { ...Type.caption, color: Colors.statusDanger, textAlign: 'center', alignSelf: 'stretch' },
+  checkText: { ...Type.caption, color: colors.textPrimary, flex: 1 },
+  note: { ...Type.caption, color: colors.statusWarning, textAlign: 'center' },
+  error: { ...Type.caption, color: colors.statusDanger, textAlign: 'center', alignSelf: 'stretch' },
 
   actions: { alignSelf: 'stretch', gap: 10 },
   primary: {
-    backgroundColor: Colors.actionPrimary,
+    backgroundColor: colors.actionPrimary,
     borderRadius: 10,
     minHeight: 48,
     paddingHorizontal: 16,
@@ -140,16 +146,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   disabled: { opacity: 0.5 },
-  primaryText: { fontSize: 15, fontWeight: '700', color: Colors.onAction },
+  primaryText: { fontSize: 15, fontWeight: '700', color: colors.onAction },
   secondary: {
-    backgroundColor: Colors.onAction,
+    backgroundColor: colors.onAction,
     borderWidth: 1,
-    borderColor: Colors.actionPrimary,
+    borderColor: colors.actionPrimary,
     borderRadius: 10,
     minHeight: 48,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryText: { fontSize: 15, fontWeight: '700', color: Colors.actionPrimary },
+  secondaryText: { fontSize: 15, fontWeight: '700', color: colors.actionPrimary },
 });
+}

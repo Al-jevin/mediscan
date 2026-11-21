@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import AppHeader from '@/components/AppHeader';
 import Popup from '@/components/medicine/Popup';
-import { Colors, Components, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { getNoteDraft, setNoteDraft } from '@/services/noteDraft';
 import { getMedicineById, updateNote } from '@/services/vaultStore';
 import { medicineName } from '@/utils/medicine';
@@ -19,6 +20,8 @@ import { medicineName } from '@/utils/medicine';
 const MAX_LENGTH = 150;
 
 export default function AddNoteScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const params = useLocalSearchParams<{ id?: string; draft?: string; name?: string }>();
   const router = useRouter();
   const isDraft = params.draft === '1';
@@ -76,7 +79,7 @@ export default function AddNoteScreen() {
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder="e.g. Take after meals, causes drowsiness..."
-            placeholderTextColor={Colors.textSecondary}
+            placeholderTextColor={colors.textSecondary}
             multiline
             maxLength={MAX_LENGTH}
             textAlignVertical="top"
@@ -87,14 +90,14 @@ export default function AddNoteScreen() {
 
           <Pressable
             style={({ pressed }) => [
-              Components.buttonPrimary, { backgroundColor: Colors.actionPrimary },
+              components.buttonPrimary, { backgroundColor: colors.actionPrimary },
               (!changed || saving) && { opacity: 0.5 }, pressed && { opacity: 0.85 },
             ]}
             onPress={save}
             disabled={!changed || saving}
             accessibilityRole="button"
           >
-            <Text style={Components.buttonPrimaryText}>{saving ? 'Saving…' : 'Save Note'}</Text>
+            <Text style={components.buttonPrimaryText}>{saving ? 'Saving…' : 'Save Note'}</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -111,18 +114,20 @@ export default function AddNoteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.surfacePrimary },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.surfacePrimary },
   scroll: { padding: Spacing.md + 4, gap: Spacing.sm },
-  banner: { backgroundColor: Colors.surfaceSecondary, borderRadius: Radius.sm, padding: Spacing.md, marginBottom: Spacing.md },
-  bannerTitle: { ...Type.label, color: Colors.textPrimary },
-  bannerSub: { ...Type.caption, color: Colors.textSecondary, marginTop: 2 },
-  label: { ...Type.label, color: Colors.textPrimary },
+  banner: { backgroundColor: colors.surfaceSecondary, borderRadius: Radius.sm, padding: Spacing.md, marginBottom: Spacing.md },
+  bannerTitle: { ...Type.label, color: colors.textPrimary },
+  bannerSub: { ...Type.caption, color: colors.textSecondary, marginTop: 2 },
+  label: { ...Type.label, color: colors.textPrimary },
   input: {
-    ...Type.body, color: Colors.textPrimary, minHeight: 160,
-    borderWidth: 1, borderColor: Colors.borderDefault, borderRadius: Radius.sm,
-    padding: Spacing.md, backgroundColor: Colors.surfacePrimary, outlineWidth: 0,
+    ...Type.body, color: colors.textPrimary, minHeight: 160,
+    borderWidth: 1, borderColor: colors.borderDefault, borderRadius: Radius.sm,
+    padding: Spacing.md, backgroundColor: colors.surfacePrimary, outlineWidth: 0,
   },
-  inputFocused: { borderColor: Colors.statusWarning },
-  counter: { ...Type.caption, color: Colors.textSecondary, alignSelf: 'flex-end', marginBottom: Spacing.sm },
+  inputFocused: { borderColor: colors.statusWarning },
+  counter: { ...Type.caption, color: colors.textSecondary, alignSelf: 'flex-end', marginBottom: Spacing.sm },
 });
+}

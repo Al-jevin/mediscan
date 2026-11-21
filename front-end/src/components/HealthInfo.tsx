@@ -6,7 +6,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import {
   EMERGENCY_CONTACT_NAME_MAX_LENGTH,
   EMERGENCY_CONTACT_NUMBER_MAX_LENGTH,
@@ -69,6 +70,8 @@ function Field({
   keyboardType?: 'default' | 'phone-pad';
   maxLength: number;
 }) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
@@ -77,7 +80,7 @@ function Field({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={Colors.textMuted}
+        placeholderTextColor={colors.textMuted}
         keyboardType={keyboardType}
         maxLength={maxLength}
       />
@@ -91,6 +94,8 @@ export default function HealthInfo({
   visible: boolean;
   onClose: () => void;
 }) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const insets = useSafeAreaInsets();
   const [form, setForm] = useState<HealthInfoData>(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -154,7 +159,7 @@ export default function HealthInfo({
           <View style={styles.headerRow}>
             <Text style={styles.title}>Health Information</Text>
             <Pressable onPress={onClose} hitSlop={12} accessibilityLabel="Close">
-              <Ionicons name="close" size={22} color={Colors.text} />
+              <Ionicons name="close" size={22} color={colors.text} />
             </Pressable>
           </View>
 
@@ -203,33 +208,35 @@ export default function HealthInfo({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(5,31,32,0.45)' },
   sheet: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg,
     paddingHorizontal: Spacing.md, paddingTop: Spacing.sm,
   },
   handle: {
     alignSelf: 'center', width: 40, height: 4, borderRadius: 2,
-    backgroundColor: Colors.border, marginBottom: Spacing.sm,
+    backgroundColor: colors.border, marginBottom: Spacing.sm,
   },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: Spacing.md,
   },
-  title: { ...Type.h3, color: Colors.text },
+  title: { ...Type.h3, color: colors.text },
   field: { marginBottom: Spacing.md },
-  label: { ...Type.label, color: Colors.text, marginBottom: 6 },
+  label: { ...Type.label, color: colors.text, marginBottom: 6 },
   input: {
     height: 46, paddingHorizontal: Spacing.md, borderRadius: Radius.sm,
-    borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.background,
-    color: Colors.text, fontSize: 14,
+    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background,
+    color: colors.text, fontSize: 14,
   },
   saveBtn: {
-    height: 48, borderRadius: Radius.sm, backgroundColor: Colors.primary,
+    height: 48, borderRadius: Radius.sm, backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center', marginTop: Spacing.sm,
   },
   saveText: { color: '#fff', fontWeight: '700' },
 });
+}

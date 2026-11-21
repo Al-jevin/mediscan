@@ -10,7 +10,8 @@ import TermsConsentModal from '@/components/TermsConsentModal';
 import { TERMS_VERSION } from '@/components/TermsMedicalDisclaimerContent';
 import { MockAuth } from '@/mock/mockAuth';
 import { isValidEmail, MIN_PASSWORD } from '@/lib/validation';
-import { Colors, Radius, Spacing } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 // Sign Up ("Sign in" button sa Log In screen).
 //
@@ -19,6 +20,8 @@ import { Colors, Radius, Spacing } from '@/constants/display';
 //  2. Frontend POST /auth/register -> verification email.
 //  3. Verify screen -> OTP -> auto-login (or redirect to Log In).
 export default function SignUpScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -135,22 +138,24 @@ export default function SignUpScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
   body: { paddingHorizontal: Spacing.lg - 4, paddingTop: Spacing.lg },
-  title: { fontSize: 26, fontWeight: '800', color: Colors.text },
-  subtitle: { fontSize: 15, lineHeight: 22, color: Colors.textMuted, marginTop: Spacing.sm, marginBottom: Spacing.md },
+  title: { fontSize: 26, fontWeight: '800', color: colors.text },
+  subtitle: { fontSize: 15, lineHeight: 22, color: colors.textMuted, marginTop: Spacing.sm, marginBottom: Spacing.md },
   primaryBtn: {
-    height: 50, borderRadius: Radius.sm + 2, backgroundColor: Colors.primary,
+    height: 50, borderRadius: Radius.sm + 2, backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center', marginTop: 4,
   },
   disabled: { opacity: 0.7 },
   primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   switchRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: Spacing.md },
-  hint: { color: Colors.textMuted, fontSize: 14 },
-  link: { color: Colors.text, fontSize: 14, fontWeight: '800' },
+  hint: { color: colors.textMuted, fontSize: 14 },
+  link: { color: colors.text, fontSize: 14, fontWeight: '800' },
   terms: {
-    textAlign: 'center', color: Colors.textMuted, fontSize: 12, lineHeight: 18,
+    textAlign: 'center', color: colors.textMuted, fontSize: 12, lineHeight: 18,
     paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg,
   },
 });
+}

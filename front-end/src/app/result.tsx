@@ -17,8 +17,11 @@ import MedicineInfoCard from '@/components/MedicineInfoCard';
 import ModerateConfidenceModal from '@/components/ModerateConfidenceModal';
 import PossibleMatches from '@/components/PossibleMatches';
 import ScanActions from '@/components/ScanActions';
+import VaultMemberPicker from '@/components/VaultMemberPicker';
 import VerificationBanner from '@/components/VerificationBanner';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { useProfile } from '@/context/ProfileContext';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { findPossibleMatch, isScanState, mockScanResults } from '@/data/mockScanResults';
 import {
   getConfidenceTier,
@@ -77,8 +80,11 @@ function preferredGenericMedicine(
 // Scan Result screen. The header comes from AppHeader via app/_layout.tsx.
 // Shows the latest real scan. To preview a mock state, use /result?state=verified | needs_verification | no_results
 export default function ResultScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const { state } = useLocalSearchParams<{ state?: string }>();
+  const { profiles, activeProfile, setActiveProfile } = useProfile();
   const realScan = isScanState(state) ? null : getLatestScan();
   const telemetry = realScan ? getLatestScanTelemetry() : null;
   const result = realScan ?? (isScanState(state) ? mockScanResults[state] : null);
@@ -168,6 +174,9 @@ export default function ResultScreen() {
   const [saving, setSaving] = useState(false);
   const [moderateOpen, setModerateOpen] = useState(false);
   const [moderateError, setModerateError] = useState('');
+  const [saveProfileId, setSaveProfileId] = useState<string | null>(
+    activeProfile?.profile_id ?? profiles[0]?.profile_id ?? null,
+  );
   const isModerate = result?.status === 'needs_verification';
   const selectedMatch =
     result?.status === 'needs_verification'
@@ -242,8 +251,20 @@ export default function ResultScreen() {
         : undefined;
     const parsedExpiry = detectedExpiry ? mdyToYMD(detectedExpiry) : null;
     setExpiry(parsedExpiry ? formatDateInput(ymdToMDY(parsedExpiry)) : '');
+    setSaveProfileId(activeProfile?.profile_id ?? profiles[0]?.profile_id ?? null);
     setSaveError('');
     setExpiryModalOpen(true);
+  };
+
+  const requireSaveProfile = (): string | null => {
+    if (saveProfileId) return saveProfileId;
+    setSaveError('Choose which family member this medicine belongs to.');
+    return null;
+  };
+
+  const rememberSavedProfile = (profileId: string) => {
+    const profile = profiles.find((item) => item.profile_id === profileId);
+    if (profile) setActiveProfile(profile);
   };
 
   const saveVerifiedMedicine = async () => {
@@ -260,17 +281,23 @@ export default function ResultScreen() {
       setSaveError('Enter a valid expiration date in MM/DD/YYYY format.');
       return;
     }
+    const profileId = requireSaveProfile();
+    if (!profileId) return;
     setSaving(true);
     setSaveError('');
     try {
-      await addMedicine({
-        ...selectedGenericMedicine,
-        vault_expiry_date: expiryDate,
-        vault_status: 'verified',
-        vault_source: 'scan',
-        vault_confidence: result.confidence,
-        vault_note: '',
-      });
+      await addMedicine(
+        {
+          ...selectedGenericMedicine,
+          vault_expiry_date: expiryDate,
+          vault_status: 'verified',
+          vault_source: 'scan',
+          vault_confidence: result.confidence,
+          vault_note: '',
+        },
+        profileId,
+      );
+      rememberSavedProfile(profileId);
       setExpiryModalOpen(false);
       afterModalCloses(() => setAddedOpen(true));
     } catch (error) {
@@ -290,6 +317,7 @@ export default function ResultScreen() {
       setSaveError('Enter a valid expiration date in MM/DD/YYYY format.');
       return;
     }
+    if (!requireSaveProfile()) return;
     setSaveError('');
     setModerateError('');
     setExpiryModalOpen(false);
@@ -300,17 +328,23 @@ export default function ResultScreen() {
   const saveModerateMedicine = async () => {
     const expiryDate = mdyToYMD(expiry);
     if (!selectedGenericMedicine || !expiryDate || !result || result.status === 'no_results') return;
+    const profileId = requireSaveProfile();
+    if (!profileId) return;
     setSaving(true);
     setModerateError('');
     try {
-      await addMedicine({
-        ...selectedGenericMedicine,
-        vault_expiry_date: expiryDate,
-        vault_status: 'needs_verification',
-        vault_source: 'scan',
-        vault_confidence: result.confidence,
-        vault_note: '',
-      });
+      await addMedicine(
+        {
+          ...selectedGenericMedicine,
+          vault_expiry_date: expiryDate,
+          vault_status: 'needs_verification',
+          vault_source: 'scan',
+          vault_confidence: result.confidence,
+          vault_note: '',
+        },
+        profileId,
+      );
+      rememberSavedProfile(profileId);
       setModerateOpen(false);
       afterModalCloses(() => setAddedOpen(true));
     } catch (error) {
@@ -411,7 +445,7 @@ export default function ResultScreen() {
             Choose the generic medicine to save. Your OCR-matched generic is selected when available.
           </Text>
           {genericOptionsLoading && (
-            <ActivityIndicator size="small" color={Colors.actionPrimary} />
+            <ActivityIndicator size="small" color={colors.actionPrimary} />
           )}
           {genericOptionsError ? (
             <Text style={styles.genericOptionsError}>
@@ -491,6 +525,11 @@ export default function ResultScreen() {
               accessibilityLabel="Expiration date"
               style={styles.expiryInput}
             />
+            <VaultMemberPicker
+              profiles={profiles}
+              selectedProfileId={saveProfileId}
+              onSelect={setSaveProfileId}
+            />
             {saveError ? <Text style={styles.saveError}>{saveError}</Text> : null}
             <View style={styles.modalActions}>
               <Pressable
@@ -507,7 +546,7 @@ export default function ResultScreen() {
                 accessibilityRole="button"
               >
                 {saving
-                  ? <ActivityIndicator color={Colors.onAction} />
+                  ? <ActivityIndicator color={colors.onAction} />
                   : <Text style={styles.saveButtonText}>{isModerate ? 'Continue' : 'Save'}</Text>}
               </Pressable>
             </View>
@@ -546,6 +585,8 @@ export default function ResultScreen() {
 }
 
 function ScanTelemetryDrawer({ telemetry }: { telemetry: ScanTelemetry }) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const [expanded, setExpanded] = useState(false);
   const trustScore =
     typeof telemetry.trust_score === 'number' && Number.isFinite(telemetry.trust_score)
@@ -724,6 +765,8 @@ function TelemetryRow({
   value: string | number;
   suffix?: string;
 }) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   return (
     <View style={styles.telemetryRow}>
       <Text style={styles.telemetryRowLabel}>{label}</Text>
@@ -744,52 +787,53 @@ function formatTelemetryPercent(value: number | null | undefined): string {
     : 'Not reported';
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.surfacePrimary },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.surfacePrimary },
   content: { padding: Spacing.lg, gap: Spacing.md, flexGrow: 1 },
 
   label: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, padding: Spacing.sm },
   labelText: { flex: 1, gap: Spacing.sm },
-  medicineName: { ...Type.h3, color: Colors.textPrimary },
+  medicineName: { ...Type.h3, color: colors.textPrimary },
   medicineCategory: { ...Type.body, color: CategoryText },
 
-  detectedHeading: { ...Type.label, fontWeight: '700', color: Colors.textPrimary },
+  detectedHeading: { ...Type.label, fontWeight: '700', color: colors.textPrimary },
   genericSelector: {
     gap: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
+    borderColor: colors.borderDefault,
     borderRadius: Radius.sm,
-    backgroundColor: Colors.surfacePrimary,
+    backgroundColor: colors.surfacePrimary,
     padding: Spacing.md,
   },
-  genericTitle: { ...Type.h2, color: Colors.textPrimary },
-  genericDescription: { ...Type.body, color: Colors.textSecondary },
+  genericTitle: { ...Type.h2, color: colors.textPrimary },
+  genericDescription: { ...Type.body, color: colors.textSecondary },
   genericOption: {
     gap: Spacing.xs,
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
+    borderColor: colors.borderDefault,
     borderRadius: Radius.sm,
-    backgroundColor: Colors.surfacePrimary,
+    backgroundColor: colors.surfacePrimary,
     padding: Spacing.md,
   },
   genericOptionSelected: {
-    borderColor: Colors.actionPrimary,
-    backgroundColor: Colors.surfaceSecondary,
+    borderColor: colors.actionPrimary,
+    backgroundColor: colors.surfaceSecondary,
   },
-  genericOptionName: { ...Type.label, fontWeight: '700', color: Colors.textPrimary },
-  genericOptionsError: { ...Type.caption, color: Colors.statusDanger },
-  genericNoOptions: { ...Type.body, color: Colors.textSecondary },
+  genericOptionName: { ...Type.label, fontWeight: '700', color: colors.textPrimary },
+  genericOptionsError: { ...Type.caption, color: colors.statusDanger },
+  genericNoOptions: { ...Type.body, color: colors.textSecondary },
   genericSaveButton: {
     minHeight: 45,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radius.sm,
-    backgroundColor: Colors.actionPrimary,
+    backgroundColor: colors.actionPrimary,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
   genericSaveButtonDisabled: { opacity: 0.55 },
-  genericSaveButtonText: { ...Type.label, color: Colors.onAction },
+  genericSaveButtonText: { ...Type.label, color: colors.onAction },
 
   empty: { flex: 1, minHeight: 200, alignItems: 'center', justifyContent: 'center' },
   emptyText: { ...Type.label, lineHeight: 30, color: EmptyText },
@@ -800,12 +844,12 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   scanAgain: {
-    backgroundColor: Colors.actionPrimary,
+    backgroundColor: colors.actionPrimary,
     borderRadius: 10,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  scanAgainText: { ...Type.label, color: Colors.onAction },
+  scanAgainText: { ...Type.label, color: colors.onAction },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'center',
@@ -816,36 +860,36 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     borderRadius: 16,
     padding: Spacing.lg,
-    backgroundColor: Colors.surfacePrimary,
+    backgroundColor: colors.surfacePrimary,
   },
-  modalTitle: { ...Type.h3, color: Colors.textPrimary },
-  modalMessage: { ...Type.body, color: Colors.textSecondary },
+  modalTitle: { ...Type.h3, color: colors.textPrimary },
+  modalMessage: { ...Type.body, color: colors.textSecondary },
   expiryInput: {
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
+    borderColor: colors.borderDefault,
     borderRadius: 10,
     padding: Spacing.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
-  saveError: { ...Type.caption, color: Colors.statusDanger },
+  saveError: { ...Type.caption, color: colors.statusDanger },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },
   cancelButton: { padding: Spacing.md },
-  cancelText: { ...Type.label, color: Colors.textSecondary },
+  cancelText: { ...Type.label, color: colors.textSecondary },
   saveButton: {
     minWidth: 84,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 10,
-    backgroundColor: Colors.actionPrimary,
+    backgroundColor: colors.actionPrimary,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  saveButtonText: { ...Type.label, color: Colors.onAction },
+  saveButtonText: { ...Type.label, color: colors.onAction },
   telemetryDrawer: {
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
+    borderColor: colors.borderDefault,
     borderRadius: 12,
-    backgroundColor: Colors.surfacePrimary,
+    backgroundColor: colors.surfacePrimary,
   },
   telemetryToggle: {
     minHeight: 60,
@@ -856,13 +900,13 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   telemetryToggleText: { flex: 1, gap: 2 },
-  telemetryTitle: { ...Type.label, fontWeight: '700', color: Colors.textPrimary },
-  telemetryHint: { ...Type.caption, color: Colors.textSecondary },
+  telemetryTitle: { ...Type.label, fontWeight: '700', color: colors.textPrimary },
+  telemetryHint: { ...Type.caption, color: colors.textSecondary },
   telemetryToggleRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  telemetryToggleIcon: { ...Type.h3, color: Colors.textSecondary },
+  telemetryToggleIcon: { ...Type.h3, color: colors.textSecondary },
   telemetryContent: {
     borderTopWidth: 1,
-    borderTopColor: Colors.borderDefault,
+    borderTopColor: colors.borderDefault,
     padding: Spacing.md,
     gap: Spacing.md,
   },
@@ -872,10 +916,10 @@ const styles = StyleSheet.create({
     minWidth: 125,
     gap: Spacing.xs,
     borderRadius: Radius.sm,
-    backgroundColor: Colors.surfaceSecondary,
+    backgroundColor: colors.surfaceSecondary,
     padding: Spacing.md,
   },
-  telemetryScoreValue: { ...Type.h2, color: Colors.textPrimary },
+  telemetryScoreValue: { ...Type.h2, color: colors.textPrimary },
   telemetryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -886,25 +930,25 @@ const styles = StyleSheet.create({
   telemetrySection: {
     gap: Spacing.sm,
     borderRadius: Radius.sm,
-    backgroundColor: Colors.surfaceSecondary,
+    backgroundColor: colors.surfaceSecondary,
     padding: Spacing.md,
   },
-  telemetryGroupTitle: { ...Type.label, fontWeight: '700', color: Colors.textPrimary },
-  telemetryLabel: { ...Type.caption, color: Colors.textSecondary },
-  telemetryRowLabel: { ...Type.caption, color: Colors.textSecondary, width: '38%' },
+  telemetryGroupTitle: { ...Type.label, fontWeight: '700', color: colors.textPrimary },
+  telemetryLabel: { ...Type.caption, color: colors.textSecondary },
+  telemetryRowLabel: { ...Type.caption, color: colors.textSecondary, width: '38%' },
   telemetryValue: {
     ...Type.body,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
     textAlign: 'right',
   },
-  telemetryMuted: { ...Type.body, color: Colors.textSecondary },
+  telemetryMuted: { ...Type.body, color: colors.textSecondary },
   telemetryTextList: { gap: Spacing.xs },
   telemetryTextValue: {
     ...Type.body,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     lineHeight: 22,
-    backgroundColor: Colors.surfacePrimary,
+    backgroundColor: colors.surfacePrimary,
     borderRadius: Radius.sm,
     padding: Spacing.sm,
   },
@@ -915,18 +959,19 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   telemetryBadgeText: { ...Type.caption, fontWeight: '700' },
-  telemetryHigh: { backgroundColor: Colors.statusSuccessSoft },
-  telemetryMedium: { backgroundColor: Colors.statusWarningSoft },
-  telemetryLow: { backgroundColor: Colors.statusDangerSoft },
-  telemetryHighText: { color: Colors.statusSuccess },
-  telemetryMediumText: { color: Colors.statusWarning },
-  telemetryLowText: { color: Colors.statusDanger },
+  telemetryHigh: { backgroundColor: colors.statusSuccessSoft },
+  telemetryMedium: { backgroundColor: colors.statusWarningSoft },
+  telemetryLow: { backgroundColor: colors.statusDangerSoft },
+  telemetryHighText: { color: colors.statusSuccess },
+  telemetryMediumText: { color: colors.statusWarning },
+  telemetryLowText: { color: colors.statusDanger },
   telemetryChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   telemetryChip: {
     borderRadius: 999,
-    backgroundColor: Colors.surfaceSecondary,
+    backgroundColor: colors.surfaceSecondary,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
   },
-  telemetryChipText: { ...Type.caption, color: Colors.textPrimary },
+  telemetryChipText: { ...Type.caption, color: colors.textPrimary },
 });
+}

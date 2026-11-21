@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
-import { Colors, Components, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
 import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { resetListQuery, setListQuery, useListQuery, type ListScope } from '@/services/listQueryStore';
 import {
@@ -28,22 +28,22 @@ type Props = {
   initialFilter?: string;
 };
 
-const CHIPS: { key: StatusFilter; label: string; icon?: keyof typeof Ionicons.glyphMap; color: string }[] = [
-  { key: 'all', label: 'All', color: Colors.textPrimary },
-  { key: 'verified', label: 'Verified', icon: 'checkmark', color: Colors.statusSuccess },
-  { key: 'needs_verification', label: 'Needs Verification', icon: 'warning-outline', color: Colors.statusWarning },
-  { key: 'expired', label: 'Expired', icon: 'ban-outline', color: Colors.statusDanger },
-];
-
 export default function MedicineList({ scope, medicines, ready, error, onRetry, initialFilter }: Props) {
   const router = useRouter();
-  const { colors } = useDisplayTheme();
+  const { colors, components } = useDisplayTheme();
   const query = useListQuery(scope);
   const [searchFocused, setSearchFocused] = useState(false);
   const shown = useMemo(() => applyQuery(medicines, query), [medicines, query]);
   const sheetCount = activeSheetFilterCount(query);
 
-    useEffect(() => {
+  const chips: { key: StatusFilter; label: string; icon?: keyof typeof Ionicons.glyphMap; color: string }[] = [
+    { key: 'all', label: 'All', color: colors.textPrimary },
+    { key: 'verified', label: 'Verified', icon: 'checkmark', color: colors.statusSuccess },
+    { key: 'needs_verification', label: 'Needs Verification', icon: 'warning-outline', color: colors.statusWarning },
+    { key: 'expired', label: 'Expired', icon: 'ban-outline', color: colors.statusDanger },
+  ];
+
+  useEffect(() => {
     if (initialFilter) {
       const normalized = initialFilter.toLowerCase();
       let targetStatus: StatusFilter = 'all';
@@ -59,14 +59,10 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
         targetStatus = 'verified';
       }
 
-      // 👈 Use setListQuery with scope and status:
       setListQuery(scope, { status: targetStatus, urgency });
     }
   }, [initialFilter, scope]);
 
-
-
-  // ⋮ menu + delete flow
   const [menu, setMenu] = useState<{ medicine: VaultMedicine; anchor: Anchor } | null>(null);
   const [confirm, setConfirm] = useState<VaultMedicine | null>(null);
   const [deleted, setDeleted] = useState<{ id: string; name: string } | null>(null);
@@ -88,7 +84,6 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
 
   return (
     <View style={[styles.root, { backgroundColor: colors.surfacePrimary }]}>
-      {/* Search + filter button */}
       <View style={styles.searchRow}>
         <View
           style={[
@@ -97,7 +92,7 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
               backgroundColor: colors.surfacePrimary,
               borderColor: colors.textSecondary,
             },
-            searchFocused && styles.searchBoxFocused,
+            searchFocused && { borderColor: colors.statusWarning },
           ]}
         >
           <TextInput
@@ -129,35 +124,39 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
         >
           <Ionicons name="options-outline" size={26} color={colors.textPrimary} />
           {sheetCount > 0 && (
-            <View style={styles.filterDot}><Text style={styles.filterDotText}>{sheetCount}</Text></View>
+            <View style={[styles.filterDot, { backgroundColor: colors.statusSuccess }]}>
+              <Text style={[styles.filterDotText, { color: colors.onAction }]}>{sheetCount}</Text>
+            </View>
           )}
         </Pressable>
       </View>
 
-      {/* Status chips */}
       <View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {CHIPS.map((c) => {
+          {chips.map((c) => {
             const on = query.status === c.key;
             return (
               <Pressable
                 key={c.key}
                 onPress={() => setListQuery(scope, { status: c.key })}
-                style={[on ? Components.chipSelected : Components.chip, styles.chip, !on && c.key !== 'all' && { borderColor: c.color }]}
+                style={[
+                  on ? components.chipSelected : components.chip,
+                  styles.chip,
+                  !on && c.key !== 'all' && { borderColor: c.color },
+                ]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
               >
-                {c.icon && <Ionicons name={c.icon} size={16} color={on ? Colors.onAction : c.color} />}
-                <Text style={[styles.chipText, { color: on ? Colors.onAction : c.color }]}>{c.label}</Text>
+                {c.icon && <Ionicons name={c.icon} size={16} color={on ? colors.onAction : c.color} />}
+                <Text style={[styles.chipText, { color: on ? colors.onAction : c.color }]}>{c.label}</Text>
               </Pressable>
             );
           })}
         </ScrollView>
       </View>
 
-      {/* Count + sort */}
       <View style={styles.countRow}>
-        <Text style={styles.count}>
+        <Text style={[styles.count, { color: colors.textPrimary }]}>
           {shown.length} {shown.length === 1 ? 'Medicine' : 'Medicines'}
         </Text>
         <Pressable
@@ -167,14 +166,13 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
           accessibilityRole="button"
           accessibilityLabel={query.sort === 'az' ? 'Sorted A to Z. Tap for Z to A' : 'Sorted Z to A. Tap for A to Z'}
         >
-          <Text style={styles.sortText}>{query.sort === 'az' ? 'A–Z' : 'Z–A'}</Text>
-          <Ionicons name="swap-vertical" size={20} color={Colors.textPrimary} />
+          <Text style={[styles.sortText, { color: colors.textPrimary }]}>{query.sort === 'az' ? 'A–Z' : 'Z–A'}</Text>
+          <Ionicons name="swap-vertical" size={20} color={colors.textPrimary} />
         </Pressable>
       </View>
 
-      {/* List */}
       {!ready ? (
-        <View style={styles.center}><ActivityIndicator color={Colors.actionPrimary} /></View>
+        <View style={styles.center}><ActivityIndicator color={colors.actionPrimary} /></View>
       ) : error && medicines.length === 0 ? (
         <EmptyState
           icon="cloud-offline-outline"
@@ -185,7 +183,9 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
         />
       ) : (
         <>
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {error ? (
+            <Text style={[styles.errorText, { color: colors.statusDanger }]}>{error}</Text>
+          ) : null}
           <FlatList
             data={shown}
             keyExtractor={(m) => m.vault_id}
@@ -233,8 +233,6 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
         ] : []}
       />
 
-      {/* One popup for both steps ("Delete this medicine?" -> "Medicine Deleted"), so iOS
-          never has to close one modal and open another at the same moment. */}
       <Popup
         visible={!!confirm || deletedVisible}
         icon="trash-outline"
@@ -267,13 +265,11 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
   );
 }
 
-// Seconds left in the undo window (counts down from UNDO_SECONDS while `key` is set).
 function useCountdown(key: string | null): number {
   const [left, setLeft] = useState(UNDO_SECONDS);
   useEffect(() => {
     if (!key) return;
     const started = Date.now();
-     
     setLeft(UNDO_SECONDS);
     const t = setInterval(() => {
       setLeft(Math.max(0, UNDO_SECONDS - Math.floor((Date.now() - started) / 1000)));
@@ -288,14 +284,17 @@ function EmptyState({
 }: {
   icon: keyof typeof Ionicons.glyphMap; title: string; message: string; actionLabel?: string; onAction?: () => void;
 }) {
+  const { colors, components } = useDisplayTheme();
   return (
     <View style={styles.empty}>
-      <View style={styles.emptyIcon}><Ionicons name={icon} size={32} color={Colors.actionPrimary} /></View>
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptyMsg}>{message}</Text>
+      <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceSecondary }]}>
+        <Ionicons name={icon} size={32} color={colors.actionPrimary} />
+      </View>
+      <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>{title}</Text>
+      <Text style={[styles.emptyMsg, { color: colors.textSecondary }]}>{message}</Text>
       {actionLabel && onAction && (
-        <Pressable style={[Components.buttonSecondary, { marginTop: Spacing.md }]} onPress={onAction}>
-          <Text style={Components.buttonSecondaryText}>{actionLabel}</Text>
+        <Pressable style={[components.buttonSecondary, { marginTop: Spacing.md }]} onPress={onAction}>
+          <Text style={components.buttonSecondaryText}>{actionLabel}</Text>
         </Pressable>
       )}
     </View>
@@ -303,21 +302,20 @@ function EmptyState({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.surfacePrimary },
+  root: { flex: 1 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 4, paddingHorizontal: Spacing.md + 4, paddingTop: Spacing.md },
   searchBox: {
     flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
-    borderWidth: 1, borderColor: Colors.textSecondary, borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.md, backgroundColor: Colors.surfacePrimary, minHeight: 48,
+    borderWidth: 1, borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.md, minHeight: 48,
   },
-  searchBoxFocused: { borderColor: Colors.statusWarning },
-  searchInput: { flex: 1, ...Type.body, color: Colors.textPrimary, paddingVertical: 0, outlineWidth: 0 },
+  searchInput: { flex: 1, ...Type.body, paddingVertical: 0, outlineWidth: 0 },
   filterBtn: { padding: Spacing.xs },
   filterDot: {
     position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9,
-    backgroundColor: Colors.statusSuccess, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
   },
-  filterDotText: { color: Colors.onAction, fontSize: 11, fontWeight: '700' },
+  filterDotText: { fontSize: 11, fontWeight: '700' },
   chips: { gap: Spacing.sm, paddingHorizontal: Spacing.md + 4, paddingVertical: Spacing.md },
   chip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm + 4, minHeight: 36 },
   chipText: { ...Type.caption, fontWeight: '600' },
@@ -325,17 +323,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: Spacing.md + 4, paddingBottom: Spacing.sm,
   },
-  count: { ...Type.h3, color: Colors.textPrimary },
+  count: { ...Type.h3 },
   sortBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, padding: Spacing.xs },
-  sortText: { ...Type.label, color: Colors.textPrimary },
+  sortText: { ...Type.label },
   list: { paddingHorizontal: Spacing.md + 4, paddingTop: Spacing.xs, paddingBottom: Spacing.xl * 2, flexGrow: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', paddingVertical: Spacing.xl * 1.5, paddingHorizontal: Spacing.lg },
   emptyIcon: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.surfaceSecondary,
+    width: 64, height: 64, borderRadius: 32,
     alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md,
   },
-  emptyTitle: { ...Type.h3, color: Colors.textPrimary, textAlign: 'center' },
-  emptyMsg: { ...Type.body, color: Colors.textSecondary, textAlign: 'center', marginTop: Spacing.xs },
-  errorText: { ...Type.caption, color: Colors.statusDanger, paddingHorizontal: Spacing.md + 4 },
+  emptyTitle: { ...Type.h3, textAlign: 'center' },
+  emptyMsg: { ...Type.body, textAlign: 'center', marginTop: Spacing.xs },
+  errorText: { ...Type.caption, paddingHorizontal: Spacing.md + 4 },
 });

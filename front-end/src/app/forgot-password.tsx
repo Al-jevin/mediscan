@@ -17,11 +17,14 @@ import AuthInput from '@/components/AuthInput';
 import FormError from '@/components/FormError';
 import { MockAuth } from '@/mock/mockAuth';
 import { isValidEmail, MIN_PASSWORD } from '@/lib/validation';
-import { Colors, Radius, Spacing } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 type Step = 'request' | 'reset';
 
 export default function ForgotPasswordScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
@@ -171,22 +174,23 @@ export default function ForgotPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
   body: { paddingHorizontal: Spacing.lg - 4, paddingTop: Spacing.lg },
-  title: { fontSize: 26, fontWeight: '800', color: Colors.text },
+  title: { fontSize: 26, fontWeight: '800', color: colors.text },
   subtitle: {
     fontSize: 15,
     lineHeight: 22,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginTop: Spacing.sm,
     marginBottom: Spacing.md,
   },
-  info: { fontSize: 14, color: Colors.success, marginBottom: Spacing.sm + 2 },
+  info: { fontSize: 14, color: colors.success, marginBottom: Spacing.sm + 2 },
   primaryBtn: {
     height: 50,
     borderRadius: Radius.sm + 2,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
@@ -194,13 +198,14 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.7 },
   primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   secondaryLink: { alignSelf: 'center', marginTop: Spacing.md },
-  link: { color: Colors.text, fontSize: 14, fontWeight: '800' },
+  link: { color: colors.text, fontSize: 14, fontWeight: '800' },
   terms: {
     textAlign: 'center',
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: 12,
     lineHeight: 18,
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
   },
 });
+}

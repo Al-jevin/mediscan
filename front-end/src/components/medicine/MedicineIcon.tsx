@@ -1,14 +1,15 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
-import { Colors, Radius } from '@/constants/display';
+import { Radius } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import type { MedicineForm } from '@/types/medicine';
 
-// Per the doc: no real medicine photos, show an icon based on the medicine type instead.
 type Props = { form: MedicineForm; size?: number };
 
 export default function MedicineIcon({ form, size = 56 }: Props) {
+  const { colors } = useDisplayTheme();
   const iconSize = Math.round(size * 0.45);
-  const color = Colors.actionPrimary;
+  const color = colors.actionPrimary;
   let icon;
   switch (form) {
     case 'Tablet':
@@ -34,7 +35,15 @@ export default function MedicineIcon({ form, size = 56 }: Props) {
   }
   return (
     <View
-      style={[styles.box, { width: size, height: size, borderRadius: size > 64 ? Radius.md : Radius.sm }]}
+      style={[
+        styles.box,
+        {
+          width: size,
+          height: size,
+          borderRadius: size > 64 ? Radius.md : Radius.sm,
+          backgroundColor: colors.surfaceSecondary,
+        },
+      ]}
       accessibilityLabel={`${form} icon`}
     >
       {icon}
@@ -43,5 +52,5 @@ export default function MedicineIcon({ form, size = 56 }: Props) {
 }
 
 const styles = StyleSheet.create({
-  box: { backgroundColor: Colors.surfaceSecondary, alignItems: 'center', justifyContent: 'center' },
+  box: { alignItems: 'center', justifyContent: 'center' },
 });

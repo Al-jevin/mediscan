@@ -11,7 +11,8 @@ import ProfileAvatar from '@/components/ProfileAvatar';
 import ReminderDialog from '@/components/ReminderDialog';
 import { MockAuth } from '@/mock/mockAuth';
 import { maskDate, toApiDate } from '@/lib/validation';
-import { Colors, Radius, Spacing } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 // Two uses:
 //  - "Create Profile"     -> first profile of a new account (no profiles yet). After saving -> Home.
@@ -19,6 +20,8 @@ import { Colors, Radius, Spacing } from '@/constants/display';
 // Fields: avatar, Full Name *, Nickname / Display Name *, Date of Birth * (MM/DD/YYYY). All required.
 // CHANGES: wala nang Relationship (Display Name na lagi), wala ring Allergies (wala sa backend).
 export default function CreateProfileScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { mode } = useLocalSearchParams<{ mode?: string }>();
@@ -108,7 +111,7 @@ export default function CreateProfileScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
         <Pressable onPress={goBack} hitSlop={12} accessibilityLabel="Back">
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>{isFirst ? 'Create Profile' : 'Add Family Member'}</Text>
       </View>
@@ -213,28 +216,30 @@ export default function CreateProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
     paddingHorizontal: Spacing.lg - 4, paddingBottom: Spacing.md,
-    borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surface,
+    borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.surface,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: Colors.text },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: colors.text },
   body: { flexGrow: 1, paddingHorizontal: Spacing.lg - 4, paddingTop: Spacing.lg },
-  title: { fontSize: 20, fontWeight: '800', color: Colors.text },
-  subtitle: { fontSize: 14, lineHeight: 20, color: Colors.textMuted, marginTop: 4 },
+  title: { fontSize: 20, fontWeight: '800', color: colors.text },
+  subtitle: { fontSize: 14, lineHeight: 20, color: colors.textMuted, marginTop: 4 },
   avatarWrap: { alignSelf: 'center', alignItems: 'center', marginVertical: Spacing.lg },
   editBadge: {
     position: 'absolute', right: 0, bottom: 0, width: 30, height: 30, borderRadius: Radius.pill,
-    backgroundColor: Colors.primary, borderWidth: 2, borderColor: Colors.surface,
+    backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.surface,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarLabel: { marginTop: Spacing.sm, color: Colors.success, fontSize: 14, fontWeight: '700' },
+  avatarLabel: { marginTop: Spacing.sm, color: colors.success, fontSize: 14, fontWeight: '700' },
   primaryBtn: {
-    flexDirection: 'row', gap: Spacing.sm, height: 50, borderRadius: Radius.sm + 2, backgroundColor: Colors.primary,
+    flexDirection: 'row', gap: Spacing.sm, height: 50, borderRadius: Radius.sm + 2, backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center', marginTop: Spacing.lg,
   },
   disabled: { opacity: 0.7 },
   primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });
+}

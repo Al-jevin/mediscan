@@ -1,22 +1,22 @@
 import { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import { Colors, Spacing } from '@/constants/display';
+import { Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 type Props = {
   visible: boolean;
-  onRequestClose: () => void; // tap outside the card, or the Android back button
-  onDismiss?: () => void;     // iOS only: called once the closing animation has finished
+  onRequestClose: () => void;
+  onDismiss?: () => void;
   children: ReactNode;
 };
 
-// Dimmed full-screen backdrop with a white rounded card in the middle (Figma "Modal Card").
-// Shared by the Medicine Added and Leave page? overlays.
 export default function OverlayModal({ visible, onRequestClose, onDismiss, children }: Props) {
+  const { colors } = useDisplayTheme();
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onRequestClose} onDismiss={onDismiss} statusBarTranslucent>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onRequestClose} accessibilityLabel="Close" />
-        <View style={styles.card}>{children}</View>
+        <View style={[styles.card, { backgroundColor: colors.surfacePrimary }]}>{children}</View>
       </View>
     </Modal>
   );
@@ -27,7 +27,6 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 340,
-    backgroundColor: Colors.onAction,
     borderRadius: 20,
     paddingTop: 28,
     paddingBottom: Spacing.lg,

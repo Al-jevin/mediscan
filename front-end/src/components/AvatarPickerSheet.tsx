@@ -1,5 +1,6 @@
 import { AVATAR_MAP } from '@/constants/avatars';
-import { Colors, Radius, Spacing } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -16,6 +17,8 @@ type Props = {
 
 // "Choose an Avatar" bottom sheet (Create Profile / Add Family Member).
 export default function AvatarPickerSheet({ visible, selected, onClose, onSave }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const insets = useSafeAreaInsets();
   const [pick, setPick] = useState(selected);
 
@@ -37,7 +40,7 @@ export default function AvatarPickerSheet({ visible, selected, onClose, onSave }
           <View style={styles.titleRow}>
             <Text style={styles.title}>Choose an Avatar</Text>
             <Pressable onPress={onClose} hitSlop={12} accessibilityLabel="Close">
-              <Ionicons name="close" size={24} color={Colors.text} />
+              <Ionicons name="close" size={24} color={colors.text} />
             </Pressable>
           </View>
           <Text style={styles.subtitle}>Pick one that fits this profile.</Text>
@@ -78,14 +81,15 @@ export default function AvatarPickerSheet({ visible, selected, onClose, onSave }
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   root: { 
     flex: 1, 
     justifyContent: 'flex-end', 
     backgroundColor: 'rgba(5, 31, 32, 0.45)', 
   },
   sheet: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: Radius.lg,
     borderTopRightRadius: Radius.lg,
     paddingHorizontal: Spacing.lg - 4,
@@ -96,7 +100,7 @@ const styles = StyleSheet.create({
     width: 40, 
     height: 4, 
     borderRadius: 2, 
-    backgroundColor: Colors.border, 
+    backgroundColor: colors.border, 
     marginBottom: Spacing.md, 
   },
   titleRow: { 
@@ -107,11 +111,11 @@ const styles = StyleSheet.create({
   title: { 
     fontSize: 20, 
     fontWeight: '700', 
-    color: Colors.text, 
+    color: colors.text, 
   },
   subtitle: { 
     fontSize: 13, 
-    color: Colors.textMuted, 
+    color: colors.textMuted, 
     marginTop: 4, 
     marginBottom: Spacing.md, 
   },
@@ -171,15 +175,15 @@ const styles = StyleSheet.create({
   },
   cancel: { 
     borderWidth: 1.5, 
-    borderColor: Colors.text, 
+    borderColor: colors.text, 
   },
   cancelText: { 
     fontSize: 16, 
     fontWeight: '700', 
-    color: Colors.text, 
+    color: colors.text, 
   },
   save: { 
-    backgroundColor: Colors.primary, 
+    backgroundColor: colors.primary, 
   },
   saveText: { 
     fontSize: 16, 
@@ -187,3 +191,4 @@ const styles = StyleSheet.create({
     color: '#FFFFFF', 
   },
 });
+}

@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Spacing } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 type Props = { title: string; subtitle?: string; children?: React.ReactNode };
 
@@ -11,6 +12,8 @@ type Props = { title: string; subtitle?: string; children?: React.ReactNode };
 // It has a title, an optional subtitle, and children (like buttons).
 // Tap the dim area or the X to close.
 export default function BottomSheet({ title, subtitle, children }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -22,7 +25,7 @@ export default function BottomSheet({ title, subtitle, children }: Props) {
         <View style={styles.titleRow}>
           <Text style={styles.title}>{title}</Text>
           <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Close">
-            <Ionicons name="close" size={24} color={Colors.text} />
+            <Ionicons name="close" size={24} color={colors.text} />
           </Pressable>
         </View>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -32,14 +35,16 @@ export default function BottomSheet({ title, subtitle, children }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(5,31,32,0.45)' },
   sheet: {
-    backgroundColor: Colors.surface, borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg,
+    backgroundColor: colors.surface, borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg,
     paddingHorizontal: Spacing.lg - 4, paddingTop: Spacing.sm + 4,
   },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, marginBottom: Spacing.md },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: Spacing.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 20, fontWeight: '700', color: Colors.text },
-  subtitle: { fontSize: 13, color: Colors.textMuted, marginTop: Spacing.sm, marginBottom: Spacing.md },
+  title: { fontSize: 20, fontWeight: '700', color: colors.text },
+  subtitle: { fontSize: 13, color: colors.textMuted, marginTop: Spacing.sm, marginBottom: Spacing.md },
 });
+}

@@ -7,7 +7,8 @@ import AuthHeader from '@/components/AuthHeader';
 import FormError from '@/components/FormError';
 import SaveLoginDialog from '@/components/SaveLoginDialog';
 import { MockAuth } from '@/mock/mockAuth';
-import { Colors, Radius, Spacing } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 60; // the backend ignores resends within 60 seconds of the last code
@@ -16,6 +17,8 @@ const RESEND_SECONDS = 60; // the backend ignores resends within 60 seconds of t
 // User opens their email, types the 6-digit code -> backend checks it.
 // Correct -> account is marked verified -> logged in -> ask to save login -> Choose Profile.
 export default function VerifyCodeScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { email = '' } = useLocalSearchParams<{ email?: string }>();
@@ -145,32 +148,34 @@ export default function VerifyCodeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
   body: { paddingHorizontal: Spacing.lg - 4, paddingTop: Spacing.lg },
-  title: { fontSize: 26, fontWeight: '800', color: Colors.text },
-  subtitle: { fontSize: 15, lineHeight: 22, color: Colors.textMuted, marginTop: Spacing.sm, marginBottom: Spacing.md },
-  email: { fontWeight: '700', color: Colors.text },
-  info: { fontSize: 14, color: Colors.success, marginBottom: Spacing.sm + 2 },
+  title: { fontSize: 26, fontWeight: '800', color: colors.text },
+  subtitle: { fontSize: 15, lineHeight: 22, color: colors.textMuted, marginTop: Spacing.sm, marginBottom: Spacing.md },
+  email: { fontWeight: '700', color: colors.text },
+  info: { fontSize: 14, color: colors.success, marginBottom: Spacing.sm + 2 },
   boxes: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.md + 4 },
   box: {
-    width: 46, height: 54, borderRadius: Radius.sm + 2, borderWidth: 1, borderColor: Colors.border,
-    backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center',
+    width: 46, height: 54, borderRadius: Radius.sm + 2, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
   },
-  boxActive: { borderWidth: 2, borderColor: Colors.primary },
-  digit: { fontSize: 22, fontWeight: '700', color: Colors.text },
+  boxActive: { borderWidth: 2, borderColor: colors.primary },
+  digit: { fontSize: 22, fontWeight: '700', color: colors.text },
   hiddenInput: { position: 'absolute', width: '100%', height: '100%', opacity: 0.01 },
   primaryBtn: {
-    height: 50, borderRadius: Radius.sm + 2, backgroundColor: Colors.primary,
+    height: 50, borderRadius: Radius.sm + 2, backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center',
   },
   disabled: { opacity: 0.7 },
   primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.md },
-  hint: { color: Colors.textMuted, fontSize: 13 },
-  link: { color: Colors.text, fontSize: 13, fontWeight: '800' },
+  hint: { color: colors.textMuted, fontSize: 13 },
+  link: { color: colors.text, fontSize: 13, fontWeight: '800' },
   terms: {
-    textAlign: 'center', color: Colors.textMuted, fontSize: 12, lineHeight: 18,
+    textAlign: 'center', color: colors.textMuted, fontSize: 12, lineHeight: 18,
     paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg,
   },
 });
+}

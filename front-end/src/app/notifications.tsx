@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useProfile } from '@/context/ProfileContext';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import {
   fetchNotifications,
   type NotificationItem,
@@ -32,11 +33,8 @@ function formatScheduledTime(value: string): string {
   return `${dateLabel}, ${timeLabel}`;
 }
 
-function notificationColor(item: NotificationItem): string {
-  return item.type === 'medication_reminder' ? '#278238' : '#B85C00';
-}
-
 export default function NotificationsScreen() {
+  const { colors } = useDisplayTheme();
   const router = useRouter();
   const { profiles } = useProfile();
   const profileIdsKey = profiles
@@ -46,6 +44,9 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const notificationColor = (item: NotificationItem): string =>
+    item.type === 'medication_reminder' ? colors.statusSuccess : colors.statusWarning;
 
   useFocusEffect(
     useCallback(() => {
@@ -76,8 +77,19 @@ export default function NotificationsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: colors.surfacePrimary }]}
+      edges={['top']}
+    >
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.surfacePrimary,
+            borderBottomColor: colors.borderDefault,
+          },
+        ]}
+      >
         <Pressable
           onPress={() => {
             if (router.canGoBack()) {
@@ -91,10 +103,10 @@ export default function NotificationsScreen() {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={25} color="#12312F" />
+          <Ionicons name="arrow-back" size={25} color={colors.textPrimary} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Notifications</Text>
 
         <View style={styles.headerSpacer} />
       </View>
@@ -106,26 +118,44 @@ export default function NotificationsScreen() {
       >
         {loading ? (
           <View style={styles.status}>
-            <ActivityIndicator color="#278238" />
-            <Text style={styles.statusText}>Loading notifications…</Text>
+            <ActivityIndicator color={colors.statusSuccess} />
+            <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+              Loading notifications…
+            </Text>
           </View>
         ) : error ? (
-          <Text style={styles.statusText} accessibilityRole="alert">
+          <Text
+            style={[styles.statusText, { color: colors.statusDanger }]}
+            accessibilityRole="alert"
+          >
             {error}
           </Text>
         ) : notifications.length === 0 ? (
-          <Text style={styles.statusText}>No upcoming medication reminders.</Text>
+          <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+            No upcoming medication reminders.
+          </Text>
         ) : (
           notifications.map((item) => {
             const color = notificationColor(item);
             return (
-              <View key={item.id} style={styles.card}>
+              <View
+                key={item.id}
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: colors.surfacePrimary,
+                    borderColor: colors.borderDefault,
+                  },
+                ]}
+              >
                 <View style={styles.cardHeading}>
                   <View style={[styles.dot, { backgroundColor: color }]} />
-                  <Text style={styles.title}>{item.title}</Text>
+                  <Text style={[styles.title, { color: colors.textPrimary }]}>{item.title}</Text>
                 </View>
 
-                <Text style={styles.message}>{item.message}</Text>
+                <Text style={[styles.message, { color: colors.textSecondary }]}>
+                  {item.message}
+                </Text>
 
                 <Text style={[styles.time, { color }]}>
                   {formatScheduledTime(item.scheduled_at)}
@@ -140,19 +170,14 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#F6F8FA',
-  },
+  safe: { flex: 1 },
   header: {
     height: 62,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
-    borderBottomColor: '#D8DEE3',
   },
   backButton: {
     width: 40,
@@ -165,14 +190,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 25,
     fontWeight: '700',
-    color: '#102B2A',
   },
-  headerSpacer: {
-    width: 40,
-  },
-  scroll: {
-    flex: 1,
-  },
+  headerSpacer: { width: 40 },
+  scroll: { flex: 1 },
   list: {
     paddingHorizontal: 20,
     paddingTop: 10,
@@ -190,13 +210,10 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     textAlign: 'center',
     fontSize: 14,
-    color: '#707070',
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 11,
     borderWidth: 1,
-    borderColor: '#E0E3E6',
     paddingHorizontal: 14,
     paddingTop: 11,
     paddingBottom: 9,
@@ -214,26 +231,8 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 7,
   },
-  dot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-  },
-  title: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#102B2A',
-  },
-  message: {
-    fontSize: 13,
-    color: '#707070',
-    marginLeft: 20,
-    marginBottom: 6,
-  },
-  time: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 20,
-  },
+  dot: { width: 9, height: 9, borderRadius: 5 },
+  title: { flex: 1, fontSize: 14, fontWeight: '900' },
+  message: { fontSize: 13, marginLeft: 20, marginBottom: 6 },
+  time: { fontSize: 12, fontWeight: '600', marginLeft: 20 },
 });

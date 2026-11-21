@@ -5,7 +5,8 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontSizes, Radius, Spacing } from '@/constants/display';
+import { FontSizes, Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { useProfile } from '@/context/ProfileContext';
 import AvatarPickerSheet from '@/components/AvatarPickerSheet';
 import DataSync from '@/components/Datasync';
@@ -13,6 +14,8 @@ import ProfileAvatar from '@/components/ProfileAvatar';
 import HealthInfo from '@/components/HealthInfo';
 
 export default function ProfileScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [healthOpen, setHealthOpen] = useState(false);
@@ -74,21 +77,21 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>Profile</Text>
 
         <Pressable
-          style={({ pressed }) => [styles.row, pressed && { backgroundColor: Colors.primarySoft }]}
+          style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.primarySoft }]}
           onPress={openEdit}
         >
-          <MaterialCommunityIcons name="pencil-outline" size={20} color={Colors.primary} />
+          <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.primary} />
           <Text style={styles.rowText}>Edit Profile</Text>
-          <Ionicons name="chevron-forward" size={18} color={Colors.text} />
+          <Ionicons name="chevron-forward" size={18} color={colors.text} />
         </Pressable>
 
         <Pressable
-          style={({ pressed }) => [styles.row, pressed && { backgroundColor: Colors.primarySoft }]}
+          style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.primarySoft }]}
           onPress={() => setHealthOpen(true)}
         >
-          <MaterialCommunityIcons name="heart-pulse" size={20} color={Colors.primary} />
+          <MaterialCommunityIcons name="heart-pulse" size={20} color={colors.primary} />
           <Text style={styles.rowText}>Health Information</Text>
-          <Ionicons name="chevron-forward" size={18} color={Colors.text} />
+          <Ionicons name="chevron-forward" size={18} color={colors.text} />
         </Pressable>
       </ScrollView>
 
@@ -106,29 +109,31 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
 
   identity: { alignItems: 'center', marginTop: Spacing.md, marginBottom: Spacing.lg },
   avatarWrap: { marginBottom: Spacing.sm + 4 },
   // Same pencil badge as Create Profile / Add-Edit Profile
   editBadge: {
     position: 'absolute', right: 0, bottom: 0, width: 30, height: 30, borderRadius: Radius.pill,
-    backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: Colors.surface,
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: colors.surface,
   },
-  fullName: { fontWeight: '700', color: Colors.text, fontSize: FontSizes.body + 4 },
-  email: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+  fullName: { fontWeight: '700', color: colors.text, fontSize: FontSizes.body + 4 },
+  email: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
 
   sectionTitle: {
-    fontWeight: '700', color: Colors.text, fontSize: FontSizes.body,
+    fontWeight: '700', color: colors.text, fontSize: FontSizes.body,
     marginTop: Spacing.md, marginBottom: Spacing.sm,
   },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 4,
     paddingVertical: 14, paddingHorizontal: Spacing.md, marginBottom: Spacing.sm + 2,
-    borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderRadius: Radius.md, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  rowText: { flex: 1, color: Colors.text, fontSize: FontSizes.body - 1, fontWeight: '600' },
+  rowText: { flex: 1, color: colors.text, fontSize: FontSizes.body - 1, fontWeight: '600' },
 });
+}

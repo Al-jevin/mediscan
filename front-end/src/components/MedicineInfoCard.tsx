@@ -1,6 +1,7 @@
 import { Image, ImageSource } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 export type MedicineInfoRow = {
   icon: ImageSource | number; // use Assets.icons.*
@@ -14,6 +15,8 @@ type Props = {
 
 // Bordered card listing icon + label + value rows (manufacturer, expiry date, ...).
 export default function MedicineInfoCard({ rows }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   return (
     <View style={styles.card}>
       {rows.map((row) => (
@@ -27,16 +30,18 @@ export default function MedicineInfoCard({ rows }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   card: {
-    backgroundColor: Colors.surfacePrimary,
+    backgroundColor: colors.surfacePrimary,
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
+    borderColor: colors.borderDefault,
     borderRadius: Radius.sm,
     padding: Spacing.sm,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm },
   icon: { width: 24, height: 24 },
-  label: { ...Type.label, fontWeight: '700', color: Colors.textPrimary, flex: 1 },
-  value: { ...Type.label, fontWeight: '700', color: Colors.textSecondary, flex: 1 },
+  label: { ...Type.label, fontWeight: '700', color: colors.textPrimary, flex: 1 },
+  value: { ...Type.label, fontWeight: '700', color: colors.textSecondary, flex: 1 },
 });
+}

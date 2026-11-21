@@ -10,7 +10,8 @@ import { useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CalendarDatePicker from '@/components/medicine/CalendarDatePicker';
-import { Colors, Components, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { clearNoteDraft, useNoteDraft } from '@/services/noteDraft';
 import { addMedicine, updateMedicine } from '@/services/vaultStore';
 import type { NewMedicine, VaultMedicine } from '@/types/medicine';
@@ -28,6 +29,8 @@ type Props =
   | { mode: 'preview'; medicine: NewMedicine; onSaved?: (saved: VaultMedicine) => void };
 
 export default function MedicineDetails(props: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const { medicine, mode } = props;
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -104,8 +107,8 @@ export default function MedicineDetails(props: Props) {
   };
 
   const expiryColor = expired
-    ? Colors.statusDanger
-    : days !== null && days <= 30 ? Colors.statusWarning : Colors.textPrimary;
+    ? colors.statusDanger
+    : days !== null && days <= 30 ? colors.statusWarning : colors.textPrimary;
 
   return (
     <View style={styles.root}>
@@ -134,13 +137,13 @@ export default function MedicineDetails(props: Props) {
         </View>
 
         <Text style={styles.section}>Medicine Information</Text>
-        <InfoRow icon={<Ionicons name="flask-outline" size={22} color={Colors.textPrimary} />} label="Generic Name" value={medicine.fda_genericname} />
-        <InfoRow icon={<MaterialCommunityIcons name="pill" size={22} color={Colors.textPrimary} />} label="Medicine Type" value={medicine.fda_dosage_form} />
-        <InfoRow icon={<MaterialCommunityIcons name="scale-balance" size={22} color={Colors.textPrimary} />} label="Strength" value={medicine.fda_dosage_strength} />
-        <InfoRow icon={<Ionicons name="pricetag-outline" size={22} color={Colors.textPrimary} />} label="Category" value={medicine.fda_pharmacologic_category} />
-        <InfoRow icon={<Ionicons name="business-outline" size={22} color={Colors.textPrimary} />} label="Manufacturer" value={medicine.fda_manufacturer} />
-        <InfoRow icon={<Ionicons name="document-text-outline" size={22} color={Colors.textPrimary} />} label="Classification" value={medicine.fda_classification} />
-        <InfoRow icon={<Ionicons name="barcode-outline" size={22} color={Colors.textPrimary} />} label="FDA Reg. No." value={medicine.fda_registration_id} />
+        <InfoRow icon={<Ionicons name="flask-outline" size={22} color={colors.textPrimary} />} label="Generic Name" value={medicine.fda_genericname} />
+        <InfoRow icon={<MaterialCommunityIcons name="pill" size={22} color={colors.textPrimary} />} label="Medicine Type" value={medicine.fda_dosage_form} />
+        <InfoRow icon={<MaterialCommunityIcons name="scale-balance" size={22} color={colors.textPrimary} />} label="Strength" value={medicine.fda_dosage_strength} />
+        <InfoRow icon={<Ionicons name="pricetag-outline" size={22} color={colors.textPrimary} />} label="Category" value={medicine.fda_pharmacologic_category} />
+        <InfoRow icon={<Ionicons name="business-outline" size={22} color={colors.textPrimary} />} label="Manufacturer" value={medicine.fda_manufacturer} />
+        <InfoRow icon={<Ionicons name="document-text-outline" size={22} color={colors.textPrimary} />} label="Classification" value={medicine.fda_classification} />
+        <InfoRow icon={<Ionicons name="barcode-outline" size={22} color={colors.textPrimary} />} label="FDA Reg. No." value={medicine.fda_registration_id} />
         <InfoRow
           icon={<Ionicons name="calendar-outline" size={22} color={expiryColor} />}
           label="Expiry Date"
@@ -148,13 +151,13 @@ export default function MedicineDetails(props: Props) {
           valueColor={expiryColor}
         />
         {medicine.vault_common_uses ? (
-          <InfoRow icon={<Ionicons name="list-outline" size={22} color={Colors.textPrimary} />} label="Common Uses" value={medicine.vault_common_uses} />
+          <InfoRow icon={<Ionicons name="list-outline" size={22} color={colors.textPrimary} />} label="Common Uses" value={medicine.vault_common_uses} />
         ) : null}
         {medicine.vault_warnings ? (
           <InfoRow
-            icon={<Ionicons name="warning-outline" size={22} color={Colors.statusDanger} />}
+            icon={<Ionicons name="warning-outline" size={22} color={colors.statusDanger} />}
             label="Warnings"
-            labelColor={Colors.statusDanger}
+            labelColor={colors.statusDanger}
             value={medicine.vault_warnings}
           />
         ) : null}
@@ -178,38 +181,38 @@ export default function MedicineDetails(props: Props) {
         {saveError ? <Text style={styles.saveError}>{saveError}</Text> : null}
         <View style={styles.bottom}>
           <Pressable
-            style={({ pressed }) => [Components.buttonSecondary, styles.btn, pressed && styles.pressed]}
+            style={({ pressed }) => [components.buttonSecondary, styles.btn, pressed && styles.pressed]}
             onPress={openAddNote}
             accessibilityRole="button"
           >
-            <Ionicons name="create-outline" size={20} color={Colors.textPrimary} />
-            <Text style={Components.buttonSecondaryText}>{note ? 'Edit Note' : 'Add Note'}</Text>
+            <Ionicons name="create-outline" size={20} color={colors.textPrimary} />
+            <Text style={components.buttonSecondaryText}>{note ? 'Edit Note' : 'Add Note'}</Text>
           </Pressable>
 
           {mode === 'saved' && (
             <Pressable
-              style={({ pressed }) => [Components.buttonSecondary, styles.btn, pressed && styles.pressed]}
+              style={({ pressed }) => [components.buttonSecondary, styles.btn, pressed && styles.pressed]}
               onPress={openEditExpiry}
               accessibilityRole="button"
               accessibilityLabel="Edit expiration date"
             >
-              <Ionicons name="calendar-outline" size={20} color={Colors.textPrimary} />
-              <Text style={Components.buttonSecondaryText}>Edit Expiry</Text>
+              <Ionicons name="calendar-outline" size={20} color={colors.textPrimary} />
+              <Text style={components.buttonSecondaryText}>Edit Expiry</Text>
             </Pressable>
           )}
 
           {mode === 'preview' && (
             <Pressable
               style={({ pressed }) => [
-                Components.buttonPrimary, styles.btn, { backgroundColor: Colors.actionPrimary },
+                components.buttonPrimary, styles.btn, { backgroundColor: colors.actionPrimary },
                 (saving || alreadySaved) && { opacity: 0.6 }, pressed && styles.pressed,
               ]}
               onPress={saveToVault}
               disabled={saving || alreadySaved}
               accessibilityRole="button"
             >
-              <Ionicons name={alreadySaved ? 'checkmark' : 'bookmark-outline'} size={20} color={Colors.onAction} />
-              <Text style={Components.buttonPrimaryText}>
+              <Ionicons name={alreadySaved ? 'checkmark' : 'bookmark-outline'} size={20} color={colors.onAction} />
+              <Text style={components.buttonPrimaryText}>
                 {alreadySaved ? 'Saved' : saving ? 'Saving…' : 'Save to Vault'}
               </Text>
             </Pressable>
@@ -245,29 +248,29 @@ export default function MedicineDetails(props: Props) {
                 accessibilityRole="button"
                 accessibilityLabel="Choose expiration date"
               >
-                <Ionicons name="calendar-outline" size={20} color={Colors.textSecondary} />
+                <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
               </Pressable>
             </View>
             {saveError ? <Text style={styles.saveError}>{saveError}</Text> : null}
             <View style={styles.modalActions}>
               <Pressable
                 onPress={closeEditExpiry}
-                style={Components.buttonSecondary}
+                style={components.buttonSecondary}
                 accessibilityRole="button"
               >
-                <Text style={Components.buttonSecondaryText}>Cancel</Text>
+                <Text style={components.buttonSecondaryText}>Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={() => void saveExpiry()}
                 disabled={saving}
                 style={[
-                  Components.buttonPrimary,
-                  { backgroundColor: Colors.actionPrimary },
+                  components.buttonPrimary,
+                  { backgroundColor: colors.actionPrimary },
                   saving && { opacity: 0.6 },
                 ]}
                 accessibilityRole="button"
               >
-                <Text style={Components.buttonPrimaryText}>{saving ? 'Saving…' : 'Save'}</Text>
+                <Text style={components.buttonPrimaryText}>{saving ? 'Saving…' : 'Save'}</Text>
               </Pressable>
             </View>
           </View>
@@ -305,6 +308,8 @@ export default function MedicineDetails(props: Props) {
 function InfoRow({
   icon, label, value, valueColor, labelColor,
 }: { icon: ReactNode; label: string; value: string | null | undefined; valueColor?: string; labelColor?: string }) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   return (
     <View style={styles.row}>
       <View style={styles.rowLeft}>
@@ -318,42 +323,43 @@ function InfoRow({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.surfacePrimary },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.surfacePrimary },
   scroll: { padding: Spacing.md + 4, paddingBottom: Spacing.xl },
   top: { flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start', marginBottom: Spacing.lg },
   topText: { flex: 1, gap: 2 },
-  name: { ...Type.h3, color: Colors.textPrimary },
-  form: { ...Type.body, color: Colors.textSecondary },
+  name: { ...Type.h3, color: colors.textPrimary },
+  form: { ...Type.body, color: colors.textSecondary },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginVertical: Spacing.xs },
-  meta: { ...Type.caption, color: Colors.textSecondary },
-  confidence: { ...Type.caption, color: Colors.statusSuccess, fontWeight: '700' },
-  section: { ...Type.h3, color: Colors.textPrimary, marginBottom: Spacing.sm },
+  meta: { ...Type.caption, color: colors.textSecondary },
+  confidence: { ...Type.caption, color: colors.statusSuccess, fontWeight: '700' },
+  section: { ...Type.h3, color: colors.textPrimary, marginBottom: Spacing.sm },
   row: {
     flexDirection: 'row', paddingVertical: Spacing.sm + 4, gap: Spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.borderDefault,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderDefault,
   },
   rowLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, width: '45%' },
-  rowLabel: { ...Type.label, color: Colors.textPrimary, flexShrink: 1 },
-  rowValue: { ...Type.body, color: Colors.textPrimary, flex: 1 },
-  noteCard: { ...Components.card, borderRadius: Radius.sm, marginTop: Spacing.lg },
+  rowLabel: { ...Type.label, color: colors.textPrimary, flexShrink: 1 },
+  rowValue: { ...Type.body, color: colors.textPrimary, flex: 1 },
+  noteCard: { ...components.card, borderRadius: Radius.sm, marginTop: Spacing.lg },
   noteHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xs },
-  noteTitle: { ...Type.label, color: Colors.textPrimary },
-  noteEdit: { ...Type.label, color: Colors.statusSuccess },
-  noteText: { ...Type.body, color: Colors.textPrimary },
+  noteTitle: { ...Type.label, color: colors.textPrimary },
+  noteEdit: { ...Type.label, color: colors.statusSuccess },
+  noteText: { ...Type.body, color: colors.textPrimary },
   bottomContainer: {
     paddingHorizontal: Spacing.md + 4,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.borderDefault,
-    backgroundColor: Colors.surfacePrimary,
+    borderTopColor: colors.borderDefault,
+    backgroundColor: colors.surfacePrimary,
   },
   bottom: {
     flexDirection: 'row', gap: Spacing.sm + 4,
   },
   btn: { flex: 1, flexDirection: 'row', gap: Spacing.sm },
   pressed: { opacity: 0.85 },
-  saveError: { ...Type.caption, color: Colors.statusDanger, marginBottom: Spacing.sm },
+  saveError: { ...Type.caption, color: colors.statusDanger, marginBottom: Spacing.sm },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'center',
@@ -364,15 +370,15 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     borderRadius: Radius.md,
     padding: Spacing.lg,
-    backgroundColor: Colors.surfacePrimary,
+    backgroundColor: colors.surfacePrimary,
   },
-  modalTitle: { ...Type.h3, color: Colors.textPrimary },
+  modalTitle: { ...Type.h3, color: colors.textPrimary },
   modalInput: {
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
+    borderColor: colors.borderDefault,
     borderRadius: Radius.sm,
     padding: Spacing.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   expiryInputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   expiryInput: { flex: 1 },
@@ -382,8 +388,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
+    borderColor: colors.borderDefault,
     borderRadius: Radius.sm,
   },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },
 });
+}

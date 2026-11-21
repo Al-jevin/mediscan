@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, FontSizes, Radius, Spacing, Type } from '@/constants/display';
+import { FontSizes, Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 const LAST_SYNCED_KEY = 'mediscan:lastSynced';
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -44,6 +45,8 @@ function SyncModal({
   progress: number;
   onDone: () => void;
 }) {
+  const { colors, components } = useDisplayTheme();
+  const modalStyles = makeModalStyles(colors, components);
   const done = status === 'done';
   const pct = Math.max(0, Math.min(100, Math.round(progress)));
 
@@ -59,7 +62,7 @@ function SyncModal({
       <View style={modalStyles.backdrop}>
         <View style={modalStyles.card}>
           <View style={modalStyles.iconCircle}>
-            <Ionicons name={done ? 'checkmark' : 'sync'} size={28} color={Colors.primary} />
+            <Ionicons name={done ? 'checkmark' : 'sync'} size={28} color={colors.primary} />
           </View>
 
           {done ? (
@@ -93,6 +96,8 @@ function SyncModal({
 type SyncStatus = 'idle' | 'syncing' | 'done';
 
 export default function DataSync() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const [status, setStatus] = useState<SyncStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [lastSynced, setLastSynced] = useState('Never');
@@ -124,7 +129,7 @@ export default function DataSync() {
       <View style={styles.card}>
         <View style={styles.syncRow}>
           <View style={styles.syncIcon}>
-            <Ionicons name="sync" size={18} color={Colors.primary} />
+            <Ionicons name="sync" size={18} color={colors.primary} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.syncTitle}>Sync your data to the cloud</Text>
@@ -151,58 +156,62 @@ export default function DataSync() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   sectionTitle: {
-    fontWeight: '700', color: Colors.text, fontSize: FontSizes.body,
+    fontWeight: '700', color: colors.text, fontSize: FontSizes.body,
     marginTop: Spacing.md, marginBottom: Spacing.sm,
   },
   card: {
     padding: Spacing.md, borderRadius: Radius.md, borderWidth: 1,
-    borderColor: Colors.border, backgroundColor: Colors.surface,
+    borderColor: colors.border, backgroundColor: colors.surface,
   },
   syncRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 4, marginBottom: Spacing.md },
   syncIcon: {
-    width: 36, height: 36, borderRadius: Radius.pill, backgroundColor: Colors.primarySoft,
+    width: 36, height: 36, borderRadius: Radius.pill, backgroundColor: colors.primarySoft,
     alignItems: 'center', justifyContent: 'center',
   },
-  syncTitle: { fontWeight: '600', color: Colors.text, fontSize: FontSizes.body - 1 },
-  syncSub: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  syncTitle: { fontWeight: '600', color: colors.text, fontSize: FontSizes.body - 1 },
+  syncSub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   syncBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm,
-    height: 44, borderRadius: Radius.sm, backgroundColor: Colors.primary,
+    height: 44, borderRadius: Radius.sm, backgroundColor: colors.primary,
   },
   syncBtnText: { color: '#fff', fontWeight: '700' },
 });
+}
 
-const modalStyles = StyleSheet.create({
-  backdrop: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: Spacing.lg, backgroundColor: 'rgba(5,31,32,0.45)',
-  },
-  card: {
-    width: '100%', maxWidth: 340, backgroundColor: Colors.surface,
-    borderRadius: Radius.lg, padding: Spacing.lg - 4, alignItems: 'center',
-    elevation: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  iconCircle: {
-    width: 60, height: 60, borderRadius: Radius.pill, backgroundColor: Colors.primarySoft,
-    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md - 2,
-  },
-  title: { ...Type.h3, color: Colors.text, textAlign: 'center' },
-  message: {
-    fontSize: 13, lineHeight: 19, color: Colors.textMuted, textAlign: 'center',
-    marginTop: Spacing.sm, marginBottom: Spacing.md + 4,
-  },
-  track: {
-    width: '100%', height: 8, borderRadius: Radius.pill,
-    backgroundColor: Colors.primarySoft, overflow: 'hidden',
-  },
-  fill: { height: '100%', borderRadius: Radius.pill, backgroundColor: Colors.primary },
-  percent: { fontSize: 12, color: Colors.textMuted, marginTop: Spacing.sm },
-  doneBtn: {
-    width: '100%', height: 46, borderRadius: Radius.sm, backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  doneText: { ...Type.label, fontSize: 15, color: '#fff' },
-});
+function makeModalStyles(colors: any, components: any) {
+  return StyleSheet.create({
+    backdrop: {
+      flex: 1, alignItems: 'center', justifyContent: 'center',
+      paddingHorizontal: Spacing.lg, backgroundColor: 'rgba(5,31,32,0.45)',
+    },
+    card: {
+      width: '100%', maxWidth: 340, backgroundColor: colors.surface,
+      borderRadius: Radius.lg, padding: Spacing.lg - 4, alignItems: 'center',
+      elevation: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+    },
+    iconCircle: {
+      width: 60, height: 60, borderRadius: Radius.pill, backgroundColor: colors.primarySoft,
+      alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md - 2,
+    },
+    title: { ...Type.h3, color: colors.text, textAlign: 'center' },
+    message: {
+      fontSize: 13, lineHeight: 19, color: colors.textMuted, textAlign: 'center',
+      marginTop: Spacing.sm, marginBottom: Spacing.md + 4,
+    },
+    track: {
+      width: '100%', height: 8, borderRadius: Radius.pill,
+      backgroundColor: colors.primarySoft, overflow: 'hidden',
+    },
+    fill: { height: '100%', borderRadius: Radius.pill, backgroundColor: colors.primary },
+    percent: { fontSize: 12, color: colors.textMuted, marginTop: Spacing.sm },
+    doneBtn: {
+      width: '100%', height: 46, borderRadius: Radius.sm, backgroundColor: colors.primary,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    doneText: { ...Type.label, fontSize: 15, color: '#fff' },
+  });
+}

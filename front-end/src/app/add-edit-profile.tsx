@@ -17,9 +17,14 @@ import AvatarPickerSheet from '../components/AvatarPickerSheet';
 import ProfileAvatar from '../components/ProfileAvatar';
 import ReminderDialog from '../components/ReminderDialog';
 import { useProfile } from '../context/ProfileContext';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
+import { useAppTheme } from '@/context/ThemeContext';
 import { fromApiDate, maskDate, toApiDate } from '../lib/validation';
 
 export default function AddEditProfileScreen() {
+  const { colors } = useDisplayTheme();
+  const { colorScheme } = useAppTheme();
+  const styles = makeStyles(colors);
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string; profileId?: string }>();
   const isEdit = params.mode === 'edit';
@@ -97,12 +102,12 @@ export default function AddEditProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
 
       {/* Header */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1B4332" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>
           {isEdit ? 'Edit Profile' : 'Add Family Member'}
@@ -124,7 +129,7 @@ export default function AddEditProfileScreen() {
             >
               <ProfileAvatar icon={iconId} size={96} />
               <View style={styles.editBadge}>
-                <Ionicons name="pencil" size={14} color="#FFFFFF" />
+                <Ionicons name="pencil" size={14} color={colors.onAction} />
               </View>
             </TouchableOpacity>
             <Text style={styles.avatarHint}>Choose avatar</Text>
@@ -138,7 +143,7 @@ export default function AddEditProfileScreen() {
             <TextInput
               style={[styles.input, missing.includes('Full Name') && styles.inputInvalid]}
               placeholder="e.g. Maria Batumbakal"
-              placeholderTextColor="#A0AEC0"
+              placeholderTextColor={colors.textSecondary}
               autoCapitalize="words"
               maxLength={150}
               value={fullname}
@@ -154,7 +159,7 @@ export default function AddEditProfileScreen() {
             <TextInput
               style={[styles.input, missing.includes('Nickname / Display Name') && styles.inputInvalid]}
               placeholder="e.g. Me, Mama, Papa"
-              placeholderTextColor="#A0AEC0"
+              placeholderTextColor={colors.textSecondary}
               autoCapitalize="words"
               maxLength={150}
               value={displayName}
@@ -170,7 +175,7 @@ export default function AddEditProfileScreen() {
             <TextInput
               style={[styles.input, (missing.includes('Date of Birth') || badDate) && styles.inputInvalid]}
               placeholder="MM/DD/YYYY"
-              placeholderTextColor="#A0AEC0"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="number-pad"
               maxLength={10}
               value={birthdate}
@@ -219,8 +224,9 @@ export default function AddEditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+function makeStyles(colors: any) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surfacePrimary },
   topBar: {
     height: 56,
     flexDirection: 'row',
@@ -228,10 +234,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: colors.borderDefault,
   },
   backButton: { padding: 4 },
-  topBarTitle: { fontSize: 18, fontWeight: '700', color: '#1B4332' },
+  topBarTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
   scrollContent: { padding: 24, justifyContent: 'space-between', flexGrow: 1 },
   avatarSection: { alignItems: 'center', marginVertical: 16 },
   avatarWrap: {
@@ -246,43 +252,44 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#183732',
+    backgroundColor: colors.actionPrimary,
     width: 30,
     height: 30,
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#F8FAFC',
+    borderColor: colors.surfacePrimary,
   },
   avatarHint: {
     fontSize: 14,
-    color: '#2E7D32',
+    color: colors.statusSuccess,
     fontWeight: '700',
     marginTop: 8,
   },
   form: { flex: 1 },
-  label: { fontSize: 13, fontWeight: '600', color: '#4A5568', marginBottom: 6 },
-  required: { color: '#E53E3E' },
+  label: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 6 },
+  required: { color: colors.statusDanger },
   input: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.borderDefault,
     borderRadius: 8,
     paddingHorizontal: 14,
     height: 48,
     fontSize: 14,
-    color: '#1A202C',
+    color: colors.textPrimary,
     marginBottom: 18,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.surfaceSecondary,
   },
-  inputInvalid: { borderColor: '#E53E3E', borderWidth: 1.5 },
+  inputInvalid: { borderColor: colors.statusDanger, borderWidth: 1.5 },
   saveBtn: {
-    backgroundColor: '#0E3326',
+    backgroundColor: colors.actionPrimary,
     height: 50,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
   },
-  saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  saveBtnText: { color: colors.onAction, fontSize: 15, fontWeight: '700' },
 });
+}

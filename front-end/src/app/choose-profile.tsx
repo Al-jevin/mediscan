@@ -7,7 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AuthHeader from '@/components/AuthHeader';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import { MockAuth, Profile } from '@/mock/mockAuth';
-import { Colors, Radius, Spacing } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 // "Choose your profile" screen. Lumalabas after Log In / Verify.
 // Shows the profiles from the account data (Fetch Profile). Display name lagi ang pangalan na pinapakita.
@@ -15,6 +16,8 @@ import { Colors, Radius, Spacing } from '@/constants/display';
 // - "+ Add" -> Add Family Member.
 // - No profiles yet (bagong account) -> straight to Create Profile.
 export default function ChooseProfileScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [profiles, setProfiles] = useState<Profile[]>(MockAuth.getProfiles());
@@ -69,7 +72,7 @@ export default function ChooseProfileScreen() {
               accessibilityLabel="Add family member"
             >
               <View style={styles.addCircle}>
-                <Ionicons name="add" size={32} color={Colors.text} />
+                <Ionicons name="add" size={32} color={colors.text} />
               </View>
               <Text style={styles.name}>Add</Text>
             </Pressable>
@@ -85,17 +88,19 @@ export default function ChooseProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
   body: { paddingHorizontal: Spacing.lg - 4, paddingTop: Spacing.lg },
-  title: { fontSize: 22, fontWeight: '800', color: Colors.text, textAlign: 'center', marginBottom: Spacing.lg },
+  title: { fontSize: 22, fontWeight: '800', color: colors.text, textAlign: 'center', marginBottom: Spacing.lg },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', rowGap: Spacing.lg },
   tile: { width: '33.33%', alignItems: 'center', gap: Spacing.sm },
-  name: { fontSize: 15, fontWeight: '600', color: Colors.text, maxWidth: '90%' },
+  name: { fontSize: 15, fontWeight: '600', color: colors.text, maxWidth: '90%' },
   addCircle: {
-    width: 72, height: 72, borderRadius: Radius.pill, borderWidth: 1.5, borderColor: Colors.border,
-    borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface,
+    width: 72, height: 72, borderRadius: Radius.pill, borderWidth: 1.5, borderColor: colors.border,
+    borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface,
   },
   logout: { alignSelf: 'center', paddingVertical: Spacing.sm },
-  logoutText: { color: Colors.textMuted, fontSize: 14, fontWeight: '700', textDecorationLine: 'underline' },
+  logoutText: { color: colors.textMuted, fontSize: 14, fontWeight: '700', textDecorationLine: 'underline' },
 });
+}

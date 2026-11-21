@@ -6,19 +6,21 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CalendarDatePicker from '@/components/medicine/CalendarDatePicker';
-import { Colors, Components, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { getListQuery, isListScope, setListQuery } from '@/services/listQueryStore';
 import type { MedicineForm, UrgencyFilter } from '@/types/medicine';
 import { MEDICINE_FORMS, mdyToYMD, ymdToMDY } from '@/utils/medicine';
 
-const URGENCY: { key: Exclude<UrgencyFilter, 'none'>; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
-  { key: 'within7', label: 'Expiring within 7 days', icon: 'time-outline', color: Colors.statusWarning },
-  { key: 'within30', label: 'Expiring within 30 days', icon: 'time-outline', color: Colors.statusWarning },
-  { key: 'expired', label: 'Expired', icon: 'close', color: Colors.statusDanger },
-  { key: 'custom', label: 'Custom range', icon: 'calendar-outline', color: Colors.textPrimary },
-];
-
 export default function VaultFiltersScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
+  const URGENCY: { key: Exclude<UrgencyFilter, 'none'>; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
+    { key: 'within7', label: 'Expiring within 7 days', icon: 'time-outline', color: colors.statusWarning },
+    { key: 'within30', label: 'Expiring within 30 days', icon: 'time-outline', color: colors.statusWarning },
+    { key: 'expired', label: 'Expired', icon: 'close', color: colors.statusDanger },
+    { key: 'custom', label: 'Custom range', icon: 'calendar-outline', color: colors.textPrimary },
+  ];
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { scope: scopeParam } = useLocalSearchParams<{ scope?: string }>();
@@ -83,7 +85,7 @@ export default function VaultFiltersScreen() {
         <View style={styles.titleRow}>
           <Text style={styles.title}>Filters</Text>
           <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Close">
-            <Ionicons name="close" size={24} color={Colors.textPrimary} />
+            <Ionicons name="close" size={24} color={colors.textPrimary} />
           </Pressable>
         </View>
 
@@ -104,8 +106,8 @@ export default function VaultFiltersScreen() {
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: on }}
                 >
-                  {on && <Ionicons name="checkmark" size={16} color={Colors.onAction} />}
-                  <Text style={[styles.pillText, on && { color: Colors.onAction }]}>{f}</Text>
+                  {on && <Ionicons name="checkmark" size={16} color={colors.onAction} />}
+                  <Text style={[styles.pillText, on && { color: colors.onAction }]}>{f}</Text>
                 </Pressable>
               );
             })}
@@ -126,8 +128,8 @@ export default function VaultFiltersScreen() {
                   accessibilityRole="radio"
                   accessibilityState={{ selected: on }}
                 >
-                  <Ionicons name={u.icon} size={16} color={on ? Colors.onAction : u.color} />
-                  <Text style={[styles.pillText, on && { color: Colors.onAction }]}>{u.label}</Text>
+                  <Ionicons name={u.icon} size={16} color={on ? colors.onAction : u.color} />
+                  <Text style={[styles.pillText, on && { color: colors.onAction }]}>{u.label}</Text>
                 </Pressable>
               );
             })}
@@ -159,16 +161,16 @@ export default function VaultFiltersScreen() {
         </ScrollView>
 
         <View style={styles.buttons}>
-          <Pressable style={[Components.buttonSecondary, styles.resetBtn]} onPress={reset} accessibilityRole="button">
-            <Ionicons name="refresh" size={18} color={Colors.textPrimary} />
-            <Text style={Components.buttonSecondaryText}>Reset</Text>
+          <Pressable style={[components.buttonSecondary, styles.resetBtn]} onPress={reset} accessibilityRole="button">
+            <Ionicons name="refresh" size={18} color={colors.textPrimary} />
+            <Text style={components.buttonSecondaryText}>Reset</Text>
           </Pressable>
           <Pressable
-            style={[Components.buttonPrimary, { flex: 1, backgroundColor: Colors.actionPrimary }]}
+            style={[components.buttonPrimary, { flex: 1, backgroundColor: colors.actionPrimary }]}
             onPress={apply}
             accessibilityRole="button"
           >
-            <Text style={Components.buttonPrimaryText}>Apply Filters</Text>
+            <Text style={components.buttonPrimaryText}>Apply Filters</Text>
           </Pressable>
         </View>
       </View>
@@ -203,6 +205,8 @@ function DateField({
   enabled: boolean;
   onOpenPicker: () => void;
 }) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   // Adds the slashes while typing: 12252026 -> 12/25/2026
   const onText = (t: string) => {
     const digits = t.replace(/\D/g, '').slice(0, 8);
@@ -224,7 +228,7 @@ function DateField({
           onChangeText={onText}
           editable={enabled}
           placeholder="MM/DD/YYYY"
-          placeholderTextColor={Colors.textSecondary}
+          placeholderTextColor={colors.textSecondary}
           keyboardType="number-pad"
           maxLength={10}
           accessibilityLabel={`${label} date`}
@@ -237,45 +241,47 @@ function DateField({
           accessibilityLabel={`Choose ${label.toLowerCase()} date`}
           accessibilityState={{ disabled: !enabled }}
         >
-          <Ionicons name="calendar-outline" size={18} color={Colors.textSecondary} />
+          <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
         </Pressable>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(5,31,32,0.45)' },
   sheet: {
-    backgroundColor: Colors.surfacePrimary, borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg,
+    backgroundColor: colors.surfacePrimary, borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg,
     paddingHorizontal: Spacing.lg - 4, paddingTop: Spacing.sm + 4, maxHeight: '90%',
   },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.borderDefault, marginBottom: Spacing.md },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.borderDefault, marginBottom: Spacing.md },
   titleRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingBottom: Spacing.sm + 4, borderBottomWidth: 1, borderBottomColor: Colors.borderDefault, marginBottom: Spacing.md,
+    paddingBottom: Spacing.sm + 4, borderBottomWidth: 1, borderBottomColor: colors.borderDefault, marginBottom: Spacing.md,
   },
-  title: { ...Type.h2, color: Colors.textPrimary },
+  title: { ...Type.h2, color: colors.textPrimary },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm + 4 },
-  section: { ...Type.label, color: Colors.textPrimary },
-  hint: { ...Type.caption, color: Colors.textSecondary },
+  section: { ...Type.label, color: colors.textPrimary },
+  hint: { ...Type.caption, color: colors.textSecondary },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, minHeight: 40,
     paddingHorizontal: Spacing.md - 2, borderRadius: Radius.pill,
-    borderWidth: 1, borderColor: Colors.borderDefault, backgroundColor: Colors.surfacePrimary,
+    borderWidth: 1, borderColor: colors.borderDefault, backgroundColor: colors.surfacePrimary,
   },
-  pillOn: { backgroundColor: Colors.actionPrimary, borderColor: Colors.actionPrimary },
-  pillText: { ...Type.caption, color: Colors.textPrimary, fontWeight: '600' },
-  divider: { height: 1, backgroundColor: Colors.borderDefault, marginVertical: Spacing.md },
+  pillOn: { backgroundColor: colors.actionPrimary, borderColor: colors.actionPrimary },
+  pillText: { ...Type.caption, color: colors.textPrimary, fontWeight: '600' },
+  divider: { height: 1, backgroundColor: colors.borderDefault, marginVertical: Spacing.md },
   dates: { flexDirection: 'row', gap: Spacing.sm + 4, marginTop: Spacing.md },
-  dateLabel: { ...Type.caption, color: Colors.textSecondary, marginBottom: Spacing.xs },
+  dateLabel: { ...Type.caption, color: colors.textSecondary, marginBottom: Spacing.xs },
   dateBox: {
-    flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: Colors.borderDefault,
+    flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.borderDefault,
     borderRadius: Radius.sm, paddingHorizontal: Spacing.sm + 4, minHeight: 48,
   },
-  dateInput: { flex: 1, ...Type.body, color: Colors.textPrimary, paddingVertical: Spacing.sm },
-  error: { ...Type.caption, color: Colors.statusDanger, marginTop: Spacing.sm },
+  dateInput: { flex: 1, ...Type.body, color: colors.textPrimary, paddingVertical: Spacing.sm },
+  error: { ...Type.caption, color: colors.statusDanger, marginTop: Spacing.sm },
   buttons: { flexDirection: 'row', gap: Spacing.sm + 4, marginTop: Spacing.md },
   resetBtn: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.lg },
 });
+}

@@ -19,6 +19,8 @@ import { useProfileVault } from '@/services/vaultStore';
 import { useSavedReminders } from '@/services/profileReminders';
 import type { Reminder } from '@/components/reminderTypes';
 import ProfileAvatar from '../components/ProfileAvatar';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
+import { useAppTheme } from '@/context/ThemeContext';
 
 interface ReminderItem {
   id: string;
@@ -34,6 +36,9 @@ interface ReminderItem {
 export default function ProfileDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useDisplayTheme();
+  const { colorScheme } = useAppTheme();
+  const styles = makeStyles(colors);
   const { profileId } = useLocalSearchParams<{ profileId: string }>();
   const { profiles, deleteProfileWithUndo } = useProfile();
   const { medicines = [], error: vaultError, ready: vaultReady } = useProfileVault(profileId);
@@ -53,13 +58,14 @@ export default function ProfileDetailScreen() {
   if (!profile) {
     return (
       <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1B4332" />
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
         <View style={styles.notFoundCenter}>
-          <Text style={{ color: '#718096' }}>Profile not found.</Text>
+          <Text style={{ color: colors.textSecondary }}>Profile not found.</Text>
         </View>
       </SafeAreaView>
     );
@@ -128,7 +134,7 @@ export default function ProfileDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
 
       {/* Top Header */}
       <View style={styles.topBar}>
@@ -137,7 +143,7 @@ export default function ProfileDetailScreen() {
           style={styles.backButton}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
         >
-          <Ionicons name="arrow-back" size={24} color="#1B4332" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>{profile.profile_fullname}</Text>
         <TouchableOpacity
@@ -145,7 +151,7 @@ export default function ProfileDetailScreen() {
           style={styles.menuButton}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
         >
-          <Ionicons name="ellipsis-vertical" size={20} color="#1B4332" />
+          <Ionicons name="ellipsis-vertical" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -158,7 +164,7 @@ export default function ProfileDetailScreen() {
         >
           <View style={styles.dropdownMenu}>
             <TouchableOpacity style={styles.dropdownItem} onPress={handleDeletePress}>
-              <Ionicons name="trash-outline" size={18} color="#D90429" style={{ marginRight: 10 }} />
+              <Ionicons name="trash-outline" size={18} color={colors.statusDanger} style={{ marginRight: 10 }} />
               <Text style={styles.dropdownTextDelete}>Delete Profile</Text>
             </TouchableOpacity>
           </View>
@@ -183,7 +189,7 @@ export default function ProfileDetailScreen() {
           <Text style={styles.sectionTitle}>Medicine Overview</Text>
         </View>
         {vaultError ? <Text style={styles.dataError}>{vaultError}</Text> : null}
-        {!vaultReady && !vaultError ? <ActivityIndicator color="#2D6A4F" /> : null}
+        {!vaultReady && !vaultError ? <ActivityIndicator color={colors.actionPrimary} /> : null}
 
         <View style={styles.overviewCard}>
           {/* Total */}
@@ -192,8 +198,8 @@ export default function ProfileDetailScreen() {
             activeOpacity={0.7}
             onPress={() => handleStatPress('all')}
           >
-            <View style={[styles.statIconBadge, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="medical" size={18} color="#2D6A4F" />
+            <View style={[styles.statIconBadge, { backgroundColor: colors.surfaceSecondary }]}>
+              <Ionicons name="medical" size={18} color={colors.actionPrimary} />
             </View>
             <Text style={styles.statNum}>{totalCount}</Text>
             <Text style={styles.statLabel}>Total</Text>
@@ -207,10 +213,10 @@ export default function ProfileDetailScreen() {
             activeOpacity={0.7}
             onPress={() => handleStatPress('verified')}
           >
-            <View style={[styles.statIconBadge, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="checkmark-circle" size={18} color="#2D6A4F" />
+            <View style={[styles.statIconBadge, { backgroundColor: colors.surfaceSecondary }]}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.actionPrimary} />
             </View>
-            <Text style={[styles.statNum, { color: '#2D6A4F' }]}>{verifiedCount}</Text>
+            <Text style={[styles.statNum, { color: colors.statusSuccess }]}>{verifiedCount}</Text>
             <Text style={styles.statLabel}>Verified</Text>
           </TouchableOpacity>
 
@@ -222,10 +228,10 @@ export default function ProfileDetailScreen() {
             activeOpacity={0.7}
             onPress={() => handleStatPress('needs_verification')}
           >
-            <View style={[styles.statIconBadge, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name="warning" size={18} color="#D97706" />
+            <View style={[styles.statIconBadge, { backgroundColor: colors.statusWarningSoft }]}>
+              <Ionicons name="warning" size={18} color={colors.statusWarning} />
             </View>
-            <Text style={[styles.statNum, { color: '#D97706' }]}>{needsVerifCount}</Text>
+            <Text style={[styles.statNum, { color: colors.statusWarning }]}>{needsVerifCount}</Text>
             <Text style={styles.statLabel}>Needs Verif.</Text>
           </TouchableOpacity>
 
@@ -237,10 +243,10 @@ export default function ProfileDetailScreen() {
             activeOpacity={0.7}
             onPress={() => handleStatPress('expiring')}
           >
-            <View style={[styles.statIconBadge, { backgroundColor: '#FEE2E2' }]}>
-              <Ionicons name="calendar" size={18} color="#DC2626" />
+            <View style={[styles.statIconBadge, { backgroundColor: colors.statusDangerSoft }]}>
+              <Ionicons name="calendar" size={18} color={colors.statusDanger} />
             </View>
-            <Text style={[styles.statNum, { color: '#DC2626' }]}>{expiringCount}</Text>
+            <Text style={[styles.statNum, { color: colors.statusDanger }]}>{expiringCount}</Text>
             <Text style={styles.statLabel}>Expiring</Text>
           </TouchableOpacity>
         </View>
@@ -258,7 +264,7 @@ export default function ProfileDetailScreen() {
             <Text style={styles.emptyReminderText}>Could not load reminders: {reminderError}</Text>
           </View>
         ) : !remindersReady ? (
-          <ActivityIndicator color="#2D6A4F" />
+          <ActivityIndicator color={colors.actionPrimary} />
         ) : memberReminders.length === 0 ? (
           <View style={styles.emptyReminderCard}>
             <Text style={styles.emptyReminderText}>
@@ -277,7 +283,7 @@ export default function ProfileDetailScreen() {
                 <Ionicons
                   name={item.type === 'Capsule' ? 'ellipse-outline' : 'medkit-outline'}
                   size={22}
-                  color="#2D6A4F"
+                  color={colors.actionPrimary}
                 />
               </View>
               <View style={styles.reminderInfo}>
@@ -289,7 +295,7 @@ export default function ProfileDetailScreen() {
               </View>
               <View style={styles.timeTag}>
                 <Text style={styles.timeText}>{item.time}</Text>
-                <Ionicons name="chevron-forward" size={16} color="#A0AEC0" style={{ marginLeft: 4 }} />
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
               </View>
             </TouchableOpacity>
           ))
@@ -303,7 +309,7 @@ export default function ProfileDetailScreen() {
             <View style={styles.detailHeader}>
               <Text style={styles.detailTitle}>Reminder Details</Text>
               <TouchableOpacity onPress={() => setSelectedReminder(null)}>
-                <Ionicons name="close" size={24} color="#4A5568" />
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -355,7 +361,7 @@ export default function ProfileDetailScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.dialog}>
             <View style={styles.trashCircle}>
-              <Ionicons name="trash-outline" size={28} color="#D90429" />
+              <Ionicons name="trash-outline" size={28} color={colors.statusDanger} />
             </View>
             <Text style={styles.dialogTitle}>Remove this profile?</Text>
             <Text style={styles.dialogMsg}>
@@ -382,8 +388,9 @@ export default function ProfileDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+function makeStyles(colors: any) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surfacePrimary },
   topBar: {
     height: 56,
     flexDirection: 'row',
@@ -391,39 +398,39 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: colors.borderDefault,
   },
   backButton: { padding: 6 },
-  topBarTitle: { fontSize: 18, fontWeight: '700', color: '#1B4332' },
+  topBarTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
   menuButton: { padding: 6 },
   content: { padding: 16 },
   notFoundCenter: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAF9',
+    backgroundColor: colors.surfaceSecondary,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.borderDefault,
     padding: 14,
     marginBottom: 20,
   },
   userInfo: { flex: 1, marginLeft: 12 },
-  userName: { fontSize: 16, fontWeight: '700', color: '#1B4332' },
-  userRel: { fontSize: 13, color: '#718096', marginTop: 2 },
+  userName: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
+  userRel: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   editBtnOutline: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: colors.borderDefault,
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surfacePrimary,
   },
-  editBtnOutlineText: { fontSize: 13, fontWeight: '600', color: '#2D3748' },
+  editBtnOutlineText: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
 
   /* Unified Medicine Overview Card */
   sectionHeaderNoViewAll: { marginBottom: 10, marginTop: 4 },
-  dataError: { color: '#B42318', fontSize: 13, marginBottom: 8 },
+  dataError: { color: colors.statusDanger, fontSize: 13, marginBottom: 8 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -431,14 +438,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginTop: 18,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1B4332' },
-  viewAllText: { fontSize: 13, color: '#2D6A4F', fontWeight: '600' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
+  viewAllText: { fontSize: 13, color: colors.actionPrimary, fontWeight: '600' },
   overviewCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surfacePrimary,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.borderDefault,
     paddingVertical: 14,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -457,17 +464,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6,
   },
-  statNum: { fontSize: 17, fontWeight: '700', color: '#1B4332' },
-  statLabel: { fontSize: 11, color: '#718096', marginTop: 2, fontWeight: '500' },
-  colDivider: { width: 1, height: 36, backgroundColor: '#EDF2F7' },
+  statNum: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
+  statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2, fontWeight: '500' },
+  colDivider: { width: 1, height: 36, backgroundColor: colors.borderDefault },
 
   /* Formatted Upcoming Reminders Card */
   reminderCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surfacePrimary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.borderDefault,
     borderRadius: 12,
     padding: 12,
     marginBottom: 10,
@@ -480,33 +487,33 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: colors.surfaceSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   reminderInfo: { flex: 1, marginLeft: 12 },
-  medName: { fontSize: 14, fontWeight: '700', color: '#1B4332' },
-  medSub: { fontSize: 12, color: '#4A5568', marginTop: 1 },
-  medExpiry: { fontSize: 11, color: '#718096', marginTop: 2 },
+  medName: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
+  medSub: { fontSize: 12, color: colors.textSecondary, marginTop: 1 },
+  medExpiry: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
   timeTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSecondary,
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 6,
   },
-  timeText: { fontSize: 12, fontWeight: '600', color: '#2D6A4F' },
+  timeText: { fontSize: 12, fontWeight: '600', color: colors.actionPrimary },
   emptyReminderCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surfacePrimary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.borderDefault,
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyReminderText: { fontSize: 14, color: '#718096', fontWeight: '500' },
+  emptyReminderText: { fontSize: 14, color: colors.textSecondary, fontWeight: '500' },
 
   /* Modals */
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center' },
@@ -514,7 +521,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 55,
     right: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surfacePrimary,
     borderRadius: 8,
     paddingVertical: 6,
     minWidth: 160,
@@ -524,66 +531,67 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   dropdownItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14 },
-  dropdownTextDelete: { fontSize: 14, fontWeight: '600', color: '#D90429' },
+  dropdownTextDelete: { fontSize: 14, fontWeight: '600', color: colors.statusDanger },
   detailSheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surfacePrimary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     marginTop: 'auto',
   },
   detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  detailTitle: { fontSize: 18, fontWeight: '700', color: '#1B4332' },
+  detailTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
   detailBody: { marginTop: 4 },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: colors.borderDefault,
   },
-  detailLabel: { fontSize: 13, color: '#718096', fontWeight: '500' },
-  detailValue: { fontSize: 14, color: '#1A202C', fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
+  detailLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
+  detailValue: { fontSize: 14, color: colors.textPrimary, fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
   closeDetailBtn: {
     marginTop: 20,
     height: 46,
-    backgroundColor: '#0E3326',
+    backgroundColor: colors.actionPrimary,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeDetailBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
-  dialog: { width: '85%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, alignSelf: 'center' },
+  closeDetailBtnText: { color: colors.onAction, fontWeight: '700', fontSize: 15 },
+  dialog: { width: '85%', backgroundColor: colors.surfacePrimary, borderRadius: 16, padding: 24, alignSelf: 'center' },
   trashCircle: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.statusDangerSoft,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
     marginBottom: 12,
   },
-  dialogTitle: { fontSize: 18, fontWeight: '700', color: '#1B4332', textAlign: 'center' },
-  dialogMsg: { fontSize: 13, color: '#718096', textAlign: 'center', marginVertical: 12, lineHeight: 18 },
+  dialogTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
+  dialogMsg: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginVertical: 12, lineHeight: 18 },
   dialogActions: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 8 },
   cancelBtn: {
     flex: 1,
     height: 44,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: colors.borderDefault,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cancelBtnText: { color: '#4A5568', fontWeight: '600' },
+  cancelBtnText: { color: colors.textSecondary, fontWeight: '600' },
   confirmBtn: {
     flex: 1,
     height: 44,
-    backgroundColor: '#D90429',
+    backgroundColor: colors.statusDanger,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  confirmBtnText: { color: '#FFFFFF', fontWeight: '700' },
+  confirmBtnText: { color: colors.onAction, fontWeight: '700' },
 });
+}

@@ -3,7 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Assets } from '@/constants/assets';
-import { Colors } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import OverlayModal from './OverlayModal';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
@@ -22,6 +22,8 @@ type Props = {
 // Rescan only closes it. Use a Different Photo closes it, then calls onUseDifferentPhoto. Enter Details
 // Manually closes it and opens Manual Entry.
 export default function CantReadModal({ visible, onClose, onUseDifferentPhoto }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
 
   // iOS can't present the image picker while a Modal is still closing, so wait for Modal's onDismiss there.
@@ -73,7 +75,8 @@ export default function CantReadModal({ visible, onClose, onUseDifferentPhoto }:
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   iconCircle: {
     width: 72,
     height: 72,
@@ -84,11 +87,11 @@ const styles = StyleSheet.create({
   },
   bigIcon: { width: 34, height: 34 },
   icon: { width: 20, height: 20 },
-  title: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center' },
+  title: { fontSize: 20, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
   message: { fontSize: 14, lineHeight: 20, color: '#5B6B6C', textAlign: 'center', alignSelf: 'stretch' },
   actions: { alignSelf: 'stretch', gap: 10 },
   primary: {
-    backgroundColor: Colors.actionPrimary,
+    backgroundColor: colors.actionPrimary,
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -97,11 +100,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  primaryText: { fontSize: 15, fontWeight: '700', color: Colors.onAction },
+  primaryText: { fontSize: 15, fontWeight: '700', color: colors.onAction },
   secondary: {
-    backgroundColor: Colors.onAction,
+    backgroundColor: colors.onAction,
     borderWidth: 1,
-    borderColor: Colors.actionPrimary,
+    borderColor: colors.actionPrimary,
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -110,7 +113,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  secondaryText: { fontSize: 15, fontWeight: '700', color: Colors.actionPrimary },
+  secondaryText: { fontSize: 15, fontWeight: '700', color: colors.actionPrimary },
   link: {
     borderRadius: 10,
     paddingHorizontal: 16,
@@ -122,3 +125,4 @@ const styles = StyleSheet.create({
   },
   linkText: { fontSize: 15, fontWeight: '600', color: LinkGreen },
 });
+}

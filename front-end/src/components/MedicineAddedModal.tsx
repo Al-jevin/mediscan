@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Assets } from '@/constants/assets';
-import { Colors } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import OverlayModal from './OverlayModal';
 
 type Props = {
@@ -18,6 +18,8 @@ type Props = {
 
 // "Medicine Added!" overlay shown after Save to Vault (Scan Result, Manual Entry, Edit Medicine).
 export default function MedicineAddedModal({ visible, medicineName, onViewVault, onClose, onAddAnother }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
 
   const addAnother = () => {
@@ -50,37 +52,39 @@ export default function MedicineAddedModal({ visible, medicineName, onViewVault,
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   iconCircle: {
     width: 72,
     height: 72,
     borderRadius: 40,
-    backgroundColor: Colors.statusSuccessSoft,
+    backgroundColor: colors.statusSuccessSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   icon: { width: 34, height: 34 },
-  title: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center' },
+  title: { fontSize: 20, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
   message: { fontSize: 14, lineHeight: 20, color: '#5B6B6C', textAlign: 'center', alignSelf: 'stretch' },
   actions: { alignSelf: 'stretch', gap: 10 },
   primary: {
-    backgroundColor: Colors.actionPrimary,
+    backgroundColor: colors.actionPrimary,
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryText: { fontSize: 15, fontWeight: '700', color: Colors.onAction },
+  primaryText: { fontSize: 15, fontWeight: '700', color: colors.onAction },
   secondary: {
-    backgroundColor: Colors.onAction,
+    backgroundColor: colors.onAction,
     borderWidth: 1,
-    borderColor: Colors.actionPrimary,
+    borderColor: colors.actionPrimary,
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryText: { fontSize: 15, fontWeight: '700', color: Colors.actionPrimary },
+  secondaryText: { fontSize: 15, fontWeight: '700', color: colors.actionPrimary },
 });
+}

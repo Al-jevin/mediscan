@@ -3,7 +3,8 @@ import { Animated, BackHandler, Dimensions, Easing, Image, Pressable, StyleSheet
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontSizes, Radius, Spacing } from '@/constants/display';
+import { FontSizes, Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { getAvatarSource } from '@/constants/avatars';
 import Logo from './Logo';
 import { useProfile } from '@/context/ProfileContext';
@@ -13,20 +14,24 @@ const PANEL_W = Dimensions.get('window').width * 0.78;
 
 // To add another menu item later: add another line here, then create its screen file.
 // `route` = the screen it opens (file name in src/app/(tabs)/).
-const ITEMS: { label: string; icon: React.ReactElement; route: string }[] = [
-  {
-    label: 'Settings',
-    icon: <Ionicons name="settings-outline" size={22} color={Colors.primary} />,
-    route: '/settings',
-  },
+const ITEMS: {
+  label: string;
+  icon: 'settings-outline' | 'receipt-text-outline';
+  iconSet: 'ion' | 'material';
+  route: string;
+}[] = [
+  { label: 'Settings', icon: 'settings-outline', iconSet: 'ion', route: '/settings' },
   {
     label: 'Terms & Medical Disclaimer',
-    icon: <MaterialCommunityIcons name="receipt-text-outline" size={22} color={Colors.primary} />,
+    icon: 'receipt-text-outline',
+    iconSet: 'material',
     route: '/terms',
   },
 ];
 
 export default function SideMenu() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const { open, closeMenu, openLogout } = useMenu();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -79,14 +84,14 @@ export default function SideMenu() {
         <View style={{ flex: 1, paddingTop: insets.top }}>
           <View style={styles.topRow}>
             <Pressable onPress={closeMenu} hitSlop={12} accessibilityLabel="Close menu">
-              <Ionicons name="arrow-back" size={22} color={Colors.text} />
+              <Ionicons name="arrow-back" size={22} color={colors.text} />
             </Pressable>
             <Logo size={30} withText />
           </View>
 
           {/* Profile card */}
           <Pressable
-            style={({ pressed }) => [styles.profileCard, pressed && { backgroundColor: Colors.primarySoft }]}
+            style={({ pressed }) => [styles.profileCard, pressed && { backgroundColor: colors.primarySoft }]}
             onPress={() => {
                 closeMenu();
                 router.navigate('/profile' as any);
@@ -102,7 +107,7 @@ export default function SideMenu() {
             <Text style={styles.name} numberOfLines={1}>{activeProfile?.profile_fullname ?? ''}</Text>
             <Text style={styles.email} numberOfLines={1}>{email ?? ''}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={Colors.text} />
+          <Ionicons name="chevron-forward" size={18} color={colors.text} />
           </Pressable>
 
           {/* Menu items: each one opens its own screen */}
@@ -110,15 +115,19 @@ export default function SideMenu() {
             {ITEMS.map((i) => (
               <Pressable
                 key={i.label}
-                style={({ pressed }) => [styles.item, pressed && { backgroundColor: Colors.primarySoft }]}
+                style={({ pressed }) => [styles.item, pressed && { backgroundColor: colors.primarySoft }]}
                 onPress={() => {
                   closeMenu();
                   router.navigate(i.route as any);
                 }}
               >
-                {i.icon}
+                {i.iconSet === 'ion' ? (
+                  <Ionicons name="settings-outline" size={22} color={colors.primary} />
+                ) : (
+                  <MaterialCommunityIcons name="receipt-text-outline" size={22} color={colors.primary} />
+                )}
                 <Text style={styles.itemText}>{i.label}</Text>
-                <Ionicons name="chevron-forward" size={18} color={Colors.text} />
+                <Ionicons name="chevron-forward" size={18} color={colors.text} />
               </Pressable>
             ))}
           </View>
@@ -143,7 +152,8 @@ export default function SideMenu() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   overlay: {
     position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
     zIndex: 100, elevation: 100,
@@ -154,7 +164,7 @@ const styles = StyleSheet.create({
   },
   panel: {
     position: 'absolute', top: 0, bottom: 0, left: 0, width: PANEL_W,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopRightRadius: Radius.lg,
     borderBottomRightRadius: Radius.lg,
     overflow: 'hidden',
@@ -163,27 +173,28 @@ const styles = StyleSheet.create({
   profileCard: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 4,
     marginHorizontal: Spacing.md, padding: Spacing.sm + 4,
-    borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border,
-    backgroundColor: Colors.background,
+    borderRadius: Radius.md, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.background,
   },
   avatar: {
-    width: 52, height: 52, borderRadius: Radius.pill, backgroundColor: Colors.primarySoft,
+    width: 52, height: 52, borderRadius: Radius.pill, backgroundColor: colors.primarySoft,
     alignItems: 'center', justifyContent: 'center',
   },
-  name: { fontWeight: '700', color: Colors.text, fontSize: FontSizes.body + 1 },
-  email: { fontSize: 11, color: Colors.textMuted },
+  name: { fontWeight: '700', color: colors.text, fontSize: FontSizes.body + 1 },
+  email: { fontSize: 11, color: colors.textMuted },
 
   list: { marginTop: Spacing.md, paddingHorizontal: Spacing.md },
   item: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 4,
     paddingVertical: 14, paddingHorizontal: Spacing.md,
     marginBottom: Spacing.sm + 2,
-    borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderRadius: Radius.md, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  itemText: { flex: 1, color: Colors.text, fontSize: FontSizes.body - 1, fontWeight: '600' },
+  itemText: { flex: 1, color: colors.text, fontSize: FontSizes.body - 1, fontWeight: '600' },
 
-  footer: { backgroundColor: Colors.primarySoft, paddingTop: Spacing.md, paddingHorizontal: Spacing.md },
-  logout: { padding: 14, borderRadius: Radius.sm, backgroundColor: Colors.primary, alignItems: 'center' },
+  footer: { backgroundColor: colors.primarySoft, paddingTop: Spacing.md, paddingHorizontal: Spacing.md },
+  logout: { padding: 14, borderRadius: Radius.sm, backgroundColor: colors.primary, alignItems: 'center' },
   logoutText: { color: '#fff', fontWeight: '700' },
 });
+}
