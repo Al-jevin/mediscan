@@ -1,12 +1,3 @@
-// Logged-in profile + that profile's upcoming reminders (for Home).
-//
-// - Logged-in profile: the one picked on Choose Profile (MockAuth, Profile team).
-// - Current profile (useCurrentProfile): same person, but from ProfileContext, so it
-//   updates right away when the user switches profile or edits their name/avatar.
-// - Reminders: the SAME list the Reminders tab shows (Reminders team saves it on the phone
-//   under 'mediscan.reminders.v1'). Home only READS it, so the two screens always match.
-//   A reminder belongs to a profile when reminder.member === profile.profile_display_name
-//   (e.g. "Me", "Mama"), which is how the Reminders tab's member filter works too.
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import type { Reminder } from '@/components/reminderTypes';
@@ -29,6 +20,19 @@ export function firstName(p: Pick<Profile, 'profile_fullname' | 'profile_display
   return name.split(/\s+/)[0] || 'there';
 }
 
+/** Normalize teammate/local shapes onto Reminder.member (source of truth). */
+function withMembers(items: unknown[]): Reminder[] {
+  return (items as Array<Reminder & { members?: string[] }>).map((item) => {
+    const member =
+      typeof item.member === 'string' && item.member.trim()
+        ? item.member
+        : Array.isArray(item.members) && item.members[0]
+          ? item.members[0]
+          : '';
+    return { ...item, member };
+  });
+}
+
 // Reads the reminders again every time Home comes into view, so edits made on the
 // Reminders tab show up right away.
 export function useSavedReminders(): {
@@ -47,7 +51,7 @@ export function useSavedReminders(): {
       fetchReminders(profiles)
         .then((items) => {
           if (!alive) return;
-          setReminders(items);
+          setReminders(withMembers(items));
           setError(null);
         })
         .catch((reason: unknown) => {
@@ -117,7 +121,7 @@ export function nextOccurrence(r: Reminder, now = new Date()): Date | null {
 }
 
 function label(r: Reminder, next: Date | null, now = new Date()): string {
-  if (!next) return r.frequency === 'As needed' ? 'As needed' : r.time || '—';
+  if (!next) return r.frequency === 'As needed' ? 'As needed' : r.time || '-';
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const d = new Date(next);
@@ -135,9 +139,10 @@ export function getUpcomingReminders(
   now = new Date(),
 ): UpcomingReminder[] {
   if (!profile) return [];
-  const member = profile.profile_display_name.trim().toLowerCase();
+  const name = profile.profile_display_name.trim().toLowerCase();
+  const member = name === 'self' ? 'me' : name; // "Self" profile = "Me" in the reminders
   return reminders
-    .filter((r) => r.enabled && (r.member ?? '').trim().toLowerCase() === member)
+    .filter((r) => r.enabled && r.member.trim().toLowerCase() === member)
     .map((r) => {
       const next = nextOccurrence(r, now);
       return { reminder: r, next, label: label(r, next, now) };

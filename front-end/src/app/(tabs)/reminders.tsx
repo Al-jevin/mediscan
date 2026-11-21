@@ -10,20 +10,28 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ReminderEditorModal from '@/components/ReminderEditorModal';
 import type { Reminder } from '@/components/reminderTypes';
 import { useColors } from '@/hooks/useColors';
+import { useHeaderFilter } from '@/components/HeaderFilterContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useVault } from '@/services/vaultStore';
 import { createReminder, deleteReminder as deleteReminderRecord, fetchReminders, updateReminder } from '@/services/remindersApi';
+import { cancelReminderNotification, scheduleReminderNotification } from '@/services/localNotifications';
 import { overviewCounts } from '@/utils/medicine';
-import {
-  countReminderOccurrences,
-  groupRemindersByOccurrenceDate,
-  groupUpcomingReminders,
-} from '@/utils/reminderDates';
+
+/** Normalize teammate/local shapes onto Reminder.member (source of truth). */
+function withMember(item: unknown): Reminder {
+  const r = item as Reminder & { members?: string[] };
+  const member =
+    typeof r.member === 'string' && r.member.trim()
+      ? r.member
+      : Array.isArray(r.members) && r.members[0]
+        ? r.members[0]
+        : '';
+  return { ...r, member };
+}
 
 export default function RemindersScreen() {
   const colors = useColors();
@@ -44,6 +52,19 @@ export default function RemindersScreen() {
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [editorSession, setEditorSession] = useState(0);
+  const [deletedItem, setDeletedItem] = useState<{ reminder: Reminder; index: number } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { setOnFilterPress } = useHeaderFilter();
+
+  // The filter button lives in the tab header
+  useEffect(() => {
+    setOnFilterPress(() => {
+      setPendingMember(selectedMember);
+      setFilterVisible(true);
+    });
+    return () => setOnFilterPress(null);
+  }, [selectedMember, setOnFilterPress]);
 
   useEffect(() => {
     if (params.member) {
@@ -61,7 +82,7 @@ export default function RemindersScreen() {
       fetchReminders(profiles)
         .then((saved) => {
           if (!isMounted) return;
-          setReminders(saved);
+          setReminders(saved.map(withMember));
           setStorageError('');
         })
         .catch((error: unknown) => {
@@ -77,6 +98,12 @@ export default function RemindersScreen() {
       };
     }, [profiles]),
   );
+
+  useEffect(() => {
+    return () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     const addRequest = params.openAdd;
@@ -117,34 +144,20 @@ export default function RemindersScreen() {
     router.setParams({ member: undefined, reminderId: undefined, from: undefined });
   }, [loaded, requestedMember, requestedReminderId, requestedFrom, reminders]);
 
-  const filteredReminders = useMemo(() => {
-    const filtered =
+  const filteredReminders = useMemo(
+    () =>
       selectedMember === 'All Members'
         ? reminders
-        : reminders.filter((reminder) => reminder.member === selectedMember);
-    return filtered;
-  }, [reminders, selectedMember]);
-  const allReminderGroups = useMemo(
-    () => groupRemindersByOccurrenceDate(reminders),
-    [reminders],
+        : reminders.filter((r) => r.member === selectedMember),
+    [reminders, selectedMember],
   );
-  const filteredReminderGroups = useMemo(
-    () => allReminderGroups
-      .map((group) => ({
-        ...group,
-        reminders: group.reminders.filter((reminder) =>
-          selectedMember === 'All Members' || reminder.member === selectedMember),
-      }))
-      .filter((group) => group.reminders.length > 0),
-    [allReminderGroups, selectedMember],
+
+  const visibleReminders = useMemo(
+    () => (showAll ? filteredReminders : filteredReminders.slice(0, 3)),
+    [filteredReminders, showAll],
   );
-  const reminderGroups = useMemo(
-    () => showAll
-      ? filteredReminderGroups
-      : groupUpcomingReminders(filteredReminders),
-    [filteredReminderGroups, filteredReminders, showAll],
-  );
-  const displayedReminderCount = countReminderOccurrences(filteredReminderGroups);
+
+  const filteredCount = filteredReminders.length;
 
   const openNewReminder = () => {
     setEditingReminder(null);
@@ -161,9 +174,12 @@ export default function RemindersScreen() {
   const saveReminder = async (reminder: Reminder) => {
     const isEditing = reminders.some((item) => item.id === reminder.id);
     try {
-      const saved = isEditing
-        ? (await updateReminder(reminder), reminder)
-        : await createReminder(reminder);
+      const saved = withMember(
+        isEditing
+          ? (await updateReminder(reminder), reminder)
+          : await createReminder(reminder),
+      );
+      await scheduleReminderNotification(saved);
       setReminders((current) =>
         isEditing
           ? current.map((item) => item.id === saved.id ? saved : item)
@@ -182,10 +198,12 @@ export default function RemindersScreen() {
   };
 
   const deleteReminder = async (id: string) => {
-    const reminder = reminders.find((item) => item.id === id);
-    if (!reminder) return;
+    const index = reminders.findIndex((item) => item.id === id);
+    if (index === -1) return;
+    const removed = reminders[index];
     try {
-      await deleteReminderRecord(reminder);
+      await deleteReminderRecord(removed);
+      await cancelReminderNotification(removed.id);
       setReminders((current) => current.filter((item) => item.id !== id));
       setStorageError('');
     } catch (error) {
@@ -195,7 +213,30 @@ export default function RemindersScreen() {
     setEditorVisible(false);
     setEditingReminder(null);
     returnHomeRef.current = false;
-    setSuccessMessage('Reminder deleted');
+
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setDeletedItem({ reminder: removed, index });
+    undoTimer.current = setTimeout(() => setDeletedItem(null), 5000);
+  };
+
+  // Undo = save the deleted reminder to the backend again
+  const undoDelete = async () => {
+    if (!deletedItem) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    const { reminder, index } = deletedItem;
+    setDeletedItem(null);
+    try {
+      const restored = withMember(await createReminder(reminder));
+      await scheduleReminderNotification(restored);
+      setReminders((current) => {
+        const next = [...current];
+        next.splice(Math.min(index, next.length), 0, restored);
+        return next;
+      });
+      setStorageError('');
+    } catch (error) {
+      setStorageError(error instanceof Error ? error.message : 'Could not restore this reminder.');
+    }
   };
 
   const toggleReminder = async (id: string) => {
@@ -204,6 +245,11 @@ export default function RemindersScreen() {
     const updated = { ...reminder, enabled: !reminder.enabled };
     try {
       await updateReminder(updated);
+      if (updated.enabled) {
+        await scheduleReminderNotification(updated);
+      } else {
+        await cancelReminderNotification(updated.id);
+      }
       setReminders((current) => current.map((item) => item.id === id ? updated : item));
       setStorageError('');
     } catch (error) {
@@ -211,62 +257,12 @@ export default function RemindersScreen() {
     }
   };
 
- const goBack = () => {
-  if (router.canGoBack()) {
-    router.back();
-  } else {
-    router.navigate('/(tabs)');
-  }
-};
-
-  const todayCount = countReminderOccurrences(
-    allReminderGroups
-      .filter((group) => group.title.startsWith('Today - '))
-      .map((group) => ({
-        ...group,
-        reminders: group.reminders.filter((reminder) => reminder.enabled),
-      })),
-  );
-  const totalReminderCount = countReminderOccurrences(allReminderGroups);
+  const todayCount = reminders.filter((item) => item.enabled).length;
   const medicineCounts = overviewCounts(medicines);
+  const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
-    <SafeAreaView
-      edges={['top']}
-      style={[
-        styles.safe,
-        { backgroundColor: colors.background },
-      ]}
-    >
-      <StatusBar style="dark" />
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          testID="reminders-back"
-          onPress={goBack}
-          hitSlop={10}
-          style={styles.headerSide}
-        >
-          <Ionicons name="arrow-back" size={22} color={colors.foreground} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-          All Reminders
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Filter reminders by family member"
-          testID="open-reminder-filter"
-          onPress={() => {
-            setPendingMember(selectedMember);
-            setFilterVisible(true);
-          }}
-          hitSlop={10}
-          style={[styles.headerSide, styles.filterButton]}
-        >
-          <Ionicons name="filter-outline" size={20} color={colors.primary} />
-        </Pressable>
-      </View>
+    <View style={[styles.safe, { backgroundColor: colors.background }]}>
 
       {!loaded ? (
         <View style={styles.loading}>
@@ -302,6 +298,18 @@ export default function RemindersScreen() {
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
               Upcoming Alerts
             </Text>
+            {filteredCount > 3 ? (
+              <Pressable
+                accessibilityRole="button"
+                testID="toggle-all-reminders"
+                onPress={() => setShowAll((value) => !value)}
+                hitSlop={8}
+              >
+                <Text style={[styles.viewAll, { color: colors.primary }]}>
+                  {showAll ? 'Show Less' : 'View All'}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
 
           <View style={styles.summaryRow}>
@@ -333,9 +341,9 @@ export default function RemindersScreen() {
               foreground={colors.todayForeground}
             />
             <SummaryCard
-              count={String(totalReminderCount)}
+              count={String(reminders.length)}
               label="Total"
-              sublabel="Occurrences"
+              sublabel="Reminders"
               icon="notifications"
               background={colors.totalBackground}
               border={colors.totalBorder}
@@ -346,7 +354,7 @@ export default function RemindersScreen() {
           <View style={styles.listHeading}>
             <View>
               <Text style={[styles.listTitle, { color: colors.foreground }]}>
-                {showAll ? 'All Reminder Occurrences' : 'Upcoming Reminders'}
+                Today - {todayLabel}
               </Text>
               {selectedMember !== 'All Members' ? (
                 <Text style={[styles.filterCaption, { color: colors.mutedForeground }]}>
@@ -354,75 +362,64 @@ export default function RemindersScreen() {
                 </Text>
               ) : null}
             </View>
-            <View style={styles.listHeadingActions}>
-              <Pressable
-                accessibilityRole="button"
-                testID="toggle-all-reminders"
-                onPress={() => setShowAll((value) => !value)}
-                hitSlop={8}
-              >
-                <Text style={[styles.viewAll, { color: colors.primary }]}>
-                  {showAll ? 'Show Less' : 'View All'}
-                </Text>
-              </Pressable>
-              <Text style={[styles.countText, { color: colors.mutedForeground }]}>
-                {displayedReminderCount}{' '}
-                {displayedReminderCount === 1 ? 'reminder' : 'reminders'}
-              </Text>
-            </View>
+            <Text style={[styles.countText, { color: colors.mutedForeground }]}>
+              {filteredCount} {filteredCount === 1 ? 'reminder' : 'reminders'}
+            </Text>
           </View>
 
-          {reminderGroups.length ? (
-            reminderGroups.map((group) => (
-              <View key={group.key} style={styles.dateGroup}>
-                <Text style={[styles.dateGroupTitle, { color: colors.foreground }]}>
-                  {group.title}
-                </Text>
-                <View style={styles.reminderList}>
-                  {group.reminders.map((reminder) => (
-                    <ReminderCard
-                      key={reminder.id}
-                      reminder={reminder}
-                      onPress={() => openReminder(reminder)}
-                      onToggle={() => toggleReminder(reminder.id)}
-                      colors={colors}
-                    />
-                  ))}
-                </View>
-              </View>
-            ))
+          {visibleReminders.length ? (
+            <View style={styles.reminderList}>
+              {visibleReminders.map((reminder) => (
+                <ReminderCard
+                  key={reminder.id}
+                  reminder={reminder}
+                  onPress={() => openReminder(reminder)}
+                  onToggle={() => toggleReminder(reminder.id)}
+                  colors={colors}
+                />
+              ))}
+            </View>
           ) : (
             <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={[styles.emptyIcon, { backgroundColor: colors.accent }]}>
                 <Ionicons name="alarm-outline" size={23} color={colors.primary} />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-                {showAll ? 'No reminders for' : 'No upcoming reminders for'} {selectedMember}
+                No reminders for {selectedMember}
               </Text>
               <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                {showAll
-                  ? 'Add a reminder or choose another family member.'
-                  : 'View all reminders or add a new one.'}
+                Add a reminder or choose another family member.
               </Text>
             </View>
           )}
-
-          <Pressable
-            accessibilityRole="button"
-            testID="add-reminder-button"
-            onPress={openNewReminder}
-            style={({ pressed }) => [
-              styles.addReminderButton,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.86 : 1 },
-            ]}
-          >
-            <Ionicons name="add" size={19} color={colors.primaryForeground} />
-            <Text style={[styles.addReminderText, { color: colors.primaryForeground }]}>
-              Add Reminder
-            </Text>
-          </Pressable>
         </ScrollView>
       )}
+
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+            paddingBottom: 15,
+          },
+        ]}
+      >
+        <Pressable
+          accessibilityRole="button"
+          testID="add-reminder-button"
+          onPress={openNewReminder}
+          style={({ pressed }) => [
+            styles.addReminderButton,
+            { backgroundColor: colors.primary, opacity: pressed ? 0.86 : 1, marginTop: 0 },
+          ]}
+        >
+          <Ionicons name="add" size={19} color={colors.primaryForeground} />
+          <Text style={[styles.addReminderText, { color: colors.primaryForeground }]}>
+            Add Reminder
+          </Text>
+        </Pressable>
+      </View>
 
       <ReminderEditorModal
         key={`${editingReminder?.id ?? 'new-reminder'}-${editorSession}`}
@@ -461,12 +458,7 @@ export default function RemindersScreen() {
         animationType="fade"
         onRequestClose={() => setSuccessMessage('')}
       >
-        <View
-          style={[
-            styles.successBackdrop,
-            { backgroundColor: colors.overlayStrong },
-          ]}
-        >
+        <View style={[styles.successBackdrop, { backgroundColor: colors.overlayStrong }]}>
           <View style={[styles.successCard, { backgroundColor: colors.card }]}>
             <View style={[styles.successIcon, { backgroundColor: colors.accent }]}>
               <Ionicons name="checkmark" size={24} color={colors.primary} />
@@ -490,7 +482,47 @@ export default function RemindersScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+
+      <Modal
+        visible={Boolean(deletedItem)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeletedItem(null)}
+      >
+        <View style={[styles.successBackdrop, { backgroundColor: colors.overlayStrong }]}>
+          <View style={[styles.successCard, { backgroundColor: colors.card }]}>
+            <Pressable
+              accessibilityLabel="Close"
+              onPress={() => setDeletedItem(null)}
+              hitSlop={10}
+              style={styles.popupClose}
+            >
+              <Ionicons name="close" size={18} color={colors.foreground} />
+            </Pressable>
+
+            <View style={[styles.successIcon, { backgroundColor: colors.expiredBackground }]}>
+              <Ionicons name="trash-outline" size={22} color={colors.expiredForeground} />
+            </View>
+            <Text style={[styles.successTitle, { color: colors.foreground }]}>
+              Reminder Deleted
+            </Text>
+            <Text style={[styles.successCopy, { color: colors.mutedForeground }]}>
+              {deletedItem?.reminder.medicine}
+            </Text>
+
+            <Pressable
+              accessibilityRole="button"
+              testID="undo-delete"
+              onPress={() => void undoDelete()}
+              style={[styles.successButton, { backgroundColor: colors.accent, flexDirection: 'row', gap: 6 }]}
+            >
+              <Ionicons name="arrow-undo-outline" size={15} color={colors.primary} />
+              <Text style={[styles.successButtonText, { color: colors.primary }]}>Undo</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
@@ -534,7 +566,6 @@ type ReminderCardProps = {
   colors: ReturnType<typeof useColors>;
 };
 
-
 function ReminderCard({ reminder, onPress, onToggle, colors }: ReminderCardProps) {
   return (
     <View
@@ -570,62 +601,25 @@ function ReminderCard({ reminder, onPress, onToggle, colors }: ReminderCardProps
           />
         </View>
 
-        <View
-          style={[
-            styles.cardDivider,
-            { backgroundColor: colors.border },
-          ]}
-        />
+        <View style={[styles.cardDivider, { backgroundColor: colors.border }]} />
 
         <View style={styles.reminderInfo}>
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.reminderMedicine,
-              { color: colors.foreground },
-            ]}
-          >
+          <Text numberOfLines={1} style={[styles.reminderMedicine, { color: colors.foreground }]}>
             {reminder.medicine}
           </Text>
-
-          <Text
-            style={[
-              styles.reminderMeta,
-              { color: colors.mutedForeground },
-            ]}
-          >
+          <Text style={[styles.reminderMeta, { color: colors.mutedForeground }]}>
             {reminder.category}
           </Text>
-
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.reminderInstructions,
-              { color: colors.foreground },
-            ]}
-          >
+          <Text numberOfLines={1} style={[styles.reminderInstructions, { color: colors.foreground }]}>
             {reminder.instructions || reminder.frequency}
           </Text>
-
           <View style={styles.memberLine}>
-            <View
-              style={[
-                styles.memberAvatar,
-                { backgroundColor: colors.accent },
-              ]}
-            >
-              <Ionicons
-                name="person"
-                size={10}
-                color={colors.primary}
-              />
+            <View style={[styles.memberAvatar, { backgroundColor: colors.accent }]}>
+              <Ionicons name="person" size={10} color={colors.primary} />
             </View>
-
             <Text
-              style={[
-                styles.memberName,
-                { color: colors.mutedForeground },
-              ]}
+              numberOfLines={1}
+              style={[styles.memberName, { color: colors.mutedForeground }]}
             >
               {reminder.member}
             </Text>
@@ -636,9 +630,7 @@ function ReminderCard({ reminder, onPress, onToggle, colors }: ReminderCardProps
       {/* Bell toggle: sibling of the edit button, not nested inside it */}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Turn ${
-          reminder.enabled ? 'off' : 'on'
-        } ${reminder.medicine} alert`}
+        accessibilityLabel={`Turn ${reminder.enabled ? 'off' : 'on'} ${reminder.medicine} alert`}
         accessibilityState={{ checked: reminder.enabled }}
         testID={`toggle-reminder-${reminder.id}`}
         onPress={onToggle}
@@ -646,23 +638,14 @@ function ReminderCard({ reminder, onPress, onToggle, colors }: ReminderCardProps
         style={styles.bellButton}
       >
         <Ionicons
-          name={
-            reminder.enabled
-              ? 'notifications-outline'
-              : 'notifications-off-outline'
-          }
+          name={reminder.enabled ? 'notifications-outline' : 'notifications-off-outline'}
           size={19}
-          color={
-            reminder.enabled
-              ? colors.primary
-              : colors.mutedForeground
-          }
+          color={reminder.enabled ? colors.primary : colors.mutedForeground}
         />
       </Pressable>
     </View>
   );
 }
-
 
 type FilterModalProps = {
   visible: boolean;
@@ -736,7 +719,7 @@ function FilterModal({
                   key={person}
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
-                  testID={`filter-${person.toLowerCase().replaceAll(' ', '-')}`}
+                  testID={`filter-${person.toLowerCase().split(' ').join('-')}`}
                   onPress={() => onSelect(person)}
                   style={[
                     styles.filterOption,
@@ -789,22 +772,6 @@ function FilterModal({
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  header: {
-    height: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 14,
-  },
-  headerSide: {
-    width: 42,
-    height: 42,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  filterButton: { alignItems: 'flex-end' },
-  headerTitle: { fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 15, paddingTop: 15, paddingBottom: 18 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
@@ -851,12 +818,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  listHeadingActions: { alignItems: 'flex-end', gap: 4 },
   listTitle: { fontSize: 14, fontWeight: '700' },
   filterCaption: { fontSize: 10, marginTop: 3 },
   countText: { fontSize: 11 },
-  dateGroup: { marginBottom: 13 },
-  dateGroupTitle: { fontSize: 13, fontWeight: '700', marginBottom: 7 },
   reminderList: { gap: 8 },
   reminderCard: {
     minHeight: 103,
@@ -870,6 +834,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
+  },
+  reminderCardContent: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   timeColumn: {
     width: 58,
@@ -892,7 +862,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  memberName: { fontSize: 10 },
+  memberName: { fontSize: 10, flex: 1 },
   bellButton: { padding: 6, marginLeft: 4 },
   emptyCard: {
     minHeight: 170,
@@ -996,11 +966,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   successButtonText: { fontSize: 12, fontWeight: '700' },
-
-  reminderCardContent: {
-  flex: 1,
-  minWidth: 0,
-  flexDirection: 'row',
-  alignItems: 'center',
-},
+  popupClose: { position: 'absolute', top: 12, right: 12 },
+  footer: {
+    paddingHorizontal: 15,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
 });

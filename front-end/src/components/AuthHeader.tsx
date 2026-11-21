@@ -10,7 +10,7 @@ export default function AuthHeader() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.wrap, { paddingTop: insets.top + Spacing.lg }]}>
+    <View style={[styles.wrap, { paddingTop: insets.top + Spacing.sm }]}>
       {/* Gradient background (top: action/primary -> bottom: text/primary) */}
       <Svg style={StyleSheet.absoluteFill} preserveAspectRatio="none">
         <Defs>

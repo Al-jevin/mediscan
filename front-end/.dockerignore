@@ -1,0 +1,9 @@
+node_modules
+node_modules - Shortcut.lnk
+npx
+.expo
+dist
+web-build
+.git
+.vscode
+.agents

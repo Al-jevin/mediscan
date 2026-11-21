@@ -1,3 +1,4 @@
+import { useAppSettings } from '@/services/appSettings';
 import { Ionicons } from "@expo/vector-icons";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
@@ -14,11 +15,12 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getLatestScanTelemetry, scanLabel } from "@/services/scanApi";
+import { scanLabel } from "@/services/scanApi";
 
 export default function CameraScreen() {
   const router = useRouter();
   const cameraRef = useRef<CameraView>(null);
+  const [appSettings, appSettingsReady] = useAppSettings();
 
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -44,10 +46,9 @@ export default function CameraScreen() {
 
       // Step 2: send to the OCR endpoint
       const scan = await scanLabel(result.uri);
-      console.log("Image scan result:", scan);
-      console.log("Scan telemetry:", getLatestScanTelemetry());
+      console.log("Image scan result:", scan.status);
 
-      // Step 3: open the Scan Result screen, which reads the latest scan and telemetry.
+      // Step 3: open the Scan Result screen, which reads the latest scan
       router.push("/result");
     } catch (e) {
       console.log("Processing failed:", e);
@@ -101,6 +102,7 @@ export default function CameraScreen() {
 
       // Only PNG and JPG/JPEG can be scanned
       const asset = result.assets[0];
+      console.log("Picked file:", asset.mimeType, asset.fileName, asset.uri);
       const mime = (asset.mimeType ?? "").toLowerCase();
       const name = (asset.fileName ?? asset.uri).toLowerCase().split("?")[0];
       const allowedMime = ["image/png", "image/jpeg", "image/jpg"];
@@ -124,6 +126,7 @@ export default function CameraScreen() {
     }
   };
 
+  // Scanning in progress
   if (isProcessing) {
     return (
       <SafeAreaView style={styles.processingScreen}>
@@ -132,6 +135,23 @@ export default function CameraScreen() {
         <Text style={styles.processingBody}>
           Analyzing the label. This may take a little while.
         </Text>
+      </SafeAreaView>
+    );
+  }
+
+  // 0) Camera Access turned off in Settings > Privacy
+  if (appSettingsReady && !appSettings.cameraEnabled) {
+    return (
+      <SafeAreaView style={styles.permWrap}>
+        <Ionicons name="camera-outline" size={48} color="#444" />
+        <Text style={styles.permTitle}>Camera access is off</Text>
+        <Text style={styles.permBody}>Turn on Camera Access in Settings &gt; Privacy to scan medicines.</Text>
+        <Pressable style={styles.permBtn} onPress={() => router.push('/settings' as any)}>
+          <Text style={styles.permBtnText}>Open Settings</Text>
+        </Pressable>
+        <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <Text style={styles.permLink}>Go back</Text>
+        </Pressable>
       </SafeAreaView>
     );
   }
@@ -236,7 +256,13 @@ export default function CameraScreen() {
               </View>
             </Pressable>
 
-            <Pressable onPress={onFlip} hitSlop={12}>
+            <Pressable
+              onPress={onFlip}
+              hitSlop={12}
+              style={styles.flipButton}
+              accessibilityRole="button"
+              accessibilityLabel="Flip camera"
+            >
               <Ionicons name="sync-outline" size={30} color="#fff" />
             </Pressable>
           </View>
@@ -264,6 +290,7 @@ const styles = StyleSheet.create({
   permBtnText: { color: "#fff", fontWeight: "600" },
   permUploadButton: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 18, padding: 8 },
   permUploadText: { color: "#1F5C4D", fontWeight: "600" },
+  flipButton: { width: 84, alignItems: "center", justifyContent: "center", paddingVertical: 6 },
   permLink: { color: "#1F5C4D", fontWeight: "500" },
 
   // Top bar

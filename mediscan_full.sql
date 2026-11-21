@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LH9NXuAPZqabhYjYmTOzsIRgB1Gxjrw6dqy9ltQEeIJ8YS9DG3U2xusR6fgRBQi
+\restrict lY7YzF9PED9Avk5pjQ4DTP0w35KPR6fkUuJvCaT77M8DTzeFQ61QI2MR4qJ19du
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
@@ -31585,7 +31585,7 @@ aad809f6d6ee0bb3	0e1a6aed-f9d9-4323-a51b-1a81c3074061	f	hello	hello	3	2006-10-10
 
 COPY public.session_tokens (token_id, account_id, token, token_created_at, token_expires_at) FROM stdin;
 4d277e69-03a0-4f37-ac83-483a8836a1da	3d74ea17-386d-4119-950c-f256af7154ff	ac64df9ed84308c6b53367410b892e29c286819ac67aa07906a5eaa56b9d6722	2026-11-20 04:18:29.85974	2026-11-27 04:18:29.856292
-78c14675-7daa-4439-a2d8-1137b15f82d0	0e1a6aed-f9d9-4323-a51b-1a81c3074061	ea7f165c5431f0b2a3c87146197596b006e995016e6bf5d71703793f7afc2449	2026-11-21 03:43:46.414053	2026-11-28 03:43:46.410887
+8bd23813-7da6-45bb-8ae4-987b8776d1e5	0e1a6aed-f9d9-4323-a51b-1a81c3074061	448acf82a6dbcecd57c9114b19f89b84eeebc8414d7323b9a4e8427f89b96a5f	2026-11-21 04:43:49.621999	2026-11-28 04:43:49.614778
 \.
 
 
@@ -62574,6 +62574,7 @@ COPY public.vault_items (vault_id, profile_id, fda_id, vault_expiry_date, vault_
 455	aad809f6d6ee0bb3	45901	2030-10-10	2026-11-21 03:07:56.046531	2026-11-21 03:07:56.046531		verified	scan	100
 456	aad809f6d6ee0bb3	55549	2032-12-12	2026-11-21 03:20:01.279637	2026-11-21 03:20:01.279637		needs_verification	scan	80
 457	0acaa0a7b5a8a1ba	38227	2027-10-10	2026-11-21 03:45:45.854025	2026-11-21 03:45:45.854025		needs_verification	scan	80
+458	aad809f6d6ee0bb3	51792	2029-10-10	2026-11-21 03:57:28.103827	2026-11-21 03:57:28.103827		verified	scan	100
 \.
 
 
@@ -62602,7 +62603,7 @@ SELECT pg_catalog.setval('public.philippines_fda_medicines_fda_id_seq', 62586, t
 -- Name: vault_items_vault_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mediscan_admin
 --
 
-SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 457, true);
+SELECT pg_catalog.setval('public.vault_items_vault_id_seq', 458, true);
 
 
 --
@@ -62888,5 +62889,5 @@ ALTER TABLE ONLY public.notification_push_tokens
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LH9NXuAPZqabhYjYmTOzsIRgB1Gxjrw6dqy9ltQEeIJ8YS9DG3U2xusR6fgRBQi
+\unrestrict lY7YzF9PED9Avk5pjQ4DTP0w35KPR6fkUuJvCaT77M8DTzeFQ61QI2MR4qJ19du
 
