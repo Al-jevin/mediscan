@@ -2,17 +2,46 @@ services:
   db:
     image: postgres:18.6-alpine3.24
     container_name: mediscan_postgres
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: mediscan_admin
-      POSTGRES_PASSWORD: mediscan_P@ssw0rd
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mediscan_P@ssw0rd}
       POSTGRES_DB: mediscan_db
-      PGDATA: /var/lib/postgresql/data 
+      PGDATA: /var/lib/postgresql/data
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql
-      - ./mediscan_full.sql:/docker-entrypoint-initdb.d/mediscan_full.sql
+      - ./mediscan_full.sql:/docker-entrypoint-initdb.d/01-mediscan_full.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediscan_admin -d mediscan_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile
+    container_name: mediscan_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://mediscan_admin:mediscan_P%40ssw0rd@db:5432/mediscan_db
+      DB_HOST: db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./back-end:/workspace/back-end
+      - ./front-end:/workspace/front-end:ro
+      - ./.env:/workspace/.env:ro
+      - ./DATASET_LUMAKIN.csv:/workspace/DATASET_LUMAKIN.csv:ro
+      - paddleocr_cache:/root/.paddleocr
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   pgdata:
+  paddleocr_cache:

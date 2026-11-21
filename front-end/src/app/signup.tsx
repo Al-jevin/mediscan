@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AuthHeader from '@/components/AuthHeader';
 import AuthInput from '@/components/AuthInput';
 import FormError from '@/components/FormError';
-import TermsConsentModal from '@/components/TermsConsentModal';
-import { TERMS_VERSION } from '@/components/TermsMedicalDisclaimerContent';
+import SaveLoginDialog from '@/components/SaveLoginDialog';
 import { MockAuth } from '@/mock/mockAuth';
 import { isValidEmail, MIN_PASSWORD } from '@/lib/validation';
 import { Colors, Radius, Spacing } from '@/constants/display';
+import TermsConsentModal from '../components/TermsConsentModal';
 
 // Sign Up ("Sign in" button sa Log In screen).
 //
-// Flow:
-//  1. User fills in email + password + confirm and accepts Terms.
-//  2. Frontend POST /auth/register -> verification email.
-//  3. Verify screen -> OTP -> auto-login (or redirect to Log In).
+// Flow (from the requirements):
+//  1. User fills in email + password + confirm.
+//  2. Frontend sends JSON to backend (POST /auth/signup).
+//  3a. Existing account (409) -> silently log them in, WALANG verification ulit.
+//  3b. New account -> backend sends a code to their email -> go to Verify screen.
+//      Hindi pa usable ang account hangga't hindi verified.
 export default function SignUpScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -27,6 +29,7 @@ export default function SignUpScreen() {
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [askSave, setAskSave] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
 
   const onSignUp = async () => {
@@ -37,38 +40,59 @@ export default function SignUpScreen() {
     if (password !== confirm) return setError('Passwords do not match.');
 
     setLoading(true);
-    const res = await MockAuth.signUp(e, password, {
-      accepted: true,
-      version: TERMS_VERSION,
-    });
+    const res = await MockAuth.signUp(e, password);
+
+    // 3a. Already exists -> silent log in
+    if (res.code === 409) {
+      const login = await MockAuth.login(e, password);
+      setLoading(false);
+      if (!login.success) {
+        return setError('An account with this email already exists, but the password is incorrect. Try Log In instead.');
+      }
+      setAskSave(true); // manual login -> ask to save
+      return;
+    }
+
     setLoading(false);
     if (!res.success) return setError(res.message);
 
-    // Always verify via email OTP (no login probe that burned rate limits).
+    // 3b. New account -> verify
     router.push({ pathname: '/verify-code', params: { email: e } });
   };
 
+  const onAnswerSave = (save: boolean) => {
+    setAskSave(false);
+    if (save) MockAuth.saveLogin(email, password);
+    router.replace('/choose-profile');
+  };
+
   const handleSignUpClick = () => {
-    setError(null);
-    const e = email.trim();
-    if (!isValidEmail(e)) return setError('Please enter a valid email address.');
-    if (password.length < MIN_PASSWORD) return setError(`Password must be at least ${MIN_PASSWORD} characters.`);
-    if (password !== confirm) return setError('Passwords do not match.');
+    if (!email.trim() || !password.trim() || !confirm.trim()) {
+      Alert.alert('Required Fields', 'Please fill in all fields.');
+      return;
+    }
+    if (password !== confirm) {
+      Alert.alert('Password Mismatch', 'Passwords do not match.');
+      return;
+    }
     setShowConsentModal(true);
   };
 
-  const handleAcceptTerms = () => {
+  const handleAcceptTerms = async () => {
     setShowConsentModal(false);
-    void onSignUp();
+
+    // Calls your teammate's original signup logic
+    onSignUp();
   };
 
   const handleRejectTerms = () => {
     setShowConsentModal(false);
     Alert.alert(
       'Terms Required',
-      'You must accept the Philippine-Compliant Terms of Service and Medical Disclaimer to create a MediScan account.',
+      'You must accept the Philippine-Compliant Terms of Service and Medical Disclaimer to create a MediScan account.'
     );
   };
+
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -105,7 +129,7 @@ export default function SignUpScreen() {
             autoComplete="new-password"
             value={confirm}
             onChangeText={setConfirm}
-            onSubmitEditing={handleSignUpClick}
+            onSubmitEditing={onSignUp}
           />
 
           <Pressable style={[styles.primaryBtn, loading && styles.disabled]} onPress={handleSignUpClick} disabled={loading}>
@@ -126,11 +150,13 @@ export default function SignUpScreen() {
         </Text>
       </ScrollView>
 
-      <TermsConsentModal
+      <SaveLoginDialog visible={askSave} onAnswer={onAnswerSave} />
+       <TermsConsentModal
         visible={showConsentModal}
         onAccept={handleAcceptTerms}
         onReject={handleRejectTerms}
       />
+
     </KeyboardAvoidingView>
   );
 }

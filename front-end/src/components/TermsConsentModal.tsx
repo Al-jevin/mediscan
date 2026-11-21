@@ -1,16 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
+import React from 'react';import {
   Modal,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { TermsLegalText } from './TermsMedicalDisclaimerContent';
+import TermsMedicalDisclaimerContent from './TermsMedicalDisclaimerContent';
 
 interface TermsConsentModalProps {
   visible: boolean;
@@ -23,41 +20,12 @@ export default function TermsConsentModal({
   onAccept,
   onReject,
 }: TermsConsentModalProps) {
-  // Users must scroll to the end of the terms before they can accept.
-  const [hasReachedEnd, setHasReachedEnd] = useState(false);
-  const viewportHeight = useRef(0);
-  const contentHeight = useRef(0);
-
-  // Reset every time the modal is opened.
-  useEffect(() => {
-    if (visible) {
-      setHasReachedEnd(false);
-    }
-  }, [visible]);
-
-  // If the text fits without scrolling, there is nothing to scroll through.
-  const checkFitsWithoutScroll = () => {
-    if (
-      viewportHeight.current > 0 &&
-      contentHeight.current > 0 &&
-      contentHeight.current <= viewportHeight.current + END_THRESHOLD_PX
-    ) {
-      setHasReachedEnd(true);
-    }
-  };
-
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (hasReachedEnd) return;
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    if (layoutMeasurement.height + contentOffset.y >= contentSize.height - END_THRESHOLD_PX) {
-      setHasReachedEnd(true);
-    }
-  };
-
+  
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
         <View style={styles.sheet}>
+          {/* Header */}
           <View style={styles.header}>
             <View style={styles.iconCircle}>
               <Ionicons name="document-text-outline" size={24} color="#0E3326" />
@@ -68,31 +36,13 @@ export default function TermsConsentModal({
             </Text>
           </View>
 
-          <ScrollView
+          {/* Scrollable Terms Content */}
+           <ScrollView
             style={styles.scrollArea}
             contentContainerStyle={styles.scrollInner}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            onLayout={(e) => {
-              viewportHeight.current = e.nativeEvent.layout.height;
-              checkFitsWithoutScroll();
-            }}
-            onContentSizeChange={(_w, h) => {
-              contentHeight.current = h;
-              checkFitsWithoutScroll();
-            }}
           >
-            <TermsLegalText />
+            <TermsMedicalDisclaimerContent />
           </ScrollView>
-
-          {!hasReachedEnd && (
-            <View style={styles.scrollHint}>
-              <Ionicons name="arrow-down-circle-outline" size={16} color="#718096" />
-              <Text style={styles.scrollHintText}>
-                Scroll to the bottom to read all terms before agreeing.
-              </Text>
-            </View>
-          )}
 
           {/* Action Buttons */}
           <View style={styles.buttonRow}>
@@ -105,17 +55,11 @@ export default function TermsConsentModal({
               <Text style={styles.rejectBtnText}>Decline</Text>
             </TouchableOpacity>
 
-            {/* Accept Button (enabled only after scrolling to the end) */}
+            {/* Accept Button */}
             <TouchableOpacity
-              style={[styles.acceptBtn, !hasReachedEnd && styles.acceptBtnDisabled]}
+              style={styles.acceptBtn}
               activeOpacity={0.8}
               onPress={onAccept}
-              disabled={!hasReachedEnd}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: !hasReachedEnd }}
-              accessibilityHint={
-                hasReachedEnd ? undefined : 'Scroll to the bottom of the terms to enable this button'
-              }
             >
               <Text style={styles.acceptBtnText}>I Agree & Continue</Text>
             </TouchableOpacity>
@@ -125,9 +69,6 @@ export default function TermsConsentModal({
     </Modal>
   );
 }
-
-// How close (in px) to the bottom counts as "reached the end".
-const END_THRESHOLD_PX = 24;
 
 const styles = StyleSheet.create({
   overlay: {
@@ -208,20 +149,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0E3326',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  acceptBtnDisabled: {
-    backgroundColor: '#A0AEC0',
-  },
-  scrollHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  scrollHintText: {
-    fontSize: 12,
-    color: '#718096',
   },
   acceptBtnText: {
     color: '#FFFFFF',

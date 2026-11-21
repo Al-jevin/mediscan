@@ -2,6 +2,7 @@
 endpoints.md
 
 # Local Environment & Database initialization
+.dev
 .env
 .env.*
 !.env.example
@@ -29,6 +30,3 @@ back-end/app/api/responses
 copilot-instructions.md
 .venv/
 HANDOFF.md
-.venv/
-
-/back-end/tests/fixtures/images

@@ -2,25 +2,24 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { Camera } from 'expo-camera';
 import { useEffect, useState } from 'react';
-import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, AppState, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, Vibration, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import { useProfile } from '@/context/ProfileContext';
 import {
-  useAppTheme,
-  type AppearanceMode,
-  type AppLanguage,
-} from '@/context/ThemeContext';
-import { useDisplayTheme } from '@/hooks/useDisplayTheme';
+  cancelScheduledReminders,
+  hasNotificationPermission,
+  requestNotificationPermission,
+  sendNotification,
+  updateSettings,
+  useAppSettings,
+} from '@/services/appSettings';
 
 type Screen = 'Settings' | 'Display' | 'Language' | 'Notifications' | 'Offline Database' | 'Privacy' | 'FAQs' | 'About MediScan' | 'Privacy Policy' | 'Terms of Service' | 'Open Source Licenses';
 
-const SELECTED_LIGHT = '#8DB29B';
-const SELECTED_DARK = '#2E5C4E';
-
-/** Fallback light tokens for StyleSheet defaults (overridden at render). */
 const GREEN = '#164F43';
 const LIGHT_GREEN = '#8FB5A0';
+const SELECTED_LIGHT = '#8DB29B';
 const BG = '#F8FAFB';
 const TEXT = '#18312F';
 const BORDER = '#E0E5E5';
@@ -59,30 +58,26 @@ const FAQS = [
 
 export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   // The profile picked on "Choose your profile" + the logged-in account's email
-  const { activeProfile, email } = useProfile();
-  const {
-    appearance,
-    setAppearance,
-    language,
-    setLanguage,
-    textSize,
-    setTextSize,
-    t,
-  } = useAppTheme();
-  const { colors, isDark } = useDisplayTheme();
-  const themeGreen = colors.actionPrimary;
-  const themeMuted = colors.textSecondary;
-  const themeBg = colors.surfacePrimary;
-  const themeText = colors.textPrimary;
-  const themeBorder = colors.borderDefault;
-  const themeCard = isDark ? colors.surfaceSecondary : '#FFFFFF';
-  const themeSelected = isDark ? SELECTED_DARK : SELECTED_LIGHT;
+  const profileCtx = useProfile();
+  const activeProfile = profileCtx.activeProfile;
+  // Uses the email if ProfileContext provides one; shows nothing otherwise
+  const email = (profileCtx as unknown as { email?: string }).email ?? '';
+
+  // Saved on/off settings (shared with the camera screen and reminders)
+  const [settings] = useAppSettings();
+  // Real phone permissions (null = still checking)
+  const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState<boolean | null>(null);
+
+  // A switch only shows ON when the app setting is on AND the phone actually allows it
+  const cameraEnabled = settings.cameraEnabled && cameraPermission === true;
+  const pushNotifications = settings.pushNotifications && notificationPermission === true;
+  const { medicationReminders, sound, vibration } = settings;
+
   const [screen, setScreen] = useState<Screen>('Settings');
-  const [pushNotifications, setPushNotifications] = useState(false);
-  const [medicineReminders, setMedicineReminders] = useState(true);
-  const [sound, setSound] = useState(true);
-  const [vibration, setVibration] = useState(false);
-  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [appearance, setAppearance] = useState('Light');
+  const [language, setLanguage] = useState('English');
+  const [textSize, setTextSize] = useState(16);
   const [faqSearch, setFaqSearch] = useState('');
   const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [syncModal, setSyncModal] = useState<'closed' | 'syncing' | 'complete'>('closed');
@@ -90,12 +85,24 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   const [lastSynced, setLastSynced] = useState('Today, 9:32 AM');
 
 
+  // Check the real permissions now, and again when coming back from the phone's Settings app
   useEffect(() => {
     let mounted = true;
-    Camera.getCameraPermissionsAsync()
-      .then((result) => { if (mounted) setCameraEnabled(result.granted); })
-      .catch(() => { if (mounted) setCameraEnabled(false); });
-    return () => { mounted = false; };
+    const checkPermissions = () => {
+      Camera.getCameraPermissionsAsync()
+        .then((result) => { if (mounted) setCameraPermission(result.granted); })
+        .catch(() => { if (mounted) setCameraPermission(false); });
+      hasNotificationPermission()
+        .then((granted) => { if (mounted) setNotificationPermission(granted); });
+    };
+    checkPermissions();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') checkPermissions();
+    });
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
   }, []);
 
 
@@ -110,21 +117,86 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   };
   const openScreen = (next: Screen) => setScreen(next);
 
+  const openPhoneSettings = () => {
+    Linking.openSettings().catch(() => {});
+  };
 
+
+  // ----- Privacy: Camera Access -----
   const toggleCamera = async (value: boolean) => {
     if (!value) {
-      setCameraEnabled(false);
-      Alert.alert('Camera permission', 'The app switch is off. To revoke device permission itself, open your phone Settings and change MediScan camera access.');
+      await updateSettings({ cameraEnabled: false });
+      Alert.alert(
+        'Camera turned off',
+        'Scanning is now turned off in MediScan. To also remove the permission from your phone, open your phone settings.',
+        [
+          { text: 'OK' },
+          { text: 'Open settings', onPress: openPhoneSettings },
+        ],
+      );
       return;
     }
     try {
-      const result = await Camera.requestCameraPermissionsAsync();
-      setCameraEnabled(result.granted);
-      if (!result.granted) Alert.alert('Permission needed', 'Allow camera access in your device settings to use camera features.');
+      const existing = await Camera.getCameraPermissionsAsync();
+      const result = existing.granted || !existing.canAskAgain
+        ? existing
+        : await Camera.requestCameraPermissionsAsync();
+      setCameraPermission(result.granted);
+      if (result.granted) {
+        await updateSettings({ cameraEnabled: true });
+      } else {
+        Alert.alert(
+          'Permission needed',
+          'Allow camera access for MediScan in your phone settings to scan medicines.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open settings', onPress: openPhoneSettings },
+          ],
+        );
+      }
     } catch {
-      setCameraEnabled(false);
+      setCameraPermission(false);
       Alert.alert('Camera permission', 'Camera permission could not be requested on this device.');
     }
+  };
+
+
+  // ----- Notifications -----
+  const togglePushNotifications = async (value: boolean) => {
+    if (!value) {
+      await updateSettings({ pushNotifications: false });
+      await cancelScheduledReminders();
+      return;
+    }
+    const granted = await requestNotificationPermission();
+    setNotificationPermission(granted);
+    if (!granted) {
+      Alert.alert(
+        'Permission needed',
+        'Allow notifications for MediScan in your phone settings to get medicine reminders.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open settings', onPress: openPhoneSettings },
+        ],
+      );
+      return;
+    }
+    await updateSettings({ pushNotifications: true });
+    await sendNotification('Notifications are on', 'MediScan will remind you about your medicines.');
+  };
+
+  const toggleMedicationReminders = async (value: boolean) => {
+    await updateSettings({ medicationReminders: value });
+    if (!value) await cancelScheduledReminders();
+  };
+
+  const toggleSound = (value: boolean) => {
+    void updateSettings({ sound: value });
+  };
+
+  const toggleVibration = (value: boolean) => {
+    void updateSettings({ vibration: value });
+    if (value) Vibration.vibrate(200); // quick buzz so you can feel it's on
   };
 
 
@@ -139,8 +211,8 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 
 
   const Header = ({ title }: { title: string }) => (
-    <SafeAreaView edges={['top']} style={[styles.headerSafe, { backgroundColor: themeBg }]}>
-      <View style={[styles.header, { backgroundColor: themeBg, borderBottomColor: themeBorder }]}>
+    <SafeAreaView edges={['top']} style={styles.headerSafe}>
+      <View style={styles.header}>
         <Pressable
           onPress={goBack}
           style={styles.backButton}
@@ -148,10 +220,10 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
           accessibilityRole="button"
           accessibilityLabel={screen === 'Settings' ? 'Open menu' : 'Go back'}
         >
-          <Ionicons name="arrow-back" size={25} color={themeGreen} />
+          <Ionicons name="arrow-back" size={25} color={GREEN} />
         </Pressable>
 
-        <Text style={[styles.headerTitle, { color: themeText }]}>{title}</Text>
+        <Text style={styles.headerTitle}>{title}</Text>
 
         <View style={{ width: 36 }} />
       </View>
@@ -159,66 +231,64 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   );
 
   const ProfileCard = () => (
-    <View style={[styles.profileCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+    <View style={styles.profileCard}>
       {/* Same avatar, name and email as Home, the side menu and the Profile screen */}
       <ProfileAvatar icon={activeProfile?.profile_icon ?? 1} size={50} />
       <View style={{ flex: 1 }}>
-        <Text style={[styles.profileName, { color: themeText }]} numberOfLines={1}>{activeProfile?.profile_fullname ?? ''}</Text>
-        <Text style={[styles.email, { color: themeMuted }]} numberOfLines={1}>{email ?? ''}</Text>
+        <Text style={styles.profileName} numberOfLines={1}>{activeProfile?.profile_fullname ?? ''}</Text>
+        <Text style={styles.email} numberOfLines={1}>{email}</Text>
       </View>
     </View>
   );
 
 
   const SettingRow = ({ icon, title, value, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; value?: string; onPress: () => void }) => (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.settingRow, { borderBottomColor: themeBorder }, pressed && { backgroundColor: isDark ? '#1B3D2E' : '#EDF4F1' }]} accessibilityRole="button">
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]} accessibilityRole="button">
       {title === 'Appearance' ? (
         <View style={styles.appearanceRowIcon}>
           {/* Crescent outline with a half-sun tucked into its open side, matching the reference icon */}
-          <Ionicons name="moon-outline" size={23} color={themeMuted} style={styles.appearanceMoonGlyph} />
+          <Ionicons name="moon-outline" size={23} color="#64847D" style={styles.appearanceMoonGlyph} />
           <View style={styles.appearanceSunGraphic}>
-            <View style={[styles.appearanceSunCircle, { borderColor: themeMuted }]} />
-            <View style={[styles.sunRayTop, { backgroundColor: themeMuted }]} />
-            <View style={[styles.sunRayUpperRight, { backgroundColor: themeMuted }]} />
-            <View style={[styles.sunRayRight, { backgroundColor: themeMuted }]} />
+            <View style={styles.appearanceSunCircle} />
+            <View style={styles.sunRayTop} />
+            <View style={styles.sunRayUpperRight} />
+            <View style={styles.sunRayRight} />
           </View>
         </View>
-      ) : <Ionicons name={icon} size={21} color={themeMuted} />}
-      <Text style={[styles.rowTitle, { fontSize: Math.max(textSize, 17), color: themeText }]}>{title}</Text>
-      {value ? <Text style={[styles.rowValue, { color: themeMuted }]}>{value}</Text> : null}
-      <Ionicons name="chevron-forward" size={21} color={themeMuted} />
+      ) : <Ionicons name={icon} size={21} color="#64847D" />}
+      <Text style={[styles.rowTitle, { fontSize: Math.max(textSize, 17) }]}>{title}</Text>
+      {value ? <Text style={styles.rowValue}>{value}</Text> : null}
+      <Ionicons name="chevron-forward" size={21} color="#64847D" />
     </Pressable>
   );
 
 
-  const SectionTitle = ({ children }: { children: string }) => (
-    <Text style={[styles.sectionTitle, { color: themeText }]}>{children}</Text>
-  );
+  const SectionTitle = ({ children }: { children: string }) => <Text style={styles.sectionTitle}>{children}</Text>;
   const ToggleRow = ({ title, value, onValueChange }: { title: string; value: boolean; onValueChange: (value: boolean) => void }) => (
     <View style={styles.toggleRow}>
-      <Text style={[styles.toggleTitle, { color: themeText }]}>{title}</Text>
-      <Switch value={value} onValueChange={onValueChange} trackColor={{ false: themeBorder, true: themeMuted }} thumbColor={value ? themeGreen : themeCard} />
+      <Text style={styles.toggleTitle}>{title}</Text>
+      <Switch value={value} onValueChange={onValueChange} trackColor={{ false: '#D8DEDD', true: LIGHT_GREEN }} thumbColor={value ? GREEN : '#F7F9F9'} />
     </View>
   );
 
 
   const SettingsScreen = () => (
     <>
-      <Header title={t('Settings', 'Mga Setting')} />
+      <Header title="Settings" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ProfileCard />
-        <SectionTitle>{t('Preferences', 'Mga Kagustuhan')}</SectionTitle>
-        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
-          <SettingRow icon="sunny-outline" title={t('Appearance', 'Hitsura')} onPress={() => openScreen('Display')} />
-          <SettingRow icon="globe-outline" title={t('Language', 'Wika')} value={language} onPress={() => openScreen('Language')} />
-          <SettingRow icon="notifications-outline" title={t('Notifications', 'Mga Abiso')} onPress={() => openScreen('Notifications')} />
+        <SectionTitle>Preferences</SectionTitle>
+        <View style={styles.group}>
+          <SettingRow icon="sunny-outline" title="Appearance" onPress={() => openScreen('Display')} />
+          <SettingRow icon="globe-outline" title="Language" value={language} onPress={() => openScreen('Language')} />
+          <SettingRow icon="notifications-outline" title="Notifications" onPress={() => openScreen('Notifications')} />
         </View>
-        <SectionTitle>{t('Data & Sync', 'Data at Sync')}</SectionTitle>
-        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}><SettingRow icon="sync-outline" title="Offline Database" onPress={() => openScreen('Offline Database')} /></View>
+        <SectionTitle>Data &amp; Sync</SectionTitle>
+        <View style={styles.group}><SettingRow icon="sync-outline" title="Offline Database" onPress={() => openScreen('Offline Database')} /></View>
         <SectionTitle>Security &amp; Privacy</SectionTitle>
-        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}><SettingRow icon="shield-outline" title="Privacy" onPress={() => openScreen('Privacy')} /></View>
+        <View style={styles.group}><SettingRow icon="shield-outline" title="Privacy" onPress={() => openScreen('Privacy')} /></View>
         <SectionTitle>Support</SectionTitle>
-        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+        <View style={styles.group}>
           <SettingRow icon="help-circle-outline" title="FAQs" onPress={() => openScreen('FAQs')} />
           <SettingRow icon="information-circle-outline" title="About MediScan" onPress={() => openScreen('About MediScan')} />
         </View>
@@ -229,9 +299,9 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 
   const DisplayScreen = () => (
     <>
-      <Header title={t('Display', 'Display')} />
+      <Header title="Display" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <Text style={[styles.displaySectionTitle, { color: themeText }]}>{t('Appearance', 'Hitsura')}</Text>
+        <Text style={styles.displaySectionTitle}>Appearance</Text>
         <View style={styles.appearanceRow}>
           {[
             { title: 'Light', icon: 'sunny-outline' as const },
@@ -239,40 +309,40 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
             { title: 'System', icon: 'phone-portrait-outline' as const },
           ].map(option => {
             const selected = appearance === option.title;
-            return <Pressable key={option.title} onPress={() => setAppearance(option.title as AppearanceMode)} style={[styles.appearanceCard, { backgroundColor: themeCard, borderColor: themeBorder }, selected && { backgroundColor: themeSelected, borderColor: themeSelected }]}>
+            return <Pressable key={option.title} onPress={() => setAppearance(option.title)} style={[styles.appearanceCard, selected && styles.appearanceSelected]}>
               <View style={styles.appearanceIcon}>
                 {option.title === 'System' ? (
                   <View style={styles.systemIcon}>
                     {/* Thin custom outline: desktop monitor behind, phone in front */}
-                    <View style={[styles.desktopMonitor, { borderColor: selected ? 'white' : themeGreen }]}>
-                      <View style={[styles.monitorStand, { backgroundColor: selected ? 'white' : themeGreen }]} />
-                      <View style={[styles.monitorFoot, { backgroundColor: selected ? 'white' : themeGreen }]} />
+                    <View style={[styles.desktopMonitor, { borderColor: selected ? 'white' : GREEN }]}>
+                      <View style={[styles.monitorStand, { backgroundColor: selected ? 'white' : GREEN }]} />
+                      <View style={[styles.monitorFoot, { backgroundColor: selected ? 'white' : GREEN }]} />
                     </View>
-                    <View style={[styles.systemPhone, { borderColor: selected ? 'white' : themeGreen, backgroundColor: selected ? themeSelected : themeCard }]}>
-                      <View style={[styles.phoneSpeaker, { backgroundColor: selected ? 'white' : themeGreen }]} />
+                    <View style={[styles.systemPhone, { borderColor: selected ? 'white' : GREEN, backgroundColor: selected ? SELECTED_LIGHT : 'white' }]}>
+                      <View style={[styles.phoneSpeaker, { backgroundColor: selected ? 'white' : GREEN }]} />
                     </View>
                   </View>
-                ) : <Ionicons name={option.icon} size={18} color={selected ? 'white' : themeGreen} />}
+                ) : <Ionicons name={option.icon} size={18} color={selected ? 'white' : GREEN} />}
               </View>
-              <Text style={[styles.appearanceText, { color: themeText }, selected && styles.selectedText]}>{option.title}</Text>
+              <Text style={[styles.appearanceText, selected && styles.selectedText]}>{option.title}</Text>
             </Pressable>;
           })}
         </View>
-        <Text style={[styles.displaySectionTitle, { color: themeText }]}>{t('Text Size', 'Laki ng Teksto')}</Text>
-        <View style={[styles.sliderCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
-          <Text style={[styles.smallA, { color: themeText }]}>A</Text>
+        <Text style={styles.displaySectionTitle}>Text Size</Text>
+        <View style={styles.sliderCard}>
+          <Text style={styles.smallA}>A</Text>
           <View style={styles.sliderWrap}>
             <View pointerEvents="none" style={styles.sliderTicks}>
               {[0, 1, 2, 3, 4].map((tick) => <View key={tick} style={[styles.sliderTick, (textSize >= 12 + tick * 3) && styles.sliderTickActive]} />)}
             </View>
-            <Slider style={styles.slider} minimumValue={12} maximumValue={24} step={3} value={Math.round((textSize - 12) / 3) * 3 + 12} onValueChange={setTextSize} minimumTrackTintColor={themeGreen} maximumTrackTintColor={themeBorder} thumbTintColor={themeCard} />
+            <Slider style={styles.slider} minimumValue={12} maximumValue={24} step={3} value={Math.round((textSize - 12) / 3) * 3 + 12} onValueChange={setTextSize} minimumTrackTintColor={GREEN} maximumTrackTintColor="#D5D9D8" thumbTintColor="#FFFFFF" />
           </View>
-          <Text style={[styles.largeA, { color: themeText }]}>A</Text>
+          <Text style={styles.largeA}>A</Text>
         </View>
-        <SectionTitle>{t('Preview', 'Preview')}</SectionTitle>
-        <View style={[styles.previewCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
-          <Text style={[styles.previewTitle, { fontSize: textSize, color: themeText }]}>{t('Sample Reminder', 'Halimbawang Paalala')}</Text>
-          <Text style={[styles.previewDescription, { fontSize: Math.max(11, textSize - 3), color: themeMuted }]}>{t('This is how your medicine reminders and text will look throughout the app.', 'Ganito magmumukha ang mga paalala at teksto sa buong app.')}</Text>
+        <SectionTitle>Preview</SectionTitle>
+        <View style={styles.previewCard}>
+          <Text style={[styles.previewTitle, { fontSize: textSize }]}>Sample Reminder</Text>
+          <Text style={[styles.previewDescription, { fontSize: Math.max(11, textSize - 3) }]}>This is how your medicine reminders and text will look throughout the app.</Text>
         </View>
       </ScrollView>
     </>
@@ -281,13 +351,13 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 
   const LanguageScreen = () => (
     <>
-      <Header title={t('Language', 'Wika')} />
+      <Header title="Language" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <SectionTitle>{t('Language', 'Wika')}</SectionTitle>
+        <SectionTitle>Language</SectionTitle>
         {['English', 'Filipino'].map(item => (
-          <Pressable key={item} onPress={() => setLanguage(item as AppLanguage)} style={[styles.languageCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
-            <Text style={[styles.languageText, { color: themeText }]}>{item}</Text>
-            {language === item && <Ionicons name="checkmark" size={23} color={themeGreen} />}
+          <Pressable key={item} onPress={() => setLanguage(item)} style={styles.languageCard}>
+            <Text style={styles.languageText}>{item}</Text>
+            {language === item && <Ionicons name="checkmark" size={23} color={GREEN} />}
           </Pressable>
         ))}
       </ScrollView>
@@ -301,19 +371,16 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <SectionTitle>General</SectionTitle>
         <View style={styles.group}>
-          <ToggleRow title="Push Notifications" value={pushNotifications} onValueChange={value => {
-            setPushNotifications(value);
-            Alert.alert('Push Notifications', value
-              ? 'This switch is currently an in-app preference only. Actual OS notification permission is not connected in this Expo Go version.'
-              : 'The app preference is off. This does not revoke notification permission in phone settings.');
-          }} />
+          <ToggleRow title="Push Notifications" value={pushNotifications} onValueChange={togglePushNotifications} />
         </View>
         <SectionTitle>Reminders</SectionTitle>
-        <View style={styles.group}><ToggleRow title="Medication Reminders" value={medicineReminders} onValueChange={setMedicineReminders} /></View>
+        <View style={styles.group}>
+          <ToggleRow title="Medication Reminders" value={medicationReminders} onValueChange={toggleMedicationReminders} />
+        </View>
         <SectionTitle>Sound &amp; Vibration</SectionTitle>
         <View style={styles.group}>
-          <ToggleRow title="Sound" value={sound} onValueChange={setSound} />
-          <ToggleRow title="Vibration" value={vibration} onValueChange={setVibration} />
+          <ToggleRow title="Sound" value={sound} onValueChange={toggleSound} />
+          <ToggleRow title="Vibration" value={vibration} onValueChange={toggleVibration} />
         </View>
       </ScrollView>
     </>
@@ -557,7 +624,7 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 
 
   return (
-    <View style={[styles.container, { backgroundColor: themeBg }]}>
+    <View style={styles.container}>
       <View style={styles.main}>
         {/* Called as functions (not <SettingsScreen />) so React doesn't treat them as
             brand-new components on every render — that reset the FAQ search box and scroll. */}
@@ -575,33 +642,13 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
   main: { flex: 1, minHeight: 0 },
-  menuScreen: { flex: 1, flexDirection: 'row', backgroundColor: '#FFFFFF' },
-  menuDrawer: { width: '80%', height: '100%', flexDirection: 'column', backgroundColor: '#FFFFFF', borderRightWidth: 1, borderRightColor: '#D9E0E0' },
-  menuBlankBackground: { flex: 1, backgroundColor: '#FFFFFF' },
-  menuHeader: { height: 72, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 28, gap: 8 },
-  menuBackButton: { width: 38, alignItems: 'flex-start', justifyContent: 'center' },
-  menuBrandIcon: { width: 56, height: 56, borderRadius: 12 },
-  menuBrandTitle: { color: '#0D2926', fontSize: 21, fontWeight: '700' },
-  menuProfileCard: { minHeight: 90, marginHorizontal: 24, marginTop: 12, marginBottom: 28, paddingHorizontal: 10, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E0E5E5', borderRadius: 13, elevation: 1 },
-  menuAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#D9EAF8' },
-  menuProfileDetails: { flex: 1, minWidth: 0 },
-  menuProfileName: { color: TEXT, fontSize: 17, fontWeight: '800' },
-  menuEmail: { color: '#697B79', fontSize: 10, marginTop: 4 },
-  menuOptions: { marginHorizontal: 24, gap: 9 },
-  menuOption: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, borderWidth: 1, borderColor: '#E7EBEB', borderRadius: 10, backgroundColor: BG },
-  menuOptionText: { flex: 1, color: '#111D1B', fontSize: 13, fontWeight: '600' },
-  menuLogoutArea: { marginTop: 'auto', minHeight: 68, paddingHorizontal: 28, paddingVertical: 10, justifyContent: 'center', backgroundColor: '#D8F0DE' },
-  menuLogoutButton: { minHeight: 44, borderRadius: 9, backgroundColor: '#173D35', alignItems: 'center', justifyContent: 'center' },
-  menuLogoutText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  headerSafe: { backgroundColor: BG,},
-  header: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: BORDER, backgroundColor: BG, },
-  backButton: { width: 36, height: 44, alignItems: 'flex-start', justifyContent: 'center', },
+  headerSafe: { backgroundColor: BG },
+  header: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: BORDER, backgroundColor: BG },
+  backButton: { width: 36, height: 44, alignItems: 'flex-start', justifyContent: 'center' },
   headerTitle: { fontSize: 21, fontWeight: '700', color: TEXT },
   scroll: { flex: 1 },
   content: { padding: 20, paddingBottom: 30 },
   profileCard: { minHeight: 82, backgroundColor: 'white', borderRadius: 13, borderWidth: 1, borderColor: '#EDF0F0', flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 22, gap: 12, elevation: 1 },
-  avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#D9EAF8', alignItems: 'center', justifyContent: 'center' },
-  avatarPlaceholder: { borderWidth: 1, borderColor: '#D3E1DE' },
   profileName: { fontSize: 19, fontWeight: '800', color: TEXT },
   email: { color: '#697B79', fontSize: 10, marginTop: 4 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: TEXT, marginBottom: 9, marginTop: 5 },
@@ -648,7 +695,6 @@ const styles = StyleSheet.create({
   progressPercent: { color: '#3FA58D', fontSize: 11, marginTop: 8 },
   doneButton: { width: '100%', minHeight: 34, borderRadius: 7, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
   doneButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  emptyScreen: { flex: 1, backgroundColor: BG },
   appearanceText: { fontSize: 14, color: '#315B53', fontWeight: '500' },
   selectedText: { color: 'white', fontWeight: '600' },
   sliderCard: { minHeight: 90, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, backgroundColor: 'white', borderRadius: 14, borderWidth: 1, borderColor: '#E3E7E6', marginBottom: 28, elevation: 1 },
@@ -659,10 +705,6 @@ const styles = StyleSheet.create({
   sliderTicks: { position: 'absolute', left: 12, right: 12, top: 22, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 1 },
   sliderTick: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#B8BFBD' },
   sliderTickActive: { backgroundColor: GREEN, width: 9, height: 9 },
-  bottomNav: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: BORDER, paddingHorizontal: 4, paddingTop: 5, paddingBottom: 4 },
-  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  navLabel: { color: '#18312F', fontSize: 10, fontWeight: '500' },
-  navPlus: { width: 58, height: 58, borderRadius: 29, backgroundColor: GREEN, borderWidth: 4, borderColor: '#D7E9DD', alignItems: 'center', justifyContent: 'center', marginTop: -22, marginHorizontal: 3, elevation: 3 },
   previewCard: { minHeight: 100, padding: 16, backgroundColor: 'white', borderWidth: 1, borderColor: '#DDE2E1', borderRadius: 12 },
   previewTitle: { fontWeight: '700', color: TEXT, marginBottom: 8 },
   previewDescription: { color: '#667875', lineHeight: 20 },
@@ -670,14 +712,12 @@ const styles = StyleSheet.create({
   languageText: { color: TEXT, fontSize: 14, fontWeight: '600' },
   toggleRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 13, borderBottomWidth: 1, borderBottomColor: '#EDF0F0' },
   toggleTitle: { color: TEXT, fontSize: 15, fontWeight: '600', flex: 1 },
-  permissionNote: { fontSize: 12, lineHeight: 18, color: '#667875', padding: 13 },
   searchBox: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: BORDER, borderRadius: 10, backgroundColor: 'white', marginBottom: 12 },
   searchInput: { flex: 1, minHeight: 42, color: TEXT, fontSize: 15 },
   faqCard: { backgroundColor: 'white', borderWidth: 1, borderColor: BORDER, borderRadius: 10, padding: 13, marginBottom: 9 },
   faqTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   faqAnswer: { color: '#526662', fontSize: 15, lineHeight: 23, marginTop: 10 },
   faqHelp: { color: '#526662', fontSize: 12, lineHeight: 18, textAlign: 'center', alignSelf: 'stretch', marginTop: 8, marginBottom: 10 },
-  legalTitle: { color: TEXT, fontWeight: '800', fontSize: 17, marginBottom: 10 },
   aboutContent: { width: '100%', paddingHorizontal: 22, paddingTop: 16, paddingBottom: 28 },
   aboutBrand: { alignItems: 'center', marginBottom: 20 },
   aboutLogo: { width: 76, height: 76, borderRadius: 38, marginBottom: 2 },
@@ -699,7 +739,6 @@ const styles = StyleSheet.create({
   licenseLabels: { flex: 1, paddingRight: 8 },
   licenseTitle: { color: '#334743', fontSize: 15, lineHeight: 20, fontWeight: '700' },
   licenseSubtitle: { color: '#7B8986', fontSize: 12, lineHeight: 16, marginTop: 3 },
-  licenseDetail: { color: '#687875', fontSize: 11, lineHeight: 15, marginTop: 7, paddingTop: 7, borderTopWidth: 1, borderTopColor: '#EEF1F0' },
   clearCacheModalCard: { width: '100%', maxWidth: 320, backgroundColor: '#FFFFFF', borderRadius: 13, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 14, alignItems: 'center', elevation: 8 },
   clearCacheModalIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFF0F0', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   clearCacheModalTitle: { color: TEXT, fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 8 },

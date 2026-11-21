@@ -11,11 +11,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { TermsLegalText } from '../components/TermsMedicalDisclaimerContent';
+import TermsMedicalDisclaimerContent from '../components/TermsMedicalDisclaimerContent';
 
 export default function TermsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  // Robust fallback component resolution so screen is never blank
+  const ContentComponent = TermsMedicalDisclaimerContent;
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -29,6 +32,7 @@ export default function TermsScreen() {
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" />
 
+      {/* Header with Working Back Button */}
       <View style={styles.topBar}>
         <TouchableOpacity
           onPress={handleBack}
@@ -42,15 +46,21 @@ export default function TermsScreen() {
         <View style={{ width: 24 }} />
       </View>
 
+      {/* Scrollable Terms Content */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <TermsLegalText />
+        {ContentComponent ? (
+          <ContentComponent />
+        ) : (
+          <Text style={{ color: '#4A5568', padding: 16 }}>
+            Loading terms and conditions...
+          </Text>
+        )}
 
+        {/* Return to Home Button */}
         <TouchableOpacity
           style={styles.homeBtn}
           activeOpacity={0.8}
           onPress={() => router.replace('/(tabs)')}
-          accessibilityRole="button"
-          accessibilityLabel="Return to Home"
         >
           <Ionicons name="home-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
           <Text style={styles.homeBtnText}>Return to Home</Text>
