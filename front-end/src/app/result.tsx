@@ -520,10 +520,12 @@ export default function ResultScreen() {
               value={expiry}
               onChangeText={(text) => setExpiry(formatDateInput(text))}
               placeholder="MM / DD / YYYY"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="number-pad"
               maxLength={14}
               accessibilityLabel="Expiration date"
-              style={styles.expiryInput}
+              selectionColor={colors.actionPrimary}
+              style={[styles.expiryInput, { color: colors.textPrimary }]}
             />
             <VaultMemberPicker
               profiles={profiles}
@@ -870,6 +872,7 @@ function makeStyles(colors: any, components: any) {
     borderRadius: 10,
     padding: Spacing.md,
     color: colors.textPrimary,
+    backgroundColor: colors.surfaceSecondary,
   },
   saveError: { ...Type.caption, color: colors.statusDanger },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },

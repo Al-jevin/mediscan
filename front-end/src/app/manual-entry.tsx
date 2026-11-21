@@ -15,12 +15,6 @@ import type { FdaMedicine } from '@/types/medicine';
 import { formatDateInput } from '@/utils/date';
 import { mdyToYMD, ymdToMDY } from '@/utils/medicine';
 
-// Colors used only by this Figma frame that are not in the display.ts tokens yet.
-const InputBorder = '#C9D6CF';
-const ReadOnlyBg = '#F1F5F3';
-const ReadOnlyBorder = '#E1E8E4';
-const Placeholder = '#9AAFA3';
-const HelperText = '#5B6B6C';
 const RequiredStar = '#D93025';
 
 type MedicineSearchResponse = { data: FdaMedicine[] };
@@ -31,8 +25,8 @@ function medicineLabel(medicine: FdaMedicine): string {
 }
 
 function Label({ text, required }: { text: string; required?: boolean }) {
-  const { colors, components } = useDisplayTheme();
-  const styles = makeStyles(colors, components);
+  const { colors } = useDisplayTheme();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.labelRow}>
       <Text style={styles.label}>{text}</Text>
@@ -43,13 +37,16 @@ function Label({ text, required }: { text: string; required?: boolean }) {
 
 // Disabled box that is filled automatically after a medicine is picked.
 function ReadOnlyField({ label, value }: { label: string; value?: string }) {
-  const { colors, components } = useDisplayTheme();
-  const styles = makeStyles(colors, components);
+  const { colors } = useDisplayTheme();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.readOnlyField}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.readOnlyBox}>
-        <Text style={[styles.readOnlyText, value ? { color: colors.textPrimary } : null]} numberOfLines={1}>
+        <Text
+          style={[styles.readOnlyText, value ? { color: colors.textPrimary } : null]}
+          numberOfLines={1}
+        >
           {value ?? 'Auto-filled'}
         </Text>
         <Image source={Assets.icons.lock} style={styles.lockIcon} contentFit="contain" />
@@ -60,8 +57,8 @@ function ReadOnlyField({ label, value }: { label: string; value?: string }) {
 
 // The header ("Manual Entry" + back arrow) comes from AppHeader via app/_layout.tsx.
 export default function ManualEntryScreen() {
-  const { colors, components } = useDisplayTheme();
-  const styles = makeStyles(colors, components);
+  const { colors } = useDisplayTheme();
+  const styles = makeStyles(colors);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profiles, activeProfile, setActiveProfile } = useProfile();
@@ -200,7 +197,7 @@ export default function ManualEntryScreen() {
               setFormError('');
             }}
             placeholder="Type to search, e.g. Paracetamol"
-            placeholderTextColor={Placeholder}
+            placeholderTextColor={colors.textSecondary}
             maxLength={150}
             autoCorrect={false}
             returnKeyType="search"
@@ -253,10 +250,11 @@ export default function ManualEntryScreen() {
               setFormError('');
             }}
             placeholder="MM / DD / YYYY"
-            placeholderTextColor={Placeholder}
+            placeholderTextColor={colors.textSecondary}
             keyboardType="number-pad"
             maxLength={14}
             accessibilityLabel="Expiration date"
+            selectionColor={colors.actionPrimary}
           />
           <Pressable
             hitSlop={8}
@@ -336,39 +334,44 @@ export default function ManualEntryScreen() {
   );
 }
 
-function makeStyles(colors: any, components: any) {
+function makeStyles(colors: any) {
   return StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surfacePrimary },
   content: { paddingTop: 20, paddingHorizontal: 24, gap: 16 },
 
   heading: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
-  required: { fontSize: 12, color: HelperText },
+  required: { fontSize: 12, color: colors.textSecondary },
 
   field: { gap: 6 },
   labelRow: { flexDirection: 'row', gap: 3 },
   label: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
   star: { fontSize: 14, fontWeight: '700', color: RequiredStar },
-  helper: { fontSize: 13, color: HelperText },
+  helper: { fontSize: 13, color: colors.textSecondary },
   searchStatus: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
-  searchStatusText: { fontSize: 13, color: HelperText },
+  searchStatusText: { fontSize: 13, color: colors.textSecondary },
   results: {
     borderWidth: 1,
-    borderColor: InputBorder,
+    borderColor: colors.borderDefault,
     borderRadius: 10,
     backgroundColor: colors.surfacePrimary,
     overflow: 'hidden',
   },
-  result: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: ReadOnlyBorder },
+  result: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderDefault,
+  },
   resultTitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
-  resultDetail: { marginTop: 3, fontSize: 12, color: HelperText },
-  searchMessage: { fontSize: 13, color: HelperText, paddingVertical: 8 },
+  resultDetail: { marginTop: 3, fontSize: 12, color: colors.textSecondary },
+  searchMessage: { fontSize: 13, color: colors.textSecondary, paddingVertical: 8 },
   error: { fontSize: 13, color: colors.statusDanger },
 
   inputBox: {
     height: 48,
-    backgroundColor: colors.onAction,
+    backgroundColor: colors.surfaceSecondary,
     borderWidth: 1,
-    borderColor: InputBorder,
+    borderColor: colors.borderDefault,
     borderRadius: 10,
     paddingHorizontal: 14,
     flexDirection: 'row',
@@ -376,37 +379,37 @@ function makeStyles(colors: any, components: any) {
     gap: 10,
   },
   input: { flex: 1, fontSize: 15, color: colors.textPrimary, padding: 0 },
-  searchIcon: { width: 14.8333, height: 14.8333, marginHorizontal: 2.58 }, // centered in the 20px icon slot
+  searchIcon: { width: 14.8333, height: 14.8333, marginHorizontal: 2.58 },
   calendarIcon: { width: 20, height: 20 },
 
   verifiedCard: {
-    backgroundColor: colors.onAction,
+    backgroundColor: colors.surfaceSecondary,
     borderWidth: 1,
-    borderColor: ReadOnlyBorder,
+    borderColor: colors.borderDefault,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 16,
     gap: 14,
   },
   verifiedHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  verifiedHeaderText: { flex: 1, fontSize: 13, color: HelperText },
-  lockSmallIcon: { width: 11.85, height: 14.85, marginHorizontal: 3.075 }, // centered in the 18px icon slot
+  verifiedHeaderText: { flex: 1, fontSize: 13, color: colors.textSecondary },
+  lockSmallIcon: { width: 11.85, height: 14.85, marginHorizontal: 3.075 },
   row: { flexDirection: 'row', gap: 12 },
 
   readOnlyField: { flex: 1, gap: 6 },
   readOnlyBox: {
     height: 48,
-    backgroundColor: ReadOnlyBg,
+    backgroundColor: colors.surfacePrimary,
     borderWidth: 1,
-    borderColor: ReadOnlyBorder,
+    borderColor: colors.borderDefault,
     borderRadius: 10,
     paddingLeft: 14,
     paddingRight: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  readOnlyText: { flex: 1, fontSize: 15, color: Placeholder },
-  lockIcon: { width: 10.5333, height: 13.2, marginHorizontal: 2.73 }, // centered in the 16px icon slot
+  readOnlyText: { flex: 1, fontSize: 15, color: colors.textSecondary },
+  lockIcon: { width: 10.5333, height: 13.2, marginHorizontal: 2.73 },
 
   saveButton: {
     backgroundColor: colors.actionPrimary,

@@ -35,14 +35,14 @@ export function FormField({ label, required, helper, children }: FieldProps) {
 }
 
 export function InputBox({ children }: { children: ReactNode }) {
-  const { colors, isDark } = useDisplayTheme();
+  const { colors } = useDisplayTheme();
   return (
     <View
       style={[
         styles.box,
         {
-          backgroundColor: isDark ? colors.surfaceSecondary : colors.surfacePrimary,
-          borderColor: isDark ? colors.borderDefault : FormColors.inputBorder,
+          backgroundColor: colors.surfaceSecondary,
+          borderColor: colors.borderDefault,
         },
       ]}
     >

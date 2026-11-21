@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CalendarDatePicker from '@/components/medicine/CalendarDatePicker';
 import MedicineAddedModal from '@/components/MedicineAddedModal';
 import QuitEditingModal from '@/components/QuitEditingModal';
-import { FormColors, FormField, InputBox } from '@/components/FormField';
+import { FormField, InputBox } from '@/components/FormField';
 import PossibleMatchCard from '@/components/PossibleMatchCard';
 import { Assets } from '@/constants/assets';
 import { useDisplayTheme } from '@/hooks/useDisplayTheme';
@@ -111,14 +111,15 @@ export default function EditMedicineScreen() {
         <FormField label="Expiration Date" required>
           <InputBox>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.textPrimary }]}
               value={expiry}
               onChangeText={(t) => setExpiry(formatDateInput(t))}
               placeholder="MM / DD / YYYY"
-              placeholderTextColor={FormColors.placeholder}
+              placeholderTextColor={colors.textSecondary}
               keyboardType="number-pad"
               maxLength={14}
               accessibilityLabel="Expiration date"
+              selectionColor={colors.actionPrimary}
             />
             <Pressable
               hitSlop={8}
@@ -174,7 +175,7 @@ function makeStyles(colors: any, components: any) {
   content: { paddingTop: 20, paddingHorizontal: 24, paddingBottom: 24, gap: 16 },
 
   heading: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
-  required: { fontSize: 12, color: FormColors.helper },
+  required: { fontSize: 12, color: colors.textSecondary },
   error: { color: '#B42318', fontSize: 13 },
 
   input: { flex: 1, fontSize: 15, color: colors.textPrimary, padding: 0 },

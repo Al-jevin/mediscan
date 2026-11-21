@@ -234,10 +234,12 @@ export default function MedicineDetails(props: Props) {
                 value={expiry}
                 onChangeText={(text) => setExpiry(formatDateInput(text))}
                 placeholder="MM / DD / YYYY"
+                placeholderTextColor={colors.textSecondary}
                 keyboardType="number-pad"
                 maxLength={14}
                 accessibilityLabel="Expiration date"
-                style={[styles.modalInput, styles.expiryInput]}
+                selectionColor={colors.actionPrimary}
+                style={[styles.modalInput, styles.expiryInput, { color: colors.textPrimary }]}
               />
               <Pressable
                 onPress={() => {
@@ -379,6 +381,7 @@ function makeStyles(colors: any, components: any) {
     borderRadius: Radius.sm,
     padding: Spacing.md,
     color: colors.textPrimary,
+    backgroundColor: colors.surfaceSecondary,
   },
   expiryInputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   expiryInput: { flex: 1 },
@@ -390,6 +393,7 @@ function makeStyles(colors: any, components: any) {
     borderWidth: 1,
     borderColor: colors.borderDefault,
     borderRadius: Radius.sm,
+    backgroundColor: colors.surfaceSecondary,
   },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },
 });
