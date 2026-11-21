@@ -3,93 +3,174 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Assets } from '@/constants/assets';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import type { ScanState } from '@/data/mockScanResults';
-
-// Colors used only by this Figma frame that are not in the display.ts tokens yet.
-const Amber = '#E89C38';
-const Red = '#D93025';
-const RedSoft = '#FDECEC';
-const RedBorder = '#D6D6D6';
-const HintText = '#5B6B6C';
 
 type Props = {
   status: ScanState;
-  hasSelection?: boolean;     // needs_verification: a possible match is selected
-  onViewDetails?: () => void; // verified
-  onSave?: () => void;        // verified, and needs_verification with a selection (moderate confidence)
-  onEdit?: () => void;        // needs_verification (with a selection)
-  onRedoScan?: () => void;    // needs_verification, no_results
+  hasSelection?: boolean;
+  onViewDetails?: () => void;
+  onSave?: () => void;
+  onEdit?: () => void;
+  onRedoScan?: () => void;
 };
 
-// Fixed bar at the bottom of the Scan Result screen. The buttons depend on the state.
-export default function ScanActions({ status, hasSelection, onViewDetails, onSave, onEdit, onRedoScan }: Props) {
+export default function ScanActions({
+  status,
+  hasSelection,
+  onViewDetails,
+  onSave,
+  onEdit,
+  onRedoScan,
+}: Props) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useDisplayTheme();
+
+  const amber = isDark ? '#F59E0B' : '#E89C38';
+  const red = isDark ? '#FCA5A5' : '#D93025';
+  const secondaryBg = isDark ? colors.surfaceSecondary : colors.surfacePrimary;
 
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, Spacing.sm) }]}>
+    <View
+      style={[
+        styles.bar,
+        {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.borderDefault,
+          paddingBottom: Math.max(insets.bottom, Spacing.sm),
+        },
+      ]}
+    >
       {status === 'verified' && (
         <>
           {onViewDetails && (
-            <Pressable style={styles.verifiedPrimary} onPress={onViewDetails} accessibilityRole="button">
-              <Image source={Assets.icons.details} style={styles.icon} contentFit="contain" />
-              <Text style={[styles.text, { color: Colors.surfacePrimary }]}>View Medicine Details</Text>
+            <Pressable
+              style={[styles.verifiedPrimary, { backgroundColor: colors.statusSuccess }]}
+              onPress={onViewDetails}
+              accessibilityRole="button"
+            >
+              <Image
+                source={Assets.icons.details}
+                style={styles.icon}
+                tintColor={colors.onAction}
+                contentFit="contain"
+              />
+              <Text style={[styles.text, { color: colors.onAction }]}>
+                View Medicine Details
+              </Text>
             </Pressable>
           )}
-          <Pressable style={styles.verifiedSecondary} onPress={onSave} accessibilityRole="button">
-            <Image source={Assets.icons.save} style={styles.icon} contentFit="contain" />
-            <Text style={[styles.text, { color: Colors.textPrimary }]}>Save to Vault</Text>
+          <Pressable
+            style={[
+              styles.verifiedSecondary,
+              { backgroundColor: secondaryBg, borderColor: colors.borderDefault },
+            ]}
+            onPress={onSave}
+            accessibilityRole="button"
+          >
+            <Image
+              source={Assets.icons.save}
+              style={styles.icon}
+              tintColor={colors.textPrimary}
+              contentFit="contain"
+            />
+            <Text style={[styles.text, { color: colors.textPrimary }]}>Save to Vault</Text>
           </Pressable>
         </>
       )}
 
       {status === 'needs_verification' && !hasSelection && (
         <>
-          <Text style={styles.hint}>Tap the correct medicine above to save it to your Vault or edit it.</Text>
-          <Pressable style={[styles.button, { backgroundColor: Amber }]} onPress={onRedoScan} accessibilityRole="button">
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            Tap the correct medicine above to save it to your Vault or edit it.
+          </Text>
+          <Pressable
+            style={[styles.button, { backgroundColor: isDark ? '#B45309' : '#E89C38' }]}
+            onPress={onRedoScan}
+            accessibilityRole="button"
+          >
             <Image source={Assets.icons.scanWhite} style={styles.icon} contentFit="contain" />
-            <Text style={[styles.text, { color: Colors.surfacePrimary }]}>Redo Scan</Text>
+            <Text style={[styles.text, { color: '#FFFFFF' }]}>Redo Scan</Text>
           </Pressable>
         </>
       )}
 
       {status === 'needs_verification' && hasSelection && (
         <>
-          {/* Moderate confidence: saving is allowed, behind the ModerateConfidenceModal safety check */}
           <Pressable
-            style={[styles.button, { backgroundColor: Colors.actionPrimary }]}
+            style={[styles.button, { backgroundColor: colors.actionPrimary }]}
             onPress={onSave}
             accessibilityRole="button"
             accessibilityHint="Asks you to double-check the details before saving"
           >
-            <Ionicons name="bookmark-outline" size={20} color={Colors.onAction} />
-            <Text style={[styles.text, { color: Colors.onAction }]}>Save to Vault</Text>
-          </Pressable>
-          <Pressable style={[styles.button, styles.editButton]} onPress={onEdit} accessibilityRole="button">
-            <Image source={Assets.icons.edit} style={styles.icon} contentFit="contain" />
-            <Text style={[styles.text, { color: Colors.textPrimary }]}>Edit</Text>
+            <Ionicons name="bookmark-outline" size={20} color={colors.onAction} />
+            <Text style={[styles.text, { color: colors.onAction }]}>Save to Vault</Text>
           </Pressable>
           <Pressable
-            style={[styles.button, { backgroundColor: Colors.onAction, borderWidth: 1, borderColor: Amber }]}
+            style={[
+              styles.button,
+              styles.editButton,
+              { backgroundColor: secondaryBg, borderColor: colors.actionPrimary },
+            ]}
+            onPress={onEdit}
+            accessibilityRole="button"
+          >
+            <Image
+              source={Assets.icons.edit}
+              style={styles.icon}
+              tintColor={colors.textPrimary}
+              contentFit="contain"
+            />
+            <Text style={[styles.text, { color: colors.textPrimary }]}>Edit</Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.button,
+              {
+                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : colors.surfacePrimary,
+                borderWidth: 1,
+                borderColor: amber,
+              },
+            ]}
             onPress={onRedoScan}
             accessibilityRole="button"
           >
-            <Image source={Assets.icons.scanAmber} style={styles.icon} contentFit="contain" />
-            <Text style={[styles.text, { color: Amber }]}>Redo Scan</Text>
+            <Image
+              source={Assets.icons.scanAmber}
+              style={styles.icon}
+              tintColor={amber}
+              contentFit="contain"
+            />
+            <Text style={[styles.text, { color: amber }]}>Redo Scan</Text>
           </Pressable>
         </>
       )}
 
       {status === 'no_results' && (
         <>
-          <Text style={styles.hint}>Tap the correct medicine above to edit or save it.</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            Tap the correct medicine above to edit or save it.
+          </Text>
           <Pressable
-            style={[styles.button, { backgroundColor: RedSoft, borderWidth: 1, borderColor: RedBorder }]}
+            style={[
+              styles.button,
+              {
+                backgroundColor: isDark ? 'rgba(248, 113, 113, 0.14)' : '#FDECEC',
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(248, 113, 113, 0.4)' : '#D6D6D6',
+              },
+            ]}
             onPress={onRedoScan}
             accessibilityRole="button"
           >
-            <Image source={Assets.icons.scanRed} style={styles.icon} contentFit="contain" />
-            <Text style={[styles.text, { color: Red }]}>Redo Scan</Text>
+            <Image
+              source={Assets.icons.scanRed}
+              style={styles.icon}
+              tintColor={red}
+              contentFit="contain"
+            />
+            <Text style={[styles.text, { color: red }]}>Redo Scan</Text>
           </Pressable>
         </>
       )}
@@ -99,7 +180,7 @@ export default function ScanActions({ status, hasSelection, onViewDetails, onSav
 
 const styles = StyleSheet.create({
   bar: {
-    backgroundColor: Colors.onAction,
+    borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: Spacing.md,
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm + 2,
@@ -109,8 +190,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 6,
   },
-  hint: { fontSize: 13, color: HintText, textAlign: 'center' },
-
+  hint: { fontSize: 13, textAlign: 'center' },
   button: {
     borderRadius: Radius.sm,
     minHeight: 45,
@@ -119,11 +199,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.sm + 2,
   },
-  // Edit spans the full width; keeps the soft shadow it had in the Figma frame
   editButton: {
-    backgroundColor: Colors.onAction,
     borderWidth: 1,
-    borderColor: Colors.actionPrimary,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
@@ -131,7 +208,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   verifiedPrimary: {
-    backgroundColor: Colors.statusSuccess,
     borderRadius: Radius.sm,
     minHeight: 45,
     flexDirection: 'row',
@@ -140,9 +216,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm + 2,
   },
   verifiedSecondary: {
-    backgroundColor: Colors.surfacePrimary,
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
     borderRadius: Radius.sm,
     minHeight: 45,
     flexDirection: 'row',

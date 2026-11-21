@@ -94,39 +94,43 @@ export default function HomeScreen() {
           </Pressable>
         </View>
       ) : (
-        <View style={styles.stats}>
-          <StatCard
-            icon={<MaterialCommunityIcons name="pill" size={26} color={colors.textSecondary} />}
-            value={counts.total}
-            label="Total Medicines"
-            onPress={() => openVault()}
-            colors={colors}
-            cardStyle={components.statCard}
-          />
-          <StatCard
-            icon={<Ionicons name="shield-checkmark" size={26} color={colors.statusSuccess} />}
-            value={counts.verified}
-            label="Verified"
-            onPress={() => openVault('verified')}
-            colors={colors}
-            cardStyle={components.statCard}
-          />
-          <StatCard
-            icon={<Ionicons name="warning" size={26} color={colors.statusWarning} />}
-            value={counts.needsVerification}
-            label="Needs Verification"
-            onPress={() => openVault('needs_verification')}
-            colors={colors}
-            cardStyle={components.statCard}
-          />
-          <StatCard
-            icon={<Ionicons name="time" size={26} color={colors.statusDanger} />}
-            value={counts.expiring}
-            label="Expiring"
-            onPress={() => openVault('all', 'within30')}
-            colors={colors}
-            cardStyle={components.statCard}
-          />
+        <View style={styles.statsGrid}>
+          <View style={styles.statsRow}>
+            <StatCard
+              icon={<MaterialCommunityIcons name="pill" size={22} color={colors.textSecondary} />}
+              value={counts.total}
+              label="Total Medicines"
+              onPress={() => openVault()}
+              colors={colors}
+              cardStyle={components.statCard}
+            />
+            <StatCard
+              icon={<Ionicons name="shield-checkmark" size={22} color={colors.statusSuccess} />}
+              value={counts.verified}
+              label="Verified"
+              onPress={() => openVault('verified')}
+              colors={colors}
+              cardStyle={components.statCard}
+            />
+          </View>
+          <View style={styles.statsRow}>
+            <StatCard
+              icon={<Ionicons name="warning" size={22} color={colors.statusWarning} />}
+              value={counts.needsVerification}
+              label="Needs Verification"
+              onPress={() => openVault('needs_verification')}
+              colors={colors}
+              cardStyle={components.statCard}
+            />
+            <StatCard
+              icon={<Ionicons name="time" size={22} color={colors.statusDanger} />}
+              value={counts.expiring}
+              label="Expiring"
+              onPress={() => openVault('all', 'within30')}
+              colors={colors}
+              cardStyle={components.statCard}
+            />
+          </View>
         </View>
       )}
 
@@ -246,13 +250,15 @@ function StatCard({
       accessibilityRole="button"
       accessibilityLabel={`${value} ${label}`}
     >
-      {icon}
-      <Text style={[styles.statValue, { color: colors.textPrimary }]}>{value}</Text>
+      <View style={styles.statTop}>
+        {icon}
+        <Text style={[styles.statValue, { color: colors.textPrimary }]}>{value}</Text>
+      </View>
       <Text
-        style={[styles.statLabel, { color: colors.textPrimary }]}
-        numberOfLines={2}
+        style={[styles.statLabel, { color: colors.textSecondary }]}
+        numberOfLines={1}
         adjustsFontSizeToFit
-        minimumFontScale={0.8}
+        minimumFontScale={0.85}
       >
         {label}
       </Text>
@@ -280,10 +286,24 @@ const styles = StyleSheet.create({
   },
   section: { ...Type.h2 },
   viewAll: { ...Type.label },
-  stats: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.md + 4 },
-  stat: { flex: 1, gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radius.sm },
+  statsGrid: { gap: Spacing.sm, paddingHorizontal: Spacing.md + 4 },
+  statsRow: { flexDirection: 'row', gap: Spacing.sm },
+  stat: {
+    flex: 1,
+    alignItems: 'stretch',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md - 2,
+    paddingVertical: Spacing.sm + 4,
+    borderRadius: Radius.sm,
+  },
+  statTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   statValue: { ...Type.h2 },
-  statLabel: { ...Type.caption, lineHeight: 18, textAlign: 'center' },
+  statLabel: { ...Type.caption, fontWeight: '600', textAlign: 'left' },
   list: { gap: Spacing.sm + 4, paddingHorizontal: Spacing.md + 4 },
   reminder: {
     flexDirection: 'row',

@@ -1,34 +1,37 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Assets } from '@/constants/assets';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import type { PossibleMatch } from '@/data/mockScanResults';
 import { getMedicineForm } from '@/utils/medicine';
 import MedicineIcon from './medicine/MedicineIcon';
 
-// Colors used only by this Figma frame that are not in the display.ts tokens yet.
-const Amber = '#E89C38';
-const SubtleText = '#7E7B77';
-const SelectedBg = '#E8F4EF';
-
 type Props = {
   match: PossibleMatch;
   selected?: boolean;
-  showCheck?: boolean; // check badge in the corner (the Possible Matches list shows it, Edit Medicine does not)
-  onPress?: () => void; // leave out for a card that is not tappable
+  showCheck?: boolean;
+  onPress?: () => void;
 };
 
-// One medicine card: icon for the medicine form, name, category and similarity.
 export default function PossibleMatchCard({ match, selected, showCheck, onPress }: Props) {
+  const { colors, isDark } = useDisplayTheme();
+
   const content = (
     <>
       <MedicineIcon form={getMedicineForm(match.form)} size={96} />
       <View style={styles.text}>
         <View>
-          <Text style={styles.name} numberOfLines={1}>{match.name}</Text>
-          <Text style={styles.category} numberOfLines={1}>{match.category}</Text>
+          <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+            {match.name}
+          </Text>
+          <Text style={[styles.category, { color: colors.textSecondary }]} numberOfLines={1}>
+            {match.category}
+          </Text>
         </View>
-        <Text style={styles.similarity}>Similarity: {match.similarity}%</Text>
+        <Text style={[styles.similarity, { color: isDark ? '#FCD34D' : '#E89C38' }]}>
+          Similarity: {match.similarity}%
+        </Text>
       </View>
       {selected && showCheck ? (
         <Image source={Assets.icons.checkSelected} style={styles.check} contentFit="contain" />
@@ -36,7 +39,20 @@ export default function PossibleMatchCard({ match, selected, showCheck, onPress 
     </>
   );
 
-  const style = [styles.card, selected && styles.cardSelected];
+  const style = [
+    styles.card,
+    {
+      backgroundColor: isDark ? colors.surfaceSecondary : colors.surfacePrimary,
+      borderColor: colors.borderDefault,
+    },
+    selected && [
+      styles.cardSelected,
+      {
+        backgroundColor: isDark ? 'rgba(64, 159, 138, 0.18)' : '#E8F4EF',
+        borderColor: colors.actionPrimary,
+      },
+    ],
+  ];
 
   if (!onPress) return <View style={style}>{content}</View>;
 
@@ -59,21 +75,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm + 2,
     padding: Spacing.sm + 2,
-    backgroundColor: Colors.surfacePrimary,
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
     borderRadius: Radius.sm,
   },
-  // 2px border instead of 1px, so the padding is 1px smaller to keep the content in place
   cardSelected: {
     padding: Spacing.sm + 1,
-    backgroundColor: SelectedBg,
     borderWidth: 2,
-    borderColor: Colors.actionPrimary,
   },
   text: { flex: 1, gap: Spacing.sm + 2 },
-  name: { ...Type.label, color: Colors.textPrimary },
-  category: { ...Type.caption, color: SubtleText },
-  similarity: { ...Type.label, fontSize: 14, color: Amber, textAlign: 'right' },
+  name: { ...Type.label },
+  category: { ...Type.caption },
+  similarity: { ...Type.label, fontSize: 14, textAlign: 'right' },
   check: { position: 'absolute', top: 2, left: 2, width: 24, height: 24 },
 });

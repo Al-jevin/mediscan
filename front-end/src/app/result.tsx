@@ -18,35 +18,23 @@ import ModerateConfidenceModal from '@/components/ModerateConfidenceModal';
 import PossibleMatches from '@/components/PossibleMatches';
 import ScanActions from '@/components/ScanActions';
 import VerificationBanner from '@/components/VerificationBanner';
-import { Colors, Spacing, Type } from '@/constants/display';
+import { Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { isScanState, mockScanResults } from '@/data/mockScanResults';
 import { getLatestScan } from '@/services/scanApi';
 import { addMedicine } from '@/services/vaultStore';
 import { formatDateInput } from '@/utils/date';
 import { formatLongDate, getMedicineForm, mdyToYMD, ymdToMDY } from '@/utils/medicine';
 
-// Colors used only by this Figma frame that are not in the display.ts tokens yet.
-const CategoryText = '#938B8B';
-const EmptyText = '#B9B9B9';
-
-// Scan Result screen. The header comes from AppHeader via app/_layout.tsx.
-// Shows the latest real scan. To preview a mock state, use /result?state=verified | needs_verification | no_results
-//
-// Save to Vault:
-//   - verified (high confidence):      expiration date -> saved as Verified
-//   - needs_verification (moderate):   pick a match -> expiration date -> ModerateConfidenceModal
-//                                      (user must confirm name, dosage, expiry) -> saved as Needs Verification
-
-// iOS can't open a new popup while another one is still closing, so wait for it.
 const afterModalCloses = (fn: () => void) => setTimeout(fn, Platform.OS === 'ios' ? 350 : 0);
 
 export default function ResultScreen() {
   const router = useRouter();
+  const { colors, isDark } = useDisplayTheme();
   const { state } = useLocalSearchParams<{ state?: string }>();
   const realScan = isScanState(state) ? null : getLatestScan();
   const result = realScan ?? (isScanState(state) ? mockScanResults[state] : null);
 
-  // Needs Verification: at most one possible match is selected. Tapping the selected one again deselects it.
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [addedOpen, setAddedOpen] = useState(false);
@@ -60,15 +48,14 @@ export default function ResultScreen() {
   const selectedMatch =
     result?.status === 'needs_verification' ? result.matches.find((m) => m.id === selectedId) : undefined;
   const savedName = result?.status === 'verified' ? result.medicine.name : selectedMatch?.name ?? '';
+  const modalCardBg = isDark ? colors.surfaceSecondary : colors.surfacePrimary;
+
   const goToVault = () => {
     setAddedOpen(false);
     router.navigate('/vault');
   };
 
-  const verifiedInfo =
-    result?.status === 'verified'
-      ? result.info
-      : [];
+  const verifiedInfo = result?.status === 'verified' ? result.info : [];
 
   const openSaveDialog = () => {
     const detectedExpiry =
@@ -99,7 +86,7 @@ export default function ResultScreen() {
         vault_expiry_date: expiryDate,
         vault_status: 'verified',
         vault_source: 'scan',
-        vault_confidence: Math.round(result.confidence), // backend accepts whole numbers only
+        vault_confidence: Math.round(result.confidence),
         vault_note: '',
       });
       setExpiryModalOpen(false);
@@ -111,7 +98,6 @@ export default function ResultScreen() {
     }
   };
 
-  // Moderate confidence, step 1: check the expiration date, then show the safety confirmation.
   const continueModerateSave = () => {
     if (!selectedMatch?.medicine) {
       setSaveError('This match is not linked to a current FDA medicine record. Use Edit or Redo Scan instead.');
@@ -127,7 +113,6 @@ export default function ResultScreen() {
     afterModalCloses(() => setModerateOpen(true));
   };
 
-  // Moderate confidence, step 2: the user confirmed the details, so save it as Needs Verification.
   const saveModerateMedicine = async () => {
     const expiryDate = mdyToYMD(expiry);
     if (!selectedMatch?.medicine || !expiryDate) return;
@@ -139,7 +124,7 @@ export default function ResultScreen() {
         vault_expiry_date: expiryDate,
         vault_status: 'needs_verification',
         vault_source: 'scan',
-        vault_confidence: Math.round(selectedMatch.similarity), // backend accepts whole numbers only
+        vault_confidence: Math.round(selectedMatch.similarity),
         vault_note: '',
       });
       setModerateOpen(false);
@@ -151,7 +136,6 @@ export default function ResultScreen() {
     }
   };
 
-  // "Go Back" on the safety popup: return to the expiration date so it can be corrected.
   const backToExpiry = () => {
     setModerateOpen(false);
     afterModalCloses(() => setExpiryModalOpen(true));
@@ -159,23 +143,23 @@ export default function ResultScreen() {
 
   if (!result) {
     return (
-      <View style={[styles.screen, styles.missing]}>
-        <Text style={styles.emptyText}>
+      <View style={[styles.screen, styles.missing, { backgroundColor: colors.surfacePrimary }]}>
+        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
           No scan result is available. Scan an image to see its real results.
         </Text>
         <Pressable
-          style={styles.scanAgain}
+          style={[styles.scanAgain, { backgroundColor: colors.actionPrimary }]}
           onPress={() => router.replace('/camera')}
           accessibilityRole="button"
         >
-          <Text style={styles.scanAgainText}>Scan an image</Text>
+          <Text style={[styles.scanAgainText, { color: colors.onAction }]}>Scan an image</Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: colors.surfacePrimary }]}>
       <ScrollView contentContainerStyle={styles.content}>
         {result.status === 'verified' && (
           <>
@@ -188,8 +172,12 @@ export default function ResultScreen() {
             <View style={styles.label}>
               <MedicineIcon form={getMedicineForm(result.medicine.form)} size={96} />
               <View style={styles.labelText}>
-                <Text style={styles.medicineName}>{result.medicine.name}</Text>
-                <Text style={styles.medicineCategory}>{result.medicine.category}</Text>
+                <Text style={[styles.medicineName, { color: colors.textPrimary }]}>
+                  {result.medicine.name}
+                </Text>
+                <Text style={[styles.medicineCategory, { color: colors.textSecondary }]}>
+                  {result.medicine.category}
+                </Text>
               </View>
             </View>
             <MedicineInfoCard rows={verifiedInfo} />
@@ -217,12 +205,16 @@ export default function ResultScreen() {
             <VerificationBanner status="no_results" title="No Results" />
             {result.detected?.length ? (
               <>
-                <Text style={styles.detectedHeading}>Read from the label (not matched to a medicine)</Text>
+                <Text style={[styles.detectedHeading, { color: colors.textPrimary }]}>
+                  Read from the label (not matched to a medicine)
+                </Text>
                 <MedicineInfoCard rows={result.detected} />
               </>
             ) : (
               <View style={styles.empty}>
-                <Text style={styles.emptyText}>No results found...</Text>
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  No results found...
+                </Text>
               </View>
             )}
           </>
@@ -241,12 +233,21 @@ export default function ResultScreen() {
         visible={expiryModalOpen}
         transparent
         animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setExpiryModalOpen(false)}
       >
         <View style={styles.modalBackdrop}>
-          <View style={styles.expiryModal}>
-            <Text style={styles.modalTitle}>Expiration Date</Text>
-            <Text style={styles.modalMessage}>
+          <View
+            style={[
+              styles.expiryModal,
+              { backgroundColor: modalCardBg, borderColor: colors.borderDefault },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+              Expiration Date
+            </Text>
+            <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
               {isModerate
                 ? 'Enter the expiration date shown on the package. You will double-check all the details next.'
                 : 'Enter the expiration date shown on the package before saving this FDA match.'}
@@ -255,29 +256,47 @@ export default function ResultScreen() {
               value={expiry}
               onChangeText={(text) => setExpiry(formatDateInput(text))}
               placeholder="MM / DD / YYYY"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="number-pad"
               maxLength={14}
               accessibilityLabel="Expiration date"
-              style={styles.expiryInput}
+              style={[
+                styles.expiryInput,
+                {
+                  borderColor: colors.borderDefault,
+                  backgroundColor: colors.surfacePrimary,
+                  color: colors.textPrimary,
+                },
+              ]}
             />
-            {saveError ? <Text style={styles.saveError}>{saveError}</Text> : null}
+            {saveError ? (
+              <Text style={[styles.saveError, { color: colors.statusDanger }]}>{saveError}</Text>
+            ) : null}
             <View style={styles.modalActions}>
               <Pressable
                 onPress={() => setExpiryModalOpen(false)}
                 style={styles.cancelButton}
                 accessibilityRole="button"
               >
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={() => (isModerate ? continueModerateSave() : void saveVerifiedMedicine())}
                 disabled={saving}
-                style={[styles.saveButton, saving && { opacity: 0.6 }]}
+                style={[
+                  styles.saveButton,
+                  { backgroundColor: colors.actionPrimary },
+                  saving && { opacity: 0.6 },
+                ]}
                 accessibilityRole="button"
               >
-                {saving
-                  ? <ActivityIndicator color={Colors.onAction} />
-                  : <Text style={styles.saveButtonText}>{isModerate ? 'Continue' : 'Save'}</Text>}
+                {saving ? (
+                  <ActivityIndicator color={colors.onAction} />
+                ) : (
+                  <Text style={[styles.saveButtonText, { color: colors.onAction }]}>
+                    {isModerate ? 'Continue' : 'Save'}
+                  </Text>
+                )}
               </Pressable>
             </View>
           </View>
@@ -307,18 +326,15 @@ export default function ResultScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.surfacePrimary },
+  screen: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.md, flexGrow: 1 },
-
   label: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, padding: Spacing.sm },
   labelText: { flex: 1, gap: Spacing.sm },
-  medicineName: { ...Type.h3, color: Colors.textPrimary },
-  medicineCategory: { ...Type.body, color: CategoryText },
-
-  detectedHeading: { ...Type.label, fontWeight: '700', color: Colors.textPrimary },
-
+  medicineName: { ...Type.h3 },
+  medicineCategory: { ...Type.body },
+  detectedHeading: { ...Type.label, fontWeight: '700' },
   empty: { flex: 1, minHeight: 200, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { ...Type.label, lineHeight: 30, color: EmptyText },
+  emptyText: { ...Type.label, lineHeight: 30, textAlign: 'center' },
   missing: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -326,45 +342,41 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   scanAgain: {
-    backgroundColor: Colors.actionPrimary,
     borderRadius: 10,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  scanAgainText: { ...Type.label, color: Colors.onAction },
+  scanAgainText: { ...Type.label },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'center',
     padding: Spacing.lg,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(5,31,32,0.55)',
   },
   expiryModal: {
     gap: Spacing.md,
     borderRadius: 16,
+    borderWidth: 1,
     padding: Spacing.lg,
-    backgroundColor: Colors.surfacePrimary,
   },
-  modalTitle: { ...Type.h3, color: Colors.textPrimary },
-  modalMessage: { ...Type.body, color: Colors.textSecondary },
+  modalTitle: { ...Type.h3 },
+  modalMessage: { ...Type.body },
   expiryInput: {
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
     borderRadius: 10,
     padding: Spacing.md,
-    color: Colors.textPrimary,
   },
-  saveError: { ...Type.caption, color: Colors.statusDanger },
+  saveError: { ...Type.caption },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },
   cancelButton: { padding: Spacing.md },
-  cancelText: { ...Type.label, color: Colors.textSecondary },
+  cancelText: { ...Type.label },
   saveButton: {
     minWidth: 84,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 10,
-    backgroundColor: Colors.actionPrimary,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  saveButtonText: { ...Type.label, color: Colors.onAction },
+  saveButtonText: { ...Type.label },
 });

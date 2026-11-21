@@ -1,30 +1,36 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import OverlayModal from './OverlayModal';
 
 type Props = {
   visible: boolean;
-  confidence: number;     // 0-100, how sure the scan was about this match
+  confidence: number;
   medicineName: string;
-  dosage: string;         // strength, e.g. "500 mg"
-  expirationDate: string; // what the user typed, already formatted for reading
+  dosage: string;
+  expirationDate: string;
   saving?: boolean;
   error?: string;
-  onConfirm: () => void;  // save to the Vault
-  onCancel: () => void;   // go back and fix the details (also tap outside / Android back)
+  onConfirm: () => void;
+  onCancel: () => void;
 };
 
-// Safety check shown before saving a MODERATE-confidence scan (Needs Verification) to the Vault.
-// The user must tick the box to confirm they compared the name, dosage and expiration date with the
-// package; only then can they save. The medicine is saved as "Needs Verification".
 export default function ModerateConfidenceModal({
-  visible, confidence, medicineName, dosage, expirationDate, saving, error, onConfirm, onCancel,
+  visible,
+  confidence,
+  medicineName,
+  dosage,
+  expirationDate,
+  saving,
+  error,
+  onConfirm,
+  onCancel,
 }: Props) {
+  const { colors, isDark } = useDisplayTheme();
   const [checked, setChecked] = useState(false);
 
-  // Ask again every time the popup opens.
   useEffect(() => {
     if (visible) setChecked(false);
   }, [visible]);
@@ -35,16 +41,31 @@ export default function ModerateConfidenceModal({
 
   return (
     <OverlayModal visible={visible} onRequestClose={close}>
-      <View style={styles.iconCircle}>
-        <Ionicons name="warning" size={32} color={Colors.statusWarning} />
+      <View
+        style={[
+          styles.iconCircle,
+          { backgroundColor: isDark ? 'rgba(251, 191, 36, 0.16)' : colors.statusWarningSoft },
+        ]}
+      >
+        <Ionicons name="warning" size={32} color={colors.statusWarning} />
       </View>
-      <Text style={styles.title}>Double-check before saving</Text>
-      <Text style={styles.message}>
-        This is a moderate-confidence match ({Math.round(confidence)}%). Compare these details with the
-        medicine package before you save it.
+      <Text style={[styles.title, { color: colors.textPrimary }]}>
+        Double-check before saving
+      </Text>
+      <Text style={[styles.message, { color: colors.textSecondary }]}>
+        This is a moderate-confidence match ({Math.round(confidence)}%). Compare these details with
+        the medicine package before you save it.
       </Text>
 
-      <View style={styles.summary}>
+      <View
+        style={[
+          styles.summary,
+          {
+            borderColor: isDark ? 'rgba(251, 191, 36, 0.45)' : colors.statusWarning,
+            backgroundColor: isDark ? 'rgba(251, 191, 36, 0.10)' : colors.statusWarningSoft,
+          },
+        ]}
+      >
         <SummaryRow icon="medkit-outline" label="Medicine name" value={medicineName} />
         <SummaryRow icon="flask-outline" label="Dosage" value={dosage} />
         <SummaryRow icon="calendar-outline" label="Expiration date" value={expirationDate} />
@@ -60,42 +81,76 @@ export default function ModerateConfidenceModal({
         <Ionicons
           name={checked ? 'checkbox' : 'square-outline'}
           size={24}
-          color={checked ? Colors.actionPrimary : Colors.textSecondary}
+          color={checked ? colors.actionPrimary : colors.textSecondary}
         />
-        <Text style={styles.checkText}>
+        <Text style={[styles.checkText, { color: colors.textPrimary }]}>
           I checked the medicine name, dosage, and expiration date against the package.
         </Text>
       </Pressable>
 
-      <Text style={styles.note}>It will be saved as Needs Verification.</Text>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Text style={[styles.note, { color: colors.statusWarning }]}>
+        It will be saved as Needs Verification.
+      </Text>
+      {error ? (
+        <Text style={[styles.error, { color: colors.statusDanger }]}>{error}</Text>
+      ) : null}
 
       <View style={styles.actions}>
         <Pressable
-          style={[styles.primary, (!checked || saving) && styles.disabled]}
+          style={[
+            styles.primary,
+            { backgroundColor: colors.actionPrimary },
+            (!checked || saving) && styles.disabled,
+          ]}
           onPress={onConfirm}
           disabled={!checked || saving}
           accessibilityRole="button"
           accessibilityState={{ disabled: !checked || !!saving }}
         >
-          {saving
-            ? <ActivityIndicator color={Colors.onAction} />
-            : <Text style={styles.primaryText}>Confirm & Save to Vault</Text>}
+          {saving ? (
+            <ActivityIndicator color={colors.onAction} />
+          ) : (
+            <Text style={[styles.primaryText, { color: colors.onAction }]}>
+              Confirm &amp; Save to Vault
+            </Text>
+          )}
         </Pressable>
-        <Pressable style={styles.secondary} onPress={close} disabled={saving} accessibilityRole="button">
-          <Text style={styles.secondaryText}>Go Back</Text>
+        <Pressable
+          style={[
+            styles.secondary,
+            {
+              backgroundColor: isDark ? colors.surfaceSecondary : colors.surfacePrimary,
+              borderColor: colors.actionPrimary,
+            },
+          ]}
+          onPress={close}
+          disabled={saving}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.secondaryText, { color: colors.actionPrimary }]}>Go Back</Text>
         </Pressable>
       </View>
     </OverlayModal>
   );
 }
 
-function SummaryRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+function SummaryRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+}) {
+  const { colors } = useDisplayTheme();
   return (
     <View style={styles.row}>
-      <Ionicons name={icon} size={18} color={Colors.textSecondary} />
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value.trim() ? value : 'Not available'}</Text>
+      <Ionicons name={icon} size={18} color={colors.textSecondary} />
+      <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.rowValue, { color: colors.textPrimary }]}>
+        {value.trim() ? value : 'Not available'}
+      </Text>
     </View>
   );
 }
@@ -105,34 +160,27 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.statusWarningSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center' },
-  message: { ...Type.caption, color: Colors.textSecondary, textAlign: 'center', alignSelf: 'stretch' },
-
+  title: { fontSize: 20, fontWeight: '700', textAlign: 'center' },
+  message: { ...Type.caption, textAlign: 'center', alignSelf: 'stretch' },
   summary: {
     alignSelf: 'stretch',
     gap: Spacing.sm,
     padding: Spacing.sm + 4,
     borderRadius: Radius.sm,
     borderWidth: 1,
-    borderColor: Colors.statusWarning,
-    backgroundColor: Colors.statusWarningSoft,
   },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
-  rowLabel: { ...Type.caption, color: Colors.textSecondary, width: 112 },
-  rowValue: { ...Type.caption, fontWeight: '700', color: Colors.textPrimary, flex: 1 },
-
+  rowLabel: { ...Type.caption, width: 112 },
+  rowValue: { ...Type.caption, fontWeight: '700', flex: 1 },
   checkRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, minHeight: 44 },
-  checkText: { ...Type.caption, color: Colors.textPrimary, flex: 1 },
-  note: { ...Type.caption, color: Colors.statusWarning, textAlign: 'center' },
-  error: { ...Type.caption, color: Colors.statusDanger, textAlign: 'center', alignSelf: 'stretch' },
-
+  checkText: { ...Type.caption, flex: 1 },
+  note: { ...Type.caption, textAlign: 'center' },
+  error: { ...Type.caption, textAlign: 'center', alignSelf: 'stretch' },
   actions: { alignSelf: 'stretch', gap: 10 },
   primary: {
-    backgroundColor: Colors.actionPrimary,
     borderRadius: 10,
     minHeight: 48,
     paddingHorizontal: 16,
@@ -140,16 +188,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   disabled: { opacity: 0.5 },
-  primaryText: { fontSize: 15, fontWeight: '700', color: Colors.onAction },
+  primaryText: { fontSize: 15, fontWeight: '700' },
   secondary: {
-    backgroundColor: Colors.onAction,
     borderWidth: 1,
-    borderColor: Colors.actionPrimary,
     borderRadius: 10,
     minHeight: 48,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryText: { fontSize: 15, fontWeight: '700', color: Colors.actionPrimary },
+  secondaryText: { fontSize: 15, fontWeight: '700' },
 });

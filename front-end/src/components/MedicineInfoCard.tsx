@@ -1,9 +1,10 @@
 import { Image, ImageSource } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 export type MedicineInfoRow = {
-  icon: ImageSource | number; // use Assets.icons.*
+  icon: ImageSource | number;
   label: string;
   value: string;
 };
@@ -12,15 +13,29 @@ type Props = {
   rows: MedicineInfoRow[];
 };
 
-// Bordered card listing icon + label + value rows (manufacturer, expiry date, ...).
 export default function MedicineInfoCard({ rows }: Props) {
+  const { colors, isDark } = useDisplayTheme();
+
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: isDark ? colors.surfaceSecondary : colors.surfacePrimary,
+          borderColor: colors.borderDefault,
+        },
+      ]}
+    >
       {rows.map((row) => (
         <View key={row.label} style={styles.row}>
-          <Image source={row.icon} style={styles.icon} contentFit="contain" />
-          <Text style={styles.label}>{row.label}</Text>
-          <Text style={styles.value}>{row.value}</Text>
+          <Image
+            source={row.icon}
+            style={styles.icon}
+            tintColor={colors.textPrimary}
+            contentFit="contain"
+          />
+          <Text style={[styles.label, { color: colors.textPrimary }]}>{row.label}</Text>
+          <Text style={[styles.value, { color: colors.textSecondary }]}>{row.value}</Text>
         </View>
       ))}
     </View>
@@ -29,14 +44,12 @@ export default function MedicineInfoCard({ rows }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surfacePrimary,
     borderWidth: 1,
-    borderColor: Colors.borderDefault,
     borderRadius: Radius.sm,
     padding: Spacing.sm,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm },
   icon: { width: 24, height: 24 },
-  label: { ...Type.label, fontWeight: '700', color: Colors.textPrimary, flex: 1 },
-  value: { ...Type.label, fontWeight: '700', color: Colors.textSecondary, flex: 1 },
+  label: { ...Type.label, fontWeight: '700', flex: 1 },
+  value: { ...Type.label, fontWeight: '700', flex: 1 },
 });
