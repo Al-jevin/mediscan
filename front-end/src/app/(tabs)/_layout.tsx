@@ -1,12 +1,13 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, router, Tabs } from 'expo-router';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColors } from '@/hooks/useColors';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Spacing } from '@/constants/display';
 import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import AddTabButton from '@/components/AddTabButton';
 import AppHeader from '@/components/AppHeader';
+import { useMenu } from '@/components/MenuContext';
 import ReminderIcon from '@/components/ReminderIcon';
 import { MockAuth } from '@/mock/mockAuth';
 import { HeaderFilterProvider, useHeaderFilter } from '@/components/HeaderFilterContext';
@@ -26,69 +27,70 @@ const tab = (title: string, icon: (c: any) => any, showLogo = false) => ({
 });
 
 function RemindersHeader() {
-  const colors = useColors();
-  const insets = useSafeAreaInsets();
+  const { colors, type } = useDisplayTheme();
+  const { openMenu } = useMenu();
   const { onFilterPress } = useHeaderFilter();
-  const topInset = Platform.OS === 'web' ? 67 : insets.top;
-
-  const goBack = () => {
-    if (router.canGoBack()) router.back();
-    else router.navigate('/(tabs)' as never);
-  };
 
   return (
-    <View
+    <SafeAreaView
+      edges={['top']}
       style={[
-        styles.header,
-        {
-          backgroundColor: colors.background,
-          borderBottomColor: colors.border,
-          paddingTop: topInset,
-          height: 52 + topInset,
-        },
+        styles.headerSafe,
+        { backgroundColor: colors.background, borderBottomColor: colors.border },
       ]}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-        testID="reminders-back"
-        onPress={goBack}
-        hitSlop={10}
-        style={styles.headerSide}
-      >
-        <Ionicons name="arrow-back" size={22} color={colors.foreground} />
-      </Pressable>
-
-      <Text style={[styles.headerTitle, { color: colors.foreground }]}>All Reminders</Text>
-
-      <View style={styles.headerRight}>
-        {onFilterPress ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Filter reminders by family member"
-            testID="open-reminder-filter"
-            onPress={onFilterPress}
-            hitSlop={10}
-          >
-            <Ionicons name="filter-outline" size={20} color={colors.primary} />
-          </Pressable>
-        ) : null}
+      <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Upcoming alerts"
-          testID="header-bell"
-          onPress={() => router.push('/upcoming-alerts' as never)}
-          hitSlop={10}
+          accessibilityLabel="Open menu"
+          testID="reminders-menu"
+          onPress={openMenu}
+          hitSlop={12}
+          style={styles.headerSide}
         >
-          <Ionicons name="notifications-outline" size={21} color={colors.foreground} />
+          <Ionicons name="menu" size={28} color={colors.text} />
         </Pressable>
+
+        <View style={styles.headerTitleWrap}>
+          <Text
+            style={[type.h2, { color: colors.text }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+          >
+            All Reminders
+          </Text>
+        </View>
+
+        <View style={styles.headerRight}>
+          {onFilterPress ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Filter reminders by family member"
+              testID="open-reminder-filter"
+              onPress={onFilterPress}
+              hitSlop={10}
+            >
+              <Ionicons name="filter-outline" size={22} color={colors.text} />
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Upcoming alerts"
+            testID="header-bell"
+            onPress={() => router.push('/upcoming-alerts' as never)}
+            hitSlop={10}
+          >
+            <Ionicons name="notifications-outline" size={24} color={colors.text} />
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 export default function TabsLayout() {
-  const { colors } = useDisplayTheme();
+  const { colors, scaleFont } = useDisplayTheme();
   const insets = useSafeAreaInsets();
 
   if (!MockAuth.getActiveProfile()) return <Redirect href="/login" />;
@@ -99,7 +101,7 @@ export default function TabsLayout() {
         screenOptions={{
           tabBarActiveTintColor: colors.active,
           tabBarInactiveTintColor: colors.text,
-          tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+          tabBarLabelStyle: { fontSize: Math.min(13, scaleFont(12)), fontWeight: '600' },
           tabBarStyle: {
             height: 64 + insets.bottom,
             paddingBottom: insets.bottom,
@@ -136,21 +138,29 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  headerSafe: {
+    borderBottomWidth: 1,
+  },
   header: {
+    height: 56,
+    paddingHorizontal: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 14,
   },
-  headerSide: { width: 60, height: 42, alignItems: 'flex-start', justifyContent: 'center' },
+  headerSide: {
+    width: 64,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerTitleWrap: {
+    flex: 1,
+    alignItems: 'center',
+  },
   headerRight: {
-    width: 60,
-    height: 42,
+    width: 64,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 14,
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
 });

@@ -32,7 +32,7 @@ function withMembers(item: unknown): Reminder {
 
 export default function RemindersScreen() {
   const colors = useColors();
-  const { scaleFont } = useDisplayTheme();
+  const { colors: displayColors, type, scaleFont } = useDisplayTheme();
   const insets = useSafeAreaInsets();
   const { profiles } = useProfile();
   const { medicines } = useVault();
@@ -391,9 +391,8 @@ export default function RemindersScreen() {
         style={[
           styles.footer,
           {
-            backgroundColor: colors.background,
-            borderTopColor: colors.border,
-            paddingBottom: 15,
+            backgroundColor: displayColors.surfacePrimary,
+            borderTopColor: displayColors.border,
           },
         ]}
       >
@@ -403,11 +402,20 @@ export default function RemindersScreen() {
           onPress={openNewReminder}
           style={({ pressed }) => [
             styles.addReminderButton,
-            { backgroundColor: colors.primary, opacity: pressed ? 0.86 : 1, marginTop: 0 },
+            {
+              backgroundColor: displayColors.actionPrimary,
+              opacity: pressed ? 0.86 : 1,
+              marginTop: 0,
+            },
           ]}
         >
-          <Ionicons name="add" size={19} color={colors.primaryForeground} />
-          <Text style={[styles.addReminderText, { fontSize: scaleFont(14), color: colors.primaryForeground }]}>
+          <Ionicons name="add" size={20} color={displayColors.onAction} />
+          <Text
+            style={[type.label, styles.addReminderText, { color: displayColors.onAction }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
             Add Reminder
           </Text>
         </Pressable>
@@ -547,10 +555,20 @@ function SummaryCard({
   return (
     <View style={[styles.summaryCard, { backgroundColor: background, borderColor: border }]}>
       <Text style={[styles.summaryCount, { fontSize: scaleFont(18), color: foreground }]}>{count}</Text>
-      <Text numberOfLines={1} style={[styles.summaryLabel, { fontSize: scaleFont(10), color: foreground }]}>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={[styles.summaryLabel, { fontSize: scaleFont(11), color: foreground }]}
+      >
         {label}
       </Text>
-      <Text numberOfLines={1} style={[styles.summarySublabel, { fontSize: scaleFont(9), color: foreground }]}>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={[styles.summarySublabel, { fontSize: scaleFont(10), color: foreground }]}
+      >
         {sublabel}
       </Text>
       <Ionicons name={icon} size={15} color={foreground} style={styles.summaryIcon} />
@@ -672,7 +690,7 @@ function FilterModal({
   members,
   bottomInset,
 }: FilterModalProps) {
-  const { scaleFont } = useDisplayTheme();
+  const { colors: displayColors, type, scaleFont } = useDisplayTheme();
   const people = ['All Members', ...members];
 
   return (
@@ -763,10 +781,10 @@ function FilterModal({
             onPress={onApply}
             style={({ pressed }) => [
               styles.addReminderButton,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.86 : 1 },
+              { backgroundColor: displayColors.actionPrimary, opacity: pressed ? 0.86 : 1 },
             ]}
           >
-            <Text style={[styles.addReminderText, { fontSize: scaleFont(14), color: colors.primaryForeground }]}>
+            <Text style={[type.label, styles.addReminderText, { color: displayColors.onAction }]}>
               Apply Filter
             </Text>
           </Pressable>
@@ -805,18 +823,18 @@ const styles = StyleSheet.create({
   summaryCard: {
     flex: 1,
     minWidth: 0,
-    minHeight: 91,
+    minHeight: 98,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
-    paddingTop: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 10,
   },
   summaryCount: { fontWeight: '800', marginBottom: 3 },
   summaryLabel: { fontWeight: '700', textAlign: 'center' },
   summarySublabel: { textAlign: 'center', marginTop: 1 },
-  summaryIcon: { marginTop: 5 },
+  summaryIcon: { marginTop: 6 },
   listHeading: {
     marginTop: 21,
     marginBottom: 10,
@@ -889,12 +907,14 @@ const styles = StyleSheet.create({
   emptyTitle: { fontWeight: '700', textAlign: 'center' },
   emptyText: { lineHeight: 18, textAlign: 'center', marginTop: 5 },
   addReminderButton: {
-    minHeight: 42,
-    borderRadius: 8,
+    minHeight: 48,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 5,
+    gap: 8,
     marginTop: 12,
   },
   addReminderText: { fontWeight: '700' },
@@ -974,8 +994,9 @@ const styles = StyleSheet.create({
   successButtonText: { fontWeight: '700' },
   popupClose: { position: 'absolute', top: 12, right: 12 },
   footer: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
     paddingTop: 10,
+    paddingBottom: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
 });

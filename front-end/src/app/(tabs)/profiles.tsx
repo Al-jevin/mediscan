@@ -9,7 +9,7 @@ import { Profile } from '../../types/profile';
 
 export default function FamilyProfilesTab() {
   const router = useRouter();
-  const { colors } = useDisplayTheme();
+  const { colors, type } = useDisplayTheme();
   const { profiles, pendingDeleteId, undoDelete, undoSecondsLeft } = useProfile();
 
   const renderItem = ({ item }: { item: Profile }) => (
@@ -35,10 +35,10 @@ export default function FamilyProfilesTab() {
       </View>
 
       <View style={styles.info}>
-        <Text style={[styles.name, { color: colors.textPrimary }]}>
+        <Text style={[type.label, styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
           {item.profile_fullname}
         </Text>
-        <Text style={[styles.relationship, { color: colors.textSecondary }]}>
+        <Text style={[type.caption, styles.relationship, { color: colors.textSecondary }]} numberOfLines={2}>
           {item.profile_display_name} • Born {fromApiDate(item.profile_birthdate)}
         </Text>
       </View>
@@ -52,7 +52,7 @@ export default function FamilyProfilesTab() {
   return (
     <View style={[styles.container, { backgroundColor: colors.surfacePrimary }]}>
       <View style={[styles.topBanner, { backgroundColor: colors.surfaceSecondary }]}>
-        <Text style={[styles.bannerText, { color: colors.textPrimary }]}>
+        <Text style={[type.caption, styles.bannerText, { color: colors.textPrimary }]}>
           Manage medicines by family member
         </Text>
       </View>
@@ -64,27 +64,61 @@ export default function FamilyProfilesTab() {
         contentContainerStyle={styles.list}
       />
 
-      <TouchableOpacity
+      <View
         style={[
-          styles.addButton,
-          { backgroundColor: limitReached ? colors.border : colors.actionPrimary },
+          styles.footer,
+          {
+            backgroundColor: colors.surfacePrimary,
+            borderTopColor: colors.border,
+          },
         ]}
-        disabled={limitReached}
-        onPress={() => router.push('/add-edit-profile')}
       >
-        <Ionicons name="add" size={20} color={colors.onAction} style={{ marginRight: 6 }} />
-        <Text style={[styles.addButtonText, { color: colors.onAction }]}>
-          {limitReached ? 'Profile Limit Reached (6 Max)' : 'Add Family Member'}
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.addButton,
+            {
+              backgroundColor: limitReached ? colors.surfaceSecondary : colors.actionPrimary,
+              borderColor: limitReached ? colors.border : 'transparent',
+              borderWidth: limitReached ? 1 : 0,
+            },
+          ]}
+          activeOpacity={0.86}
+          disabled={limitReached}
+          onPress={() => router.push('/add-edit-profile')}
+          accessibilityRole="button"
+        >
+          {!limitReached ? (
+            <Ionicons name="add" size={20} color={colors.onAction} />
+          ) : null}
+          <Text
+            style={[
+              type.label,
+              styles.addButtonText,
+              { color: limitReached ? colors.textMuted : colors.onAction },
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
+            {limitReached ? 'Profile Limit Reached (6 Max)' : 'Add Family Member'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {pendingDeleteId !== null && (
-        <View style={[styles.undoToast, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.undoText, { color: colors.textPrimary }]}>
+        <View
+          style={[
+            styles.undoToast,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[type.caption, styles.undoText, { color: colors.textPrimary }]}>
             Profile deleted. Undo in {undoSecondsLeft}s
           </Text>
-          <TouchableOpacity onPress={undoDelete}>
-            <Text style={[styles.undoAction, { color: colors.statusSuccess }]}>UNDO</Text>
+          <TouchableOpacity onPress={undoDelete} hitSlop={8}>
+            <Text style={[type.label, styles.undoAction, { color: colors.statusSuccess }]}>
+              UNDO
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -97,14 +131,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topBanner: {
-    padding: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   bannerText: {
-    fontSize: 13,
     fontWeight: '600',
   },
   list: {
     padding: 16,
+    paddingBottom: 24,
   },
   card: {
     flexDirection: 'row',
@@ -124,45 +159,51 @@ const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
+    minWidth: 0,
   },
   name: {
-    fontSize: 16,
     fontWeight: '700',
   },
   relationship: {
-    fontSize: 13,
     marginTop: 2,
   },
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   addButton: {
-    flexDirection: 'row',
-    height: 48,
+    minHeight: 48,
     borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 16,
+    gap: 8,
   },
   addButtonText: {
     fontWeight: '700',
-    fontSize: 15,
   },
   undoToast: {
     position: 'absolute',
-    bottom: 85,
+    bottom: 84,
     left: 16,
     right: 16,
     borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
   },
   undoText: {
-    fontSize: 13,
+    flex: 1,
   },
   undoAction: {
     fontWeight: '700',
-    fontSize: 14,
   },
 });
