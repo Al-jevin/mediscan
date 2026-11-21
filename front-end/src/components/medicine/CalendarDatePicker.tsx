@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { parseDate, toYMD } from '@/utils/medicine';
 
 type Props = {
@@ -15,6 +16,8 @@ type Props = {
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 export default function CalendarDatePicker({ visible, value, title, onSelect, onClose }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const [monthOffset, setMonthOffset] = useState(0);
   const baseMonth = parseDate(value) ?? new Date();
   const month = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + monthOffset, 1);
@@ -56,7 +59,7 @@ export default function CalendarDatePicker({ visible, value, title, onSelect, on
               accessibilityRole="button"
               accessibilityLabel="Previous month"
             >
-              <Ionicons name="chevron-back" size={20} color={Colors.textPrimary} />
+              <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
             </Pressable>
             <Text style={styles.monthLabel}>
               {month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
@@ -67,7 +70,7 @@ export default function CalendarDatePicker({ visible, value, title, onSelect, on
               accessibilityRole="button"
               accessibilityLabel="Next month"
             >
-              <Ionicons name="chevron-forward" size={20} color={Colors.textPrimary} />
+              <Ionicons name="chevron-forward" size={20} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -116,7 +119,8 @@ export default function CalendarDatePicker({ visible, value, title, onSelect, on
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: 'center',
@@ -130,14 +134,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm + 4,
     borderRadius: Radius.lg,
     padding: Spacing.md,
-    backgroundColor: Colors.surfacePrimary,
-    shadowColor: Colors.textPrimary,
+    backgroundColor: colors.surfacePrimary,
+    shadowColor: colors.textPrimary,
     shadowOpacity: 0.18,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
   },
-  title: { ...Type.h3, color: Colors.textPrimary },
+  title: { ...Type.h3, color: colors.textPrimary },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   monthButton: {
     width: 36,
@@ -146,14 +150,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: Radius.pill,
   },
-  monthLabel: { ...Type.label, color: Colors.textPrimary },
+  monthLabel: { ...Type.label, color: colors.textPrimary },
   weekRow: { flexDirection: 'row' },
   dayCell: { flex: 1, alignItems: 'center', justifyContent: 'center', height: 38 },
-  weekday: { ...Type.caption, color: Colors.textSecondary },
+  weekday: { ...Type.caption, color: colors.textSecondary },
   dayButton: { borderRadius: Radius.pill },
-  selectedDay: { backgroundColor: Colors.actionPrimary },
-  dayText: { ...Type.body, color: Colors.textPrimary },
-  selectedDayText: { color: Colors.onAction, fontWeight: '700' },
+  selectedDay: { backgroundColor: colors.actionPrimary },
+  dayText: { ...Type.body, color: colors.textPrimary },
+  selectedDayText: { color: colors.onAction, fontWeight: '700' },
   closeButton: { alignSelf: 'flex-end', paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md },
-  closeText: { ...Type.label, color: Colors.textPrimary },
+  closeText: { ...Type.label, color: colors.textPrimary },
 });
+}

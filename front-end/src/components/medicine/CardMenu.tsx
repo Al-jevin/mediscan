@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { measureInWindow, useViewRef } from '@/utils/viewRef';
 import type { Anchor } from './MedicineCard';
 
@@ -19,6 +20,8 @@ const MENU_W = 220;
 const ITEM_H = 48;
 
 export default function CardMenu({ anchor, items, onClose }: Props) {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const { width: screenW, height: screenH } = useWindowDimensions();
   const [origin, setOrigin] = useState({ x: 0, y: 0 });
   const rootRef = useViewRef();
@@ -54,12 +57,12 @@ export default function CardMenu({ anchor, items, onClose }: Props) {
               style={({ pressed }) => [
                 styles.item,
                 it.danger && i > 0 && styles.divider,
-                pressed && { backgroundColor: Colors.surfaceSecondary },
+                pressed && { backgroundColor: colors.surfaceSecondary },
               ]}
               accessibilityRole="menuitem"
             >
-              <Ionicons name={it.icon} size={20} color={it.danger ? Colors.statusDanger : Colors.textPrimary} />
-              <Text style={[styles.label, it.danger && { color: Colors.statusDanger }]}>{it.label}</Text>
+              <Ionicons name={it.icon} size={20} color={it.danger ? colors.statusDanger : colors.textPrimary} />
+              <Text style={[styles.label, it.danger && { color: colors.statusDanger }]}>{it.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -68,13 +71,15 @@ export default function CardMenu({ anchor, items, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
   menu: {
-    position: 'absolute', backgroundColor: Colors.surfacePrimary, borderRadius: Radius.sm,
+    position: 'absolute', backgroundColor: colors.surfacePrimary, borderRadius: Radius.sm,
     paddingVertical: Spacing.xs,
     elevation: 8, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
   },
   item: { height: ITEM_H, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 4, paddingHorizontal: Spacing.md },
-  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.borderDefault },
-  label: { ...Type.body, color: Colors.textPrimary },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderDefault },
+  label: { ...Type.body, color: colors.textPrimary },
 });
+}

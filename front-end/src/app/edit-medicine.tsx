@@ -6,10 +6,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CalendarDatePicker from '@/components/medicine/CalendarDatePicker';
 import MedicineAddedModal from '@/components/MedicineAddedModal';
 import QuitEditingModal from '@/components/QuitEditingModal';
-import { FormColors, FormField, InputBox } from '@/components/FormField';
+import { FormField, InputBox } from '@/components/FormField';
 import PossibleMatchCard from '@/components/PossibleMatchCard';
 import { Assets } from '@/constants/assets';
-import { Colors } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { findPossibleMatch } from '@/data/mockScanResults';
 import { addMedicine } from '@/services/vaultStore';
 import { formatDateInput } from '@/utils/date';
@@ -19,6 +19,8 @@ import { mdyToYMD, ymdToMDY } from '@/utils/medicine';
 // The medicine name is auto-filled from that medicine; the expiration date is typed. The header
 // (back arrow returns to Scan Result) comes from AppHeader via app/_layout.tsx.
 export default function EditMedicineScreen() {
+  const { colors, components } = useDisplayTheme();
+  const styles = makeStyles(colors, components);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -109,14 +111,15 @@ export default function EditMedicineScreen() {
         <FormField label="Expiration Date" required>
           <InputBox>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.textPrimary }]}
               value={expiry}
               onChangeText={(t) => setExpiry(formatDateInput(t))}
               placeholder="MM / DD / YYYY"
-              placeholderTextColor={FormColors.placeholder}
+              placeholderTextColor={colors.textSecondary}
               keyboardType="number-pad"
               maxLength={14}
               accessibilityLabel="Expiration date"
+              selectionColor={colors.actionPrimary}
             />
             <Pressable
               hitSlop={8}
@@ -166,20 +169,21 @@ export default function EditMedicineScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.surfacePrimary },
+function makeStyles(colors: any, components: any) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.surfacePrimary },
   content: { paddingTop: 20, paddingHorizontal: 24, paddingBottom: 24, gap: 16 },
 
-  heading: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
-  required: { fontSize: 12, color: FormColors.helper },
+  heading: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
+  required: { fontSize: 12, color: colors.textSecondary },
   error: { color: '#B42318', fontSize: 13 },
 
-  input: { flex: 1, fontSize: 15, color: Colors.textPrimary, padding: 0 },
+  input: { flex: 1, fontSize: 15, color: colors.textPrimary, padding: 0 },
   icon: { width: 20, height: 20 },
 
-  bar: { paddingTop: 20, paddingHorizontal: 24, backgroundColor: Colors.surfacePrimary },
+  bar: { paddingTop: 20, paddingHorizontal: 24, backgroundColor: colors.surfacePrimary },
   saveButton: {
-    backgroundColor: Colors.actionPrimary,
+    backgroundColor: colors.actionPrimary,
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -188,8 +192,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  saveText: { fontSize: 15, fontWeight: '700', color: Colors.onAction },
+  saveText: { fontSize: 15, fontWeight: '700', color: colors.onAction },
 
-  missing: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: Colors.surfacePrimary },
-  missingText: { color: Colors.textMuted, textAlign: 'center' },
+  missing: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: colors.surfacePrimary },
+  missingText: { color: colors.textMuted, textAlign: 'center' },
 });
+}

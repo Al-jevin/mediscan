@@ -251,8 +251,11 @@ function activeProfileId(): string {
   return profileId;
 }
 
-export async function addMedicine(input: NewMedicine): Promise<VaultMedicine> {
-  const profileId = activeProfileId();
+export async function addMedicine(
+  input: NewMedicine,
+  targetProfileId?: string | null,
+): Promise<VaultMedicine> {
+  const profileId = targetProfileId?.trim() || activeProfileId();
   if (!Number.isInteger(input.fda_id) || input.fda_id < 1) {
     throw new Error('This medicine is not linked to a valid FDA record.');
   }

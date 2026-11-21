@@ -99,11 +99,15 @@ export default function ReminderEditorModal({
     return items;
   }, [medicines, reminder]);
   const selectedMedicine = availableMedicines.find((item) => item.name === medicine);
-  const memberNames = reminder?.member
-    ? [reminder.member]
-    : activeProfile
-      ? [activeProfile.profile_display_name]
-      : [];
+  const memberNames = Array.from(
+    new Set(
+      [
+        ...profiles.map((profile) => profile.profile_display_name),
+        reminder?.member,
+        activeProfile?.profile_display_name,
+      ].filter((name): name is string => Boolean(name && name.trim())),
+    ),
+  );
   const filteredMedicines = useMemo(
     () =>
       availableMedicines.filter((item) =>

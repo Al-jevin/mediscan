@@ -2,6 +2,7 @@ import { apiRequest } from '@/mock/mockAuth';
 import type { Profile } from '@/types/profile';
 import type { Reminder } from '@/components/reminderTypes';
 import { formatTime } from '@/utils/medicine';
+import { formatReminderStartDate } from '@/utils/reminderDates';
 
 type Schedule = {
   schedule_id: number;
@@ -35,7 +36,8 @@ function notifyReminderChanges(): void {
 function displayDate(value: string): string {
   const [year, month, day] = value.slice(0, 10).split('-').map(Number);
   const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  // Deterministic "Mon D, YYYY" so getNextReminderOccurrence / toast timers always parse.
+  return formatReminderStartDate(date);
 }
 
 function frequencyToDisplay(value: Schedule['sched_frequency_type']): Reminder['frequency'] {
