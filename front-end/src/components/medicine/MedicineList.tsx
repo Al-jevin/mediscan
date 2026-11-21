@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
-import { Components, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
 import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { resetListQuery, setListQuery, useListQuery, type ListScope } from '@/services/listQueryStore';
 import {
@@ -27,7 +27,7 @@ type Props = {
 
 export default function MedicineList({ scope, medicines, ready, error, onRetry, initialFilter }: Props) {
   const router = useRouter();
-  const { colors, isDark } = useDisplayTheme();
+  const { colors, components, isDark, type } = useDisplayTheme();
   const query = useListQuery(scope);
   const [searchFocused, setSearchFocused] = useState(false);
   const shown = useMemo(() => applyQuery(medicines, query), [medicines, query]);
@@ -93,7 +93,7 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
           ]}
         >
           <TextInput
-            style={[styles.searchInput, { color: colors.textPrimary }]}
+            style={[styles.searchInput, type.body, { color: colors.textPrimary }]}
             value={query.search}
             onChangeText={(t) => setListQuery(scope, { search: t })}
             onFocus={() => setSearchFocused(true)}
@@ -137,7 +137,7 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
                 key={c.key}
                 onPress={() => setListQuery(scope, { status: c.key })}
                 style={[
-                  on ? Components.chipSelected : Components.chip,
+                  on ? components.chipSelected : components.chip,
                   styles.chip,
                   on
                     ? { backgroundColor: colors.actionPrimary, borderColor: colors.actionPrimary }
@@ -150,7 +150,9 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
                 accessibilityState={{ selected: on }}
               >
                 {c.icon && <Ionicons name={c.icon} size={16} color={on ? colors.onAction : c.color} />}
-                <Text style={[styles.chipText, { color: on ? colors.onAction : c.color }]}>{c.label}</Text>
+                <Text style={[type.caption, { fontWeight: '600', color: on ? colors.onAction : c.color }]}>
+                  {c.label}
+                </Text>
               </Pressable>
             );
           })}
@@ -158,7 +160,7 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
       </View>
 
       <View style={styles.countRow}>
-        <Text style={[styles.count, { color: colors.textPrimary }]}>
+        <Text style={[type.h3, { color: colors.textPrimary }]}>
           {shown.length} {shown.length === 1 ? 'Medicine' : 'Medicines'}
         </Text>
         <Pressable
@@ -168,7 +170,7 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
           accessibilityRole="button"
           accessibilityLabel={query.sort === 'az' ? 'Sorted A to Z. Tap for Z to A' : 'Sorted Z to A. Tap for A to Z'}
         >
-          <Text style={[styles.sortText, { color: colors.textPrimary }]}>
+          <Text style={[type.label, { color: colors.textPrimary }]}>
             {query.sort === 'az' ? 'A–Z' : 'Z–A'}
           </Text>
           <Ionicons name="swap-vertical" size={20} color={colors.textPrimary} />
@@ -190,7 +192,7 @@ export default function MedicineList({ scope, medicines, ready, error, onRetry, 
       ) : (
         <>
           {error ? (
-            <Text style={[styles.errorText, { color: colors.statusDanger }]}>{error}</Text>
+            <Text style={[type.caption, styles.errorText, { color: colors.statusDanger }]}>{error}</Text>
           ) : null}
           <FlatList
             data={shown}
@@ -314,18 +316,20 @@ function EmptyState({
   actionLabel?: string;
   onAction?: () => void;
 }) {
-  const { colors, isDark } = useDisplayTheme();
+  const { colors, components, isDark, type } = useDisplayTheme();
   return (
     <View style={styles.empty}>
       <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceSecondary }]}>
         <Ionicons name={icon} size={32} color={colors.actionPrimary} />
       </View>
-      <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>{title}</Text>
-      <Text style={[styles.emptyMsg, { color: colors.textSecondary }]}>{message}</Text>
+      <Text style={[type.h3, { textAlign: 'center', color: colors.textPrimary }]}>{title}</Text>
+      <Text style={[type.body, { textAlign: 'center', marginTop: Spacing.xs, color: colors.textSecondary }]}>
+        {message}
+      </Text>
       {actionLabel && onAction && (
         <Pressable
           style={[
-            Components.buttonSecondary,
+            components.buttonSecondary,
             {
               marginTop: Spacing.md,
               backgroundColor: isDark ? colors.surfaceSecondary : colors.surfacePrimary,
@@ -334,7 +338,7 @@ function EmptyState({
           ]}
           onPress={onAction}
         >
-          <Text style={[Components.buttonSecondaryText, { color: colors.textPrimary }]}>
+          <Text style={[components.buttonSecondaryText, { color: colors.textPrimary }]}>
             {actionLabel}
           </Text>
         </Pressable>
@@ -356,7 +360,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     minHeight: 48,
   },
-  searchInput: { flex: 1, ...Type.body, paddingVertical: 0, outlineWidth: 0 },
+  searchInput: { flex: 1, paddingVertical: 0, outlineWidth: 0 },
   filterBtn: { padding: Spacing.xs },
   filterDot: {
     position: 'absolute',
@@ -372,7 +376,6 @@ const styles = StyleSheet.create({
   filterDotText: { fontSize: 11, fontWeight: '700' },
   chips: { gap: Spacing.sm, paddingHorizontal: Spacing.md + 4, paddingVertical: Spacing.md },
   chip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm + 4, minHeight: 36 },
-  chipText: { ...Type.caption, fontWeight: '600' },
   countRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -380,9 +383,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md + 4,
     paddingBottom: Spacing.sm,
   },
-  count: { ...Type.h3 },
   sortBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, padding: Spacing.xs },
-  sortText: { ...Type.label },
   list: { paddingHorizontal: Spacing.md + 4, paddingTop: Spacing.xs, paddingBottom: Spacing.xl * 2, flexGrow: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', paddingVertical: Spacing.xl * 1.5, paddingHorizontal: Spacing.lg },
@@ -394,7 +395,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.md,
   },
-  emptyTitle: { ...Type.h3, textAlign: 'center' },
-  emptyMsg: { ...Type.body, textAlign: 'center', marginTop: Spacing.xs },
-  errorText: { ...Type.caption, paddingHorizontal: Spacing.md + 4 },
+  errorText: { paddingHorizontal: Spacing.md + 4 },
 });

@@ -5,7 +5,7 @@ import { useMemo, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import MedicineIcon from '@/components/medicine/MedicineIcon';
 import ScanCard from '@/components/medicine/ScanCard';
-import { DarkColors, Radius, Spacing, Type } from '@/constants/display';
+import { DarkColors, Radius, Spacing } from '@/constants/display';
 import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { useFirstLaunchPermissions } from '@/hooks/useFirstLaunchPermissions';
 import { resetListQuery } from '@/services/listQueryStore';
@@ -18,14 +18,12 @@ import { getMedicineForm, overviewCounts } from '@/utils/medicine';
 
 type ThemeColors = typeof DarkColors;
 
-// Home (Figma: Home Page). The top bar (burger + MediScan logo + bell) comes from
-// (tabs)/_layout.tsx, so this screen does NOT draw its own header.
 export default function HomeScreen() {
   useFirstLaunchPermissions();
   const router = useRouter();
-  const { colors, components } = useDisplayTheme();
+  const { colors, components, type } = useDisplayTheme();
   const { ready, error, medicines, retry } = useVault();
-  const profile = useLoggedInProfile(); // the profile picked on Choose Profile
+  const profile = useLoggedInProfile();
   const name = firstName(profile);
   const {
     reminders: savedReminders,
@@ -46,15 +44,11 @@ export default function HomeScreen() {
   const openDetails = (m: VaultMedicine) =>
     router.push({ pathname: '/medicine/[id]', params: { id: m.vault_id } });
 
-  // Medicine Overview cards -> the Vault tab (there is no separate per-profile vault).
-  // Total = whole vault; the other cards open the Vault already filtered to match the card.
   const openVault = (status: StatusFilter = 'all', urgency: UrgencyFilter = 'none') => {
     resetListQuery('vault', { status, urgency });
     router.navigate('/vault');
   };
 
-  // Upcoming Reminders -> Reminders tab, filtered to the logged-in profile.
-  // With reminderId, the Reminders tab opens that reminder's details right away.
   const member = profile?.profile_display_name ?? '';
   const openReminders = (reminderId?: string) =>
     router.navigate({
@@ -73,8 +67,10 @@ export default function HomeScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.greeting}
       >
-        <Text style={[styles.hello, { color: colors.textPrimary }]}>Hello, {name}! 👋</Text>
-        <Text style={[styles.sub, { color: colors.textSecondary }]}>Take care, stay safe.</Text>
+        <Text style={[type.h1, { color: colors.textPrimary }]}>Hello, {name}! 👋</Text>
+        <Text style={[type.bodyLarge, { fontWeight: '600', color: colors.textSecondary }]}>
+          Take care, stay safe.
+        </Text>
       </LinearGradient>
 
       <SectionHeader
@@ -86,11 +82,13 @@ export default function HomeScreen() {
         <ActivityIndicator color={colors.actionPrimary} style={{ marginVertical: Spacing.lg }} />
       ) : error ? (
         <View style={styles.loadError}>
-          <Text style={[styles.empty, { color: colors.textSecondary }]}>
+          <Text style={[type.body, styles.empty, { color: colors.textSecondary }]}>
             Could not load medicines: {error}
           </Text>
           <Pressable onPress={() => void retry()} accessibilityRole="button">
-            <Text style={[styles.viewAll, { color: colors.actionPrimary }]}>Retry</Text>
+            <Text style={[type.label, { color: colors.actionPrimary, paddingHorizontal: Spacing.md + 4 }]}>
+              Retry
+            </Text>
           </Pressable>
         </View>
       ) : (
@@ -175,18 +173,20 @@ export default function HomeScreen() {
               accessibilityLabel={`${reminder.medicine}, ${label}. Open reminder details`}
             >
               <MedicineIcon form={getMedicineForm(reminder.category)} size={48} />
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={[styles.remName, { color: colors.textPrimary }]} numberOfLines={1}>
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text style={[type.label, { color: colors.textPrimary }]} numberOfLines={1}>
                   {reminder.medicine}
                 </Text>
-                <Text style={[styles.remSub, { color: colors.textSecondary }]} numberOfLines={1}>
+                <Text style={[type.caption, { color: colors.textSecondary }]} numberOfLines={1}>
                   {reminder.frequency}
                   {reminder.instructions ? ` · ${reminder.instructions}` : ''}
                 </Text>
               </View>
               <View style={styles.remTime}>
                 <Ionicons name="alarm-outline" size={16} color={colors.statusSuccess} />
-                <Text style={[styles.remTimeText, { color: colors.textPrimary }]}>{label}</Text>
+                <Text style={[type.caption, { textAlign: 'right', color: colors.textPrimary }]}>
+                  {label}
+                </Text>
               </View>
             </Pressable>
           ))}
@@ -207,9 +207,10 @@ function SectionHeader({
   titleColor: string;
   linkColor: string;
 }) {
+  const { type } = useDisplayTheme();
   return (
     <View style={styles.sectionRow}>
-      <Text style={[styles.section, { color: titleColor }]}>{title}</Text>
+      <Text style={[type.h2, { color: titleColor }]}>{title}</Text>
       {onViewAll && (
         <Pressable
           onPress={onViewAll}
@@ -217,7 +218,7 @@ function SectionHeader({
           accessibilityRole="button"
           accessibilityLabel={`View all ${title}`}
         >
-          <Text style={[styles.viewAll, { color: linkColor }]}>View All</Text>
+          <Text style={[type.label, { color: linkColor }]}>View All</Text>
         </Pressable>
       )}
     </View>
@@ -239,6 +240,7 @@ function StatCard({
   colors: ThemeColors;
   cardStyle: object;
 }) {
+  const { type } = useDisplayTheme();
   return (
     <Pressable
       style={({ pressed }) => [
@@ -252,10 +254,10 @@ function StatCard({
     >
       <View style={styles.statTop}>
         {icon}
-        <Text style={[styles.statValue, { color: colors.textPrimary }]}>{value}</Text>
+        <Text style={[type.h2, { color: colors.textPrimary }]}>{value}</Text>
       </View>
       <Text
-        style={[styles.statLabel, { color: colors.textSecondary }]}
+        style={[type.caption, { fontWeight: '600', textAlign: 'left', color: colors.textSecondary }]}
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.85}
@@ -267,15 +269,14 @@ function StatCard({
 }
 
 function EmptyLine({ text, color }: { text: string; color: string }) {
-  return <Text style={[styles.empty, { color }]}>{text}</Text>;
+  const { type } = useDisplayTheme();
+  return <Text style={[type.body, styles.empty, { color }]}>{text}</Text>;
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { paddingBottom: Spacing.xl * 2 },
   greeting: { paddingHorizontal: Spacing.md + 4, paddingVertical: Spacing.lg },
-  hello: { ...Type.h1 },
-  sub: { ...Type.bodyLarge, fontWeight: '600' },
   sectionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -284,8 +285,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm + 4,
   },
-  section: { ...Type.h2 },
-  viewAll: { ...Type.label },
   statsGrid: { gap: Spacing.sm, paddingHorizontal: Spacing.md + 4 },
   statsRow: { flexDirection: 'row', gap: Spacing.sm },
   stat: {
@@ -302,8 +301,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  statValue: { ...Type.h2 },
-  statLabel: { ...Type.caption, fontWeight: '600', textAlign: 'left' },
   list: { gap: Spacing.sm + 4, paddingHorizontal: Spacing.md + 4 },
   reminder: {
     flexDirection: 'row',
@@ -311,10 +308,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm + 4,
     padding: Spacing.sm + 4,
   },
-  remName: { ...Type.label },
-  remSub: { ...Type.caption },
   remTime: { alignItems: 'flex-end', gap: 2, maxWidth: '40%' },
-  remTimeText: { ...Type.caption, textAlign: 'right' },
-  empty: { ...Type.body, paddingHorizontal: Spacing.md + 4 },
+  empty: { paddingHorizontal: Spacing.md + 4 },
   loadError: { gap: Spacing.xs },
 });

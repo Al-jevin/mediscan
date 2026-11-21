@@ -108,38 +108,41 @@ export const LEGAL_SECTIONS: LegalSection[] = [
   },
 ];
 
-// The legal text only (no header or buttons), so the sign-up popup can reuse it
 export function TermsLegalText() {
-  const { colors, isDark } = useDisplayTheme();
+  const { colors, isDark, scaleFont } = useDisplayTheme();
   const headingColor = colors.textPrimary;
   const bodyColor = isDark ? '#CBD5D2' : colors.textSecondary;
   const metaColor = colors.textSecondary;
 
+  const headingStyle = { fontSize: scaleFont(16), lineHeight: scaleFont(22), color: headingColor };
+  const bodyStyle = { fontSize: scaleFont(14), lineHeight: scaleFont(21), color: bodyColor };
+  const metaStyle = { fontSize: scaleFont(12), lineHeight: scaleFont(18), color: metaColor };
+
   return (
     <View>
-      <Text style={[styles.lastUpdated, { color: metaColor }]}>
+      <Text style={[styles.lastUpdated, metaStyle]}>
         Last updated: {TERMS_LAST_UPDATED}
       </Text>
-      <Text style={[styles.legalBody, styles.intro, { color: bodyColor }]}>
+      <Text style={[styles.legalBody, styles.intro, bodyStyle]}>
         {INTRO}
       </Text>
       {LEGAL_SECTIONS.map((section) => (
         <View key={section.title} style={styles.section}>
-          <Text style={[styles.legalHeading, { color: headingColor }]}>
+          <Text style={[styles.legalHeading, headingStyle]}>
             {section.title}
           </Text>
           {section.body?.map((paragraph) => (
             <Text
               key={paragraph}
-              style={[styles.legalBody, styles.paragraph, { color: bodyColor }]}
+              style={[styles.legalBody, styles.paragraph, bodyStyle]}
             >
               {paragraph}
             </Text>
           ))}
           {section.bullets?.map((bullet) => (
             <View key={bullet} style={styles.bulletRow}>
-              <Text style={[styles.bulletDot, { color: bodyColor }]}>•</Text>
-              <Text style={[styles.legalBody, styles.bulletText, { color: bodyColor }]}>
+              <Text style={[styles.bulletDot, bodyStyle]}>•</Text>
+              <Text style={[styles.legalBody, styles.bulletText, bodyStyle]}>
                 {bullet}
               </Text>
             </View>
@@ -156,7 +159,7 @@ export default function TermsMedicalDisclaimerContent({
   onBack?: () => void;
   onHome?: () => void;
 }) {
-  const { colors } = useDisplayTheme();
+  const { colors, scaleFont } = useDisplayTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surfacePrimary }]}>
@@ -179,7 +182,7 @@ export default function TermsMedicalDisclaimerContent({
             testID="terms-return-home"
           >
             <Ionicons name="home-outline" size={18} color={colors.onAction} />
-            <Text style={[styles.homeButtonText, { color: colors.onAction }]}>
+            <Text style={[styles.homeButtonText, { fontSize: scaleFont(14), color: colors.onAction }]}>
               Return to Home
             </Text>
           </Pressable>
@@ -198,23 +201,17 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   lastUpdated: {
-    fontSize: 12,
-    lineHeight: 18,
     marginBottom: 12,
     textAlign: 'left',
   },
   intro: { marginBottom: 20 },
   section: { width: '100%', marginBottom: 20 },
   legalHeading: {
-    fontSize: 15,
-    lineHeight: 21,
     fontWeight: '800',
     marginBottom: 6,
     textAlign: 'left',
   },
   legalBody: {
-    fontSize: 13,
-    lineHeight: 19,
     textAlign: 'left',
   },
   paragraph: { marginBottom: 6 },
@@ -224,8 +221,6 @@ const styles = StyleSheet.create({
     paddingRight: 4,
   },
   bulletDot: {
-    fontSize: 13,
-    lineHeight: 19,
     width: 14,
   },
   bulletText: { flex: 1 },
@@ -239,7 +234,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   homeButtonText: {
-    fontSize: 14,
     fontWeight: '700',
   },
 });

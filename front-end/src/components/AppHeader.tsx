@@ -19,7 +19,7 @@ type Props = {
 export default function AppHeader({ title, showLogo, back, backToMenu }: Props) {
   const router = useRouter();
   const { openMenu } = useMenu();
-  const { colors } = useDisplayTheme();
+  const { colors, type } = useDisplayTheme();
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
@@ -65,7 +65,7 @@ export default function AppHeader({ title, showLogo, back, backToMenu }: Props) 
             <Logo size={34} withText />
           ) : (
             <Text
-              style={[styles.title, { color: colors.text }]}
+              style={[styles.title, type.h2, { color: colors.text }]}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.7}

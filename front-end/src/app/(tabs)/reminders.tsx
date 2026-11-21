@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ReminderEditorModal from '@/components/ReminderEditorModal';
 import type { Reminder } from '@/components/reminderTypes';
 import { useColors } from '@/hooks/useColors';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { useHeaderFilter } from '@/components/HeaderFilterContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useVault } from '@/services/vaultStore';
@@ -21,7 +22,6 @@ import { createReminder, deleteReminder as deleteReminderRecord, fetchReminders,
 import { cancelReminderNotification, scheduleReminderNotification } from '@/services/localNotifications';
 import { overviewCounts } from '@/utils/medicine';
 
-// Older reminders have `member: "Mama"` instead of `members: ["Mama"]`
 function withMembers(item: unknown): Reminder {
   const r = item as any;
   return {
@@ -32,12 +32,13 @@ function withMembers(item: unknown): Reminder {
 
 export default function RemindersScreen() {
   const colors = useColors();
+  const { scaleFont } = useDisplayTheme();
   const insets = useSafeAreaInsets();
   const { profiles } = useProfile();
   const { medicines } = useVault();
   const params = useLocalSearchParams<{ openAdd?: string; member?: string; reminderId?: string; from?: string }>();
   const handledAddParam = useRef('');
-  const returnHomeRef = useRef(false); // [Home+Vault] go back to Home when details opened from Home are closed
+  const returnHomeRef = useRef(false);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState('');
@@ -54,7 +55,6 @@ export default function RemindersScreen() {
 
   const { setOnFilterPress } = useHeaderFilter();
 
-  // The filter button lives in the tab header
   useEffect(() => {
     setOnFilterPress(() => {
       setPendingMember(selectedMember);
@@ -113,9 +113,6 @@ export default function RemindersScreen() {
     }
   }, [params.openAdd]);
 
-  // [Home+Vault] Opened from Home > Upcoming Reminders:
-  //   member     -> show only that profile's reminders (logged-in profile)
-  //   reminderId -> also open that reminder's details right away
   const { member: requestedMember, reminderId: requestedReminderId, from: requestedFrom } = params;
   useEffect(() => {
     if (!loaded) return;
@@ -179,7 +176,7 @@ export default function RemindersScreen() {
       await scheduleReminderNotification(saved);
       setReminders((current) =>
         isEditing
-          ? current.map((item) => item.id === saved.id ? saved : item)
+          ? current.map((item) => (item.id === saved.id ? saved : item))
           : [saved, ...current],
       );
       setStorageError('');
@@ -216,7 +213,6 @@ export default function RemindersScreen() {
     undoTimer.current = setTimeout(() => setDeletedItem(null), 5000);
   };
 
-  // Undo = save the deleted reminder to the backend again
   const undoDelete = async () => {
     if (!deletedItem) return;
     if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -247,7 +243,7 @@ export default function RemindersScreen() {
       } else {
         await cancelReminderNotification(updated.id);
       }
-      setReminders((current) => current.map((item) => item.id === id ? updated : item));
+      setReminders((current) => current.map((item) => (item.id === id ? updated : item)));
       setStorageError('');
     } catch (error) {
       setStorageError(error instanceof Error ? error.message : 'Could not update this reminder.');
@@ -260,11 +256,10 @@ export default function RemindersScreen() {
 
   return (
     <View style={[styles.safe, { backgroundColor: colors.background }]}>
-
       {!loaded ? (
         <View style={styles.loading}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
+          <Text style={[styles.loadingText, { fontSize: scaleFont(14), color: colors.mutedForeground }]}>
             Loading reminders...
           </Text>
         </View>
@@ -278,7 +273,7 @@ export default function RemindersScreen() {
           {storageError ? (
             <View style={[styles.errorBanner, { backgroundColor: colors.expiringBackground }]}>
               <Ionicons name="information-circle-outline" size={17} color={colors.expiringForeground} />
-              <Text style={[styles.errorText, { color: colors.expiringForeground }]}>
+              <Text style={[styles.errorText, { fontSize: scaleFont(12), color: colors.expiringForeground }]}>
                 {storageError}
               </Text>
               <Pressable
@@ -292,7 +287,7 @@ export default function RemindersScreen() {
           ) : null}
 
           <View style={styles.sectionHeading}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            <Text style={[styles.sectionTitle, { fontSize: scaleFont(18), color: colors.foreground }]}>
               Upcoming Alerts
             </Text>
             {filteredCount > 3 ? (
@@ -302,7 +297,7 @@ export default function RemindersScreen() {
                 onPress={() => setShowAll((value) => !value)}
                 hitSlop={8}
               >
-                <Text style={[styles.viewAll, { color: colors.primary }]}>
+                <Text style={[styles.viewAll, { fontSize: scaleFont(14), color: colors.primary }]}>
                   {showAll ? 'Show Less' : 'View All'}
                 </Text>
               </Pressable>
@@ -350,16 +345,16 @@ export default function RemindersScreen() {
 
           <View style={styles.listHeading}>
             <View>
-              <Text style={[styles.listTitle, { color: colors.foreground }]}>
+              <Text style={[styles.listTitle, { fontSize: scaleFont(16), color: colors.foreground }]}>
                 Today - {todayLabel}
               </Text>
               {selectedMember !== 'All Members' ? (
-                <Text style={[styles.filterCaption, { color: colors.mutedForeground }]}>
+                <Text style={[styles.filterCaption, { fontSize: scaleFont(12), color: colors.mutedForeground }]}>
                   Showing {selectedMember}
                 </Text>
               ) : null}
             </View>
-            <Text style={[styles.countText, { color: colors.mutedForeground }]}>
+            <Text style={[styles.countText, { fontSize: scaleFont(13), color: colors.mutedForeground }]}>
               {filteredCount} {filteredCount === 1 ? 'reminder' : 'reminders'}
             </Text>
           </View>
@@ -381,10 +376,10 @@ export default function RemindersScreen() {
               <View style={[styles.emptyIcon, { backgroundColor: colors.accent }]}>
                 <Ionicons name="alarm-outline" size={23} color={colors.primary} />
               </View>
-              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+              <Text style={[styles.emptyTitle, { fontSize: scaleFont(15), color: colors.foreground }]}>
                 No reminders for {selectedMember}
               </Text>
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+              <Text style={[styles.emptyText, { fontSize: scaleFont(13), color: colors.mutedForeground }]}>
                 Add a reminder or choose another family member.
               </Text>
             </View>
@@ -412,7 +407,7 @@ export default function RemindersScreen() {
           ]}
         >
           <Ionicons name="add" size={19} color={colors.primaryForeground} />
-          <Text style={[styles.addReminderText, { color: colors.primaryForeground }]}>
+          <Text style={[styles.addReminderText, { fontSize: scaleFont(14), color: colors.primaryForeground }]}>
             Add Reminder
           </Text>
         </Pressable>
@@ -426,7 +421,7 @@ export default function RemindersScreen() {
           setEditorVisible(false);
           setEditingReminder(null);
           if (returnHomeRef.current) {
-            returnHomeRef.current = false; // [Home+Vault] opened from Home -> back to Home
+            returnHomeRef.current = false;
             router.navigate('/(tabs)');
           }
         }}
@@ -453,6 +448,8 @@ export default function RemindersScreen() {
         visible={Boolean(successMessage)}
         transparent
         animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setSuccessMessage('')}
       >
         <View style={[styles.successBackdrop, { backgroundColor: colors.overlayStrong }]}>
@@ -460,10 +457,10 @@ export default function RemindersScreen() {
             <View style={[styles.successIcon, { backgroundColor: colors.accent }]}>
               <Ionicons name="checkmark" size={24} color={colors.primary} />
             </View>
-            <Text style={[styles.successTitle, { color: colors.foreground }]}>
+            <Text style={[styles.successTitle, { fontSize: scaleFont(17), color: colors.foreground }]}>
               {successMessage}
             </Text>
-            <Text style={[styles.successCopy, { color: colors.mutedForeground }]}>
+            <Text style={[styles.successCopy, { fontSize: scaleFont(13), color: colors.mutedForeground }]}>
               Your reminder list has been updated.
             </Text>
             <Pressable
@@ -472,7 +469,7 @@ export default function RemindersScreen() {
               onPress={() => setSuccessMessage('')}
               style={[styles.successButton, { backgroundColor: colors.primary }]}
             >
-              <Text style={[styles.successButtonText, { color: colors.primaryForeground }]}>
+              <Text style={[styles.successButtonText, { fontSize: scaleFont(14), color: colors.primaryForeground }]}>
                 Done
               </Text>
             </Pressable>
@@ -484,6 +481,8 @@ export default function RemindersScreen() {
         visible={Boolean(deletedItem)}
         transparent
         animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setDeletedItem(null)}
       >
         <View style={[styles.successBackdrop, { backgroundColor: colors.overlayStrong }]}>
@@ -500,10 +499,10 @@ export default function RemindersScreen() {
             <View style={[styles.successIcon, { backgroundColor: colors.expiredBackground }]}>
               <Ionicons name="trash-outline" size={22} color={colors.expiredForeground} />
             </View>
-            <Text style={[styles.successTitle, { color: colors.foreground }]}>
+            <Text style={[styles.successTitle, { fontSize: scaleFont(17), color: colors.foreground }]}>
               Reminder Deleted
             </Text>
-            <Text style={[styles.successCopy, { color: colors.mutedForeground }]}>
+            <Text style={[styles.successCopy, { fontSize: scaleFont(13), color: colors.mutedForeground }]}>
               {deletedItem?.reminder.medicine}
             </Text>
 
@@ -514,7 +513,9 @@ export default function RemindersScreen() {
               style={[styles.successButton, { backgroundColor: colors.accent, flexDirection: 'row', gap: 6 }]}
             >
               <Ionicons name="arrow-undo-outline" size={15} color={colors.primary} />
-              <Text style={[styles.successButtonText, { color: colors.primary }]}>Undo</Text>
+              <Text style={[styles.successButtonText, { fontSize: scaleFont(14), color: colors.primary }]}>
+                Undo
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -542,13 +543,14 @@ function SummaryCard({
   border,
   foreground,
 }: SummaryCardProps) {
+  const { scaleFont } = useDisplayTheme();
   return (
     <View style={[styles.summaryCard, { backgroundColor: background, borderColor: border }]}>
-      <Text style={[styles.summaryCount, { color: foreground }]}>{count}</Text>
-      <Text numberOfLines={1} style={[styles.summaryLabel, { color: foreground }]}>
+      <Text style={[styles.summaryCount, { fontSize: scaleFont(18), color: foreground }]}>{count}</Text>
+      <Text numberOfLines={1} style={[styles.summaryLabel, { fontSize: scaleFont(10), color: foreground }]}>
         {label}
       </Text>
-      <Text numberOfLines={1} style={[styles.summarySublabel, { color: foreground }]}>
+      <Text numberOfLines={1} style={[styles.summarySublabel, { fontSize: scaleFont(9), color: foreground }]}>
         {sublabel}
       </Text>
       <Ionicons name={icon} size={15} color={foreground} style={styles.summaryIcon} />
@@ -564,6 +566,7 @@ type ReminderCardProps = {
 };
 
 function ReminderCard({ reminder, onPress, onToggle, colors }: ReminderCardProps) {
+  const { scaleFont } = useDisplayTheme();
   return (
     <View
       style={[
@@ -575,7 +578,6 @@ function ReminderCard({ reminder, onPress, onToggle, colors }: ReminderCardProps
         },
       ]}
     >
-      {/* Reminder information: separate clickable area */}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Edit ${reminder.medicine} reminder at ${reminder.time}`}
@@ -587,7 +589,7 @@ function ReminderCard({ reminder, onPress, onToggle, colors }: ReminderCardProps
         ]}
       >
         <View style={styles.timeColumn}>
-          <Text style={[styles.timeText, { color: colors.foreground }]}>
+          <Text style={[styles.timeText, { fontSize: scaleFont(12), color: colors.foreground }]}>
             {reminder.time}
           </Text>
           <Ionicons
@@ -601,13 +603,19 @@ function ReminderCard({ reminder, onPress, onToggle, colors }: ReminderCardProps
         <View style={[styles.cardDivider, { backgroundColor: colors.border }]} />
 
         <View style={styles.reminderInfo}>
-          <Text numberOfLines={1} style={[styles.reminderMedicine, { color: colors.foreground }]}>
+          <Text
+            numberOfLines={1}
+            style={[styles.reminderMedicine, { fontSize: scaleFont(15), color: colors.foreground }]}
+          >
             {reminder.medicine}
           </Text>
-          <Text style={[styles.reminderMeta, { color: colors.mutedForeground }]}>
+          <Text style={[styles.reminderMeta, { fontSize: scaleFont(13), color: colors.mutedForeground }]}>
             {reminder.category}
           </Text>
-          <Text numberOfLines={1} style={[styles.reminderInstructions, { color: colors.foreground }]}>
+          <Text
+            numberOfLines={1}
+            style={[styles.reminderInstructions, { fontSize: scaleFont(13), color: colors.foreground }]}
+          >
             {reminder.instructions || reminder.frequency}
           </Text>
           <View style={styles.memberLine}>
@@ -616,7 +624,7 @@ function ReminderCard({ reminder, onPress, onToggle, colors }: ReminderCardProps
             </View>
             <Text
               numberOfLines={1}
-              style={[styles.memberName, { color: colors.mutedForeground }]}
+              style={[styles.memberName, { fontSize: scaleFont(12), color: colors.mutedForeground }]}
             >
               {(reminder.members ?? []).join(', ')}
             </Text>
@@ -624,7 +632,6 @@ function ReminderCard({ reminder, onPress, onToggle, colors }: ReminderCardProps
         </View>
       </Pressable>
 
-      {/* Bell toggle: sibling of the edit button, not nested inside it */}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Turn ${reminder.enabled ? 'off' : 'on'} ${reminder.medicine} alert`}
@@ -665,6 +672,7 @@ function FilterModal({
   members,
   bottomInset,
 }: FilterModalProps) {
+  const { scaleFont } = useDisplayTheme();
   const people = ['All Members', ...members];
 
   return (
@@ -673,6 +681,7 @@ function FilterModal({
       transparent
       animationType="slide"
       statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       <View style={styles.filterRoot}>
@@ -689,7 +698,7 @@ function FilterModal({
         >
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
           <View style={styles.filterTitleRow}>
-            <Text style={[styles.filterTitle, { color: colors.foreground }]}>
+            <Text style={[styles.filterTitle, { fontSize: scaleFont(17), color: colors.foreground }]}>
               Filter by Family Member
             </Text>
             <Pressable
@@ -701,7 +710,7 @@ function FilterModal({
               <Ionicons name="close" size={21} color={colors.foreground} />
             </Pressable>
           </View>
-          <Text style={[styles.filterSubtitle, { color: colors.mutedForeground }]}>
+          <Text style={[styles.filterSubtitle, { fontSize: scaleFont(13), color: colors.mutedForeground }]}>
             Show the daily timeline for:
           </Text>
           <ScrollView
@@ -736,7 +745,7 @@ function FilterModal({
                       color={colors.primary}
                     />
                   </View>
-                  <Text style={[styles.filterMember, { color: colors.foreground }]}>
+                  <Text style={[styles.filterMember, { fontSize: scaleFont(14), color: colors.foreground }]}>
                     {person}
                   </Text>
                   <Ionicons
@@ -757,7 +766,7 @@ function FilterModal({
               { backgroundColor: colors.primary, opacity: pressed ? 0.86 : 1 },
             ]}
           >
-            <Text style={[styles.addReminderText, { color: colors.primaryForeground }]}>
+            <Text style={[styles.addReminderText, { fontSize: scaleFont(14), color: colors.primaryForeground }]}>
               Apply Filter
             </Text>
           </Pressable>
@@ -783,15 +792,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginBottom: 13,
   },
-  errorText: { flex: 1, fontSize: 11, lineHeight: 15 },
+  errorText: { flex: 1, lineHeight: 16 },
   sectionHeading: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 11,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700' },
-  viewAll: { fontSize: 12, fontWeight: '700' },
+  sectionTitle: { fontWeight: '700' },
+  viewAll: { fontWeight: '700' },
   summaryRow: { flexDirection: 'row', gap: 7 },
   summaryCard: {
     flex: 1,
@@ -804,9 +813,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
     paddingTop: 6,
   },
-  summaryCount: { fontSize: 17, fontWeight: '800', marginBottom: 3 },
-  summaryLabel: { fontSize: 9, fontWeight: '700', textAlign: 'center' },
-  summarySublabel: { fontSize: 8, textAlign: 'center', marginTop: 1 },
+  summaryCount: { fontWeight: '800', marginBottom: 3 },
+  summaryLabel: { fontWeight: '700', textAlign: 'center' },
+  summarySublabel: { textAlign: 'center', marginTop: 1 },
   summaryIcon: { marginTop: 5 },
   listHeading: {
     marginTop: 21,
@@ -815,9 +824,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  listTitle: { fontSize: 14, fontWeight: '700' },
-  filterCaption: { fontSize: 10, marginTop: 3 },
-  countText: { fontSize: 11 },
+  listTitle: { fontWeight: '700' },
+  filterCaption: { marginTop: 3 },
+  countText: {},
   reminderList: { gap: 8 },
   reminderCard: {
     minHeight: 103,
@@ -839,18 +848,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeColumn: {
-    width: 58,
+    width: 66,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
   },
-  timeText: { fontSize: 10, fontWeight: '600' },
+  timeText: { fontWeight: '600', textAlign: 'center' },
   sunIcon: { marginTop: 2 },
   cardDivider: { width: 1, height: 68, marginHorizontal: 9 },
   reminderInfo: { flex: 1, minWidth: 0 },
-  reminderMedicine: { fontSize: 12, fontWeight: '700' },
-  reminderMeta: { fontSize: 10, marginTop: 1 },
-  reminderInstructions: { fontSize: 10, marginTop: 2 },
+  reminderMedicine: { fontWeight: '700' },
+  reminderMeta: { marginTop: 1 },
+  reminderInstructions: { marginTop: 2 },
   memberLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 },
   memberAvatar: {
     width: 17,
@@ -859,7 +868,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  memberName: { fontSize: 10, flex: 1 },
+  memberName: { flex: 1 },
   bellButton: { padding: 6, marginLeft: 4 },
   emptyCard: {
     minHeight: 170,
@@ -877,8 +886,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  emptyTitle: { fontSize: 14, fontWeight: '700', textAlign: 'center' },
-  emptyText: { fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 5 },
+  emptyTitle: { fontWeight: '700', textAlign: 'center' },
+  emptyText: { lineHeight: 18, textAlign: 'center', marginTop: 5 },
   addReminderButton: {
     minHeight: 42,
     borderRadius: 8,
@@ -888,7 +897,7 @@ const styles = StyleSheet.create({
     gap: 5,
     marginTop: 12,
   },
-  addReminderText: { fontSize: 12, fontWeight: '700' },
+  addReminderText: { fontWeight: '700' },
   filterRoot: { flex: 1, justifyContent: 'flex-end' },
   filterBackdrop: {
     ...StyleSheet.absoluteFill,
@@ -912,8 +921,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  filterTitle: { fontSize: 17, fontWeight: '700' },
-  filterSubtitle: { fontSize: 11, marginTop: 10, marginBottom: 8 },
+  filterTitle: { fontWeight: '700' },
+  filterSubtitle: { marginTop: 10, marginBottom: 8 },
   filterList: { flexGrow: 0 },
   filterListContent: { gap: 6, paddingBottom: 5 },
   filterOption: {
@@ -932,7 +941,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  filterMember: { flex: 1, fontSize: 12, fontWeight: '600' },
+  filterMember: { flex: 1, fontWeight: '600' },
   successBackdrop: {
     flex: 1,
     alignItems: 'center',
@@ -953,8 +962,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  successTitle: { fontSize: 17, fontWeight: '700' },
-  successCopy: { fontSize: 11, textAlign: 'center', marginTop: 5, marginBottom: 15 },
+  successTitle: { fontWeight: '700' },
+  successCopy: { textAlign: 'center', marginTop: 5, marginBottom: 15 },
   successButton: {
     width: '100%',
     minHeight: 40,
@@ -962,7 +971,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  successButtonText: { fontSize: 12, fontWeight: '700' },
+  successButtonText: { fontWeight: '700' },
   popupClose: { position: 'absolute', top: 12, right: 12 },
   footer: {
     paddingHorizontal: 15,

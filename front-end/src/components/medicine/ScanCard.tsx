@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Components, Spacing, Type } from '@/constants/display';
+import { Spacing } from '@/constants/display';
 import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import type { VaultMedicine } from '@/types/medicine';
 import { formatShortDate, getMedicineForm, medicineName } from '@/utils/medicine';
@@ -13,12 +13,13 @@ export default function ScanCard({
   medicine: VaultMedicine;
   onPress: (m: VaultMedicine) => void;
 }) {
-  const { colors } = useDisplayTheme();
+  const { colors, components, type } = useDisplayTheme();
   const form = getMedicineForm(medicine.fda_dosage_form);
+
   return (
     <Pressable
       style={({ pressed }) => [
-        Components.scanCard,
+        components.scanCard,
         styles.card,
         {
           backgroundColor: colors.surfaceSecondary,
@@ -32,16 +33,16 @@ export default function ScanCard({
     >
       <MedicineIcon form={form} size={48} />
       <View style={styles.text}>
-        <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={2}>
+        <Text style={[type.label, { color: colors.textPrimary }]} numberOfLines={2}>
           {medicineName(medicine)}
         </Text>
-        <Text style={[styles.form, { color: colors.textSecondary }]} numberOfLines={1}>
+        <Text style={[type.caption, { color: colors.textSecondary }]} numberOfLines={1}>
           {form}
         </Text>
       </View>
       <View style={styles.right}>
         <StatusBadge kind={medicine.vault_status} />
-        <Text style={[styles.date, { color: colors.textPrimary }]}>
+        <Text style={[type.caption, { color: colors.textPrimary }]}>
           {formatShortDate(medicine.vault_saved_at)}
         </Text>
       </View>
@@ -51,9 +52,6 @@ export default function ScanCard({
 
 const styles = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 4, padding: Spacing.sm + 4 },
-  text: { flex: 1, gap: 2 },
-  name: { ...Type.label },
-  form: { ...Type.caption },
-  right: { alignItems: 'flex-end', gap: Spacing.xs, maxWidth: '45%' },
-  date: { ...Type.caption },
+  text: { flex: 1, minWidth: 0, gap: 2 },
+  right: { alignItems: 'flex-end', flexShrink: 0, gap: Spacing.xs },
 });

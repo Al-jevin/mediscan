@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Components, Spacing, Type } from '@/constants/display';
+import { Spacing } from '@/constants/display';
 import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import type { VaultMedicine } from '@/types/medicine';
 import { measureInWindow, usePressableRef } from '@/utils/viewRef';
@@ -17,7 +17,7 @@ type Props = {
 };
 
 export default function MedicineCard({ medicine, onPress, onMenu }: Props) {
-  const { colors, isDark } = useDisplayTheme();
+  const { colors, components, isDark, type } = useDisplayTheme();
   const menuRef = usePressableRef();
   const form = getMedicineForm(medicine.fda_dosage_form);
   const expired = isExpired(medicine);
@@ -35,7 +35,7 @@ export default function MedicineCard({ medicine, onPress, onMenu }: Props) {
   return (
     <View
       style={[
-        Components.medicineCard,
+        components.medicineCard,
         styles.card,
         {
           backgroundColor: isDark ? colors.surfaceSecondary : colors.surfacePrimary,
@@ -51,15 +51,15 @@ export default function MedicineCard({ medicine, onPress, onMenu }: Props) {
       >
         <MedicineIcon form={form} size={56} />
         <View style={styles.text}>
-          <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+          <Text style={[type.label, { color: colors.textPrimary }]} numberOfLines={1}>
             {medicineName(medicine)}
           </Text>
-          <Text style={[styles.form, { color: colors.textSecondary }]} numberOfLines={1}>
+          <Text style={[type.caption, { color: colors.textSecondary }]} numberOfLines={1}>
             {form} · {medicine.fda_dosage_strength}
           </Text>
           <View style={styles.expiryRow}>
             <Ionicons name="calendar-outline" size={14} color={expiryColor} />
-            <Text style={[styles.expiry, { color: expiryColor }]} numberOfLines={1}>
+            <Text style={[type.caption, styles.expiry, { color: expiryColor }]} numberOfLines={1}>
               {expiryLabel(medicine)}
             </Text>
           </View>
@@ -90,11 +90,9 @@ const styles = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs, padding: Spacing.sm + 4 },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 4, borderRadius: Spacing.sm },
   pressed: { opacity: 0.6 },
-  text: { flex: 1, gap: 2 },
-  name: { ...Type.label },
-  form: { ...Type.caption },
+  text: { flex: 1, minWidth: 0, gap: 2 },
   expiryRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: 2 },
-  expiry: { ...Type.caption, flexShrink: 1 },
+  expiry: { flexShrink: 1 },
   badgeRow: { flexDirection: 'row', marginTop: Spacing.xs },
   menuBtn: { padding: Spacing.xs, alignSelf: 'flex-start' },
 });

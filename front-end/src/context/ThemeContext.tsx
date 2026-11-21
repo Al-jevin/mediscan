@@ -31,7 +31,15 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const BASE_TEXT_SIZE = 16;
+export const MIN_TEXT_SIZE = 12;
+export const BASE_TEXT_SIZE = 16;
+export const MAX_TEXT_SIZE = 20;
+
+function clampTextSize(size: number): number {
+  const clamped = Math.min(MAX_TEXT_SIZE, Math.max(MIN_TEXT_SIZE, Math.round(size)));
+  // Snap to even steps (12, 14, 16, 18, 20) so the slider ticks always align
+  return Math.round((clamped - MIN_TEXT_SIZE) / 2) * 2 + MIN_TEXT_SIZE;
+}
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemScheme = useSystemColorScheme();
@@ -55,8 +63,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         }
         if (storedTextSize) {
           const parsed = Number(storedTextSize);
-          if (Number.isFinite(parsed) && parsed >= 12 && parsed <= 24) {
-            setTextSizeState(parsed);
+          if (Number.isFinite(parsed) && parsed >= MIN_TEXT_SIZE && parsed <= 24) {
+            setTextSizeState(clampTextSize(parsed));
           }
         }
         if (storedLanguage === 'English' || storedLanguage === 'Filipino') {
@@ -77,7 +85,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setTextSize = useCallback((size: number) => {
-    const next = Math.min(24, Math.max(12, Math.round(size)));
+    const next = clampTextSize(size);
     setTextSizeState(next);
     void AsyncStorage.setItem(TEXT_SIZE_KEY, String(next));
   }, []);
@@ -99,7 +107,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     try {
-      // 'unspecified' restores follow-system; light/dark forces the override.
       const override =
         appearance === 'System' ? 'unspecified' : appearance === 'Dark' ? 'dark' : 'light';
       (Appearance.setColorScheme as (scheme: typeof override) => void)(override);
@@ -108,6 +115,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [appearance, ready]);
 
+  // 12 -> 0.82x, 14 -> 0.90x, 16 -> 1.00x, 18 -> 1.125x, 20 -> 1.25x
+  const fontScale =
+    textSize <= 12
+      ? 0.82
+      : textSize === 14
+        ? 0.9
+        : textSize / BASE_TEXT_SIZE;
+
   const value = useMemo<ThemeContextValue>(
     () => ({
       appearance,
@@ -115,7 +130,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       colorScheme,
       textSize,
       setTextSize,
-      fontScale: textSize / BASE_TEXT_SIZE,
+      fontScale,
       language,
       setLanguage,
       t: (english, filipino) => (language === 'Filipino' ? filipino || english : english),
@@ -126,6 +141,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       colorScheme,
       textSize,
       setTextSize,
+      fontScale,
       language,
       setLanguage,
     ],

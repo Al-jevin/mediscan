@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
-import { Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
 import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 export type BadgeKind = 'verified' | 'needs_verification' | 'expired';
@@ -23,7 +23,7 @@ const ICONS: Record<BadgeKind, keyof typeof Ionicons.glyphMap> = {
 };
 
 export default function StatusBadge({ kind, showIcon = false }: Props) {
-  const { isDark } = useDisplayTheme();
+  const { isDark, scaleFont } = useDisplayTheme();
 
   const palette = isDark
     ? {
@@ -73,7 +73,13 @@ export default function StatusBadge({ kind, showIcon = false }: Props) {
       ) : (
         <View style={[styles.dot, { backgroundColor: palette.fg }]} />
       )}
-      <Text style={[styles.text, { color: palette.fg }]} numberOfLines={1}>
+      <Text
+        style={[
+          styles.text,
+          { color: palette.fg, fontSize: scaleFont(11), lineHeight: scaleFont(15) },
+        ]}
+        numberOfLines={1}
+      >
         {LABELS[kind]}
       </Text>
     </View>
@@ -84,7 +90,6 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     gap: 5,
     paddingHorizontal: Spacing.sm + 2,
     paddingVertical: 4,
@@ -97,8 +102,6 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   text: {
-    ...Type.caption,
-    fontSize: 11,
     fontWeight: '700',
   },
 });
