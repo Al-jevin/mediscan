@@ -3,12 +3,13 @@ import { Animated, BackHandler, Easing, Pressable, StyleSheet, Text, View } from
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { MockAuth } from '@/mock/mockAuth';
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { useMenu } from './MenuContext';
 
-// "Log out of MediScan?" popup. Opened by the Log Out button in the burger menu.
 export default function LogoutDialog() {
   const { logoutOpen, closeLogout } = useMenu();
+  const { colors } = useDisplayTheme();
   const router = useRouter();
 
   const [mounted, setMounted] = useState(false);
@@ -25,7 +26,6 @@ export default function LogoutDialog() {
     }
   }, [logoutOpen, t]);
 
-  // Android back button = Cancel
   useEffect(() => {
     if (!logoutOpen) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -39,13 +39,12 @@ export default function LogoutDialog() {
 
   const confirmLogout = () => {
     closeLogout();
-    MockAuth.logout(); // clear the (mock) session
+    MockAuth.logout();
     router.replace('/login');
   };
 
   return (
     <View style={styles.overlay}>
-      {/* Dim the screen (tap outside = Cancel) */}
       <Animated.View style={[styles.backdrop, { opacity: t }]}>
         <Pressable style={{ flex: 1 }} onPress={closeLogout} />
       </Animated.View>
@@ -54,23 +53,38 @@ export default function LogoutDialog() {
         <Animated.View
           style={[
             styles.card,
-            { opacity: t, transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }] },
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              opacity: t,
+              transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }],
+            },
           ]}
         >
-          <View style={styles.iconCircle}>
-            <Ionicons name="log-out-outline" size={30} color={Colors.danger} />
+          <View style={[styles.iconCircle, { backgroundColor: colors.statusDangerSoft }]}>
+            <Ionicons name="log-out-outline" size={30} color={colors.danger} />
           </View>
 
-          <Text style={styles.title}>Log out of MediScan?</Text>
-          <Text style={styles.message}>
-            Make sure your data is synced before logging out so you don't lose recent changes.
+          <Text style={[styles.title, { color: colors.text }]}>Log out of MediScan?</Text>
+          <Text style={[styles.message, { color: colors.textMuted }]}>
+            Make sure your data is synced before logging out so you don&apos;t lose recent changes.
           </Text>
 
           <View style={styles.row}>
-            <Pressable style={[styles.btn, styles.cancel]} onPress={closeLogout}>
-              <Text style={styles.cancelText}>Cancel</Text>
+            <Pressable
+              style={[
+                styles.btn,
+                styles.cancel,
+                { backgroundColor: colors.surfaceSecondary, borderColor: colors.border },
+              ]}
+              onPress={closeLogout}
+            >
+              <Text style={[styles.cancelText, { color: colors.text }]}>Cancel</Text>
             </Pressable>
-            <Pressable style={[styles.btn, styles.logout]} onPress={confirmLogout}>
+            <Pressable
+              style={[styles.btn, { backgroundColor: colors.danger }]}
+              onPress={confirmLogout}
+            >
               <Text style={styles.logoutText}>Log Out</Text>
             </Pressable>
           </View>
@@ -82,26 +96,40 @@ export default function LogoutDialog() {
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 100, elevation: 100 },
-  backdrop: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(5,31,32,0.45)' },
+  backdrop: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(5,31,32,0.55)' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.lg },
   card: {
-    width: '100%', maxWidth: 340, backgroundColor: Colors.surface,
-    borderRadius: Radius.lg, padding: Spacing.lg - 4, alignItems: 'center',
-    elevation: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 6 },
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    padding: Spacing.lg - 4,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
   iconCircle: {
-    width: 60, height: 60, borderRadius: Radius.pill, backgroundColor: Colors.statusDangerSoft,
-    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md - 2,
+    width: 60,
+    height: 60,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md - 2,
   },
-  title: { ...Type.h3, color: Colors.text, textAlign: 'center' },
+  title: { ...Type.h3, textAlign: 'center' },
   message: {
-    fontSize: 13, lineHeight: 19, color: Colors.textMuted, textAlign: 'center',
-    marginTop: Spacing.sm, marginBottom: Spacing.md + 4,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md + 4,
   },
   row: { flexDirection: 'row', gap: Spacing.sm + 4, width: '100%' },
   btn: { flex: 1, height: 46, borderRadius: Radius.sm, alignItems: 'center', justifyContent: 'center' },
-  cancel: { backgroundColor: Colors.surface, borderWidth: 1.5, borderColor: Colors.text },
-  cancelText: { ...Type.label, fontSize: 15, color: Colors.text },
-  logout: { backgroundColor: Colors.danger },
+  cancel: { borderWidth: 1 },
+  cancelText: { ...Type.label, fontSize: 15 },
   logoutText: { ...Type.label, fontSize: 15, color: '#fff' },
 });

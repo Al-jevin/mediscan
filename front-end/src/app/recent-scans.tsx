@@ -3,12 +3,13 @@ import { useMemo } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import AppHeader from '@/components/AppHeader';
 import ScanCard from '@/components/medicine/ScanCard';
-import { Colors, Spacing, Type } from '@/constants/display';
+import { Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { useVault } from '@/services/vaultStore';
 
-// Home > Recent Scans > "View All" (Figma: Recent Scans). Newest first.
 export default function RecentScansScreen() {
   const router = useRouter();
+  const { colors } = useDisplayTheme();
   const { ready, error, medicines, retry } = useVault();
   const sorted = useMemo(
     () => [...medicines].sort((a, b) => b.vault_saved_at.localeCompare(a.vault_saved_at)),
@@ -16,15 +17,17 @@ export default function RecentScansScreen() {
   );
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.surfacePrimary }]}>
       <AppHeader title="Recent Scans" back />
       {!ready ? (
-        <ActivityIndicator color={Colors.actionPrimary} style={{ marginTop: Spacing.xl }} />
+        <ActivityIndicator color={colors.actionPrimary} style={{ marginTop: Spacing.xl }} />
       ) : error ? (
         <View style={styles.emptyState}>
-          <Text style={styles.empty}>Could not load recent scans: {error}</Text>
+          <Text style={[styles.empty, { color: colors.textSecondary }]}>
+            Could not load recent scans: {error}
+          </Text>
           <Pressable onPress={() => void retry()} accessibilityRole="button">
-            <Text style={styles.retry}>Retry</Text>
+            <Text style={[styles.retry, { color: colors.actionPrimary }]}>Retry</Text>
           </Pressable>
         </View>
       ) : (
@@ -39,7 +42,11 @@ export default function RecentScansScreen() {
               onPress={(m) => router.push({ pathname: '/medicine/[id]', params: { id: m.vault_id } })}
             />
           )}
-          ListEmptyComponent={<Text style={styles.empty}>No scans yet. Tap + to scan your first medicine.</Text>}
+          ListEmptyComponent={
+            <Text style={[styles.empty, { color: colors.textSecondary }]}>
+              No scans yet. Tap + to scan your first medicine.
+            </Text>
+          }
         />
       )}
     </View>
@@ -47,9 +54,9 @@ export default function RecentScansScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.surfacePrimary },
+  root: { flex: 1 },
   list: { padding: Spacing.md + 4, paddingBottom: Spacing.xl * 2 },
-  empty: { ...Type.body, color: Colors.textSecondary, textAlign: 'center', marginTop: Spacing.xl },
+  empty: { ...Type.body, textAlign: 'center', marginTop: Spacing.xl },
   emptyState: { alignItems: 'center', paddingHorizontal: Spacing.lg },
-  retry: { ...Type.label, color: Colors.actionPrimary, marginTop: Spacing.md },
+  retry: { ...Type.label, marginTop: Spacing.md },
 });

@@ -1,24 +1,20 @@
 import React from 'react';
 import {
-  SafeAreaView,
-  StatusBar,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import TermsMedicalDisclaimerContent from '../components/TermsMedicalDisclaimerContent';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
+import { TermsLegalText } from '../components/TermsMedicalDisclaimerContent';
 
 export default function TermsScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-
-  // Robust fallback component resolution so screen is never blank
-  const ContentComponent = TermsMedicalDisclaimerContent;
+  const { colors } = useDisplayTheme();
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -29,41 +25,42 @@ export default function TermsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
-
-      {/* Header with Working Back Button */}
-      <View style={styles.topBar}>
+    <SafeAreaView
+      edges={['top', 'bottom']}
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <View
+        style={[
+          styles.topBar,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
         <TouchableOpacity
           onPress={handleBack}
           style={styles.backButton}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color="#1B4332" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Terms & Medical Disclaimer</Text>
+        <Text style={[styles.topBarTitle, { color: colors.text }]}>
+          Terms &amp; Medical Disclaimer
+        </Text>
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Scrollable Terms Content */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {ContentComponent ? (
-          <ContentComponent />
-        ) : (
-          <Text style={{ color: '#4A5568', padding: 16 }}>
-            Loading terms and conditions...
-          </Text>
-        )}
+        <TermsLegalText />
 
-        {/* Return to Home Button */}
         <TouchableOpacity
-          style={styles.homeBtn}
+          style={[styles.homeBtn, { backgroundColor: colors.primary }]}
           activeOpacity={0.8}
           onPress={() => router.replace('/(tabs)')}
+          accessibilityRole="button"
+          accessibilityLabel="Return to Home"
         >
-          <Ionicons name="home-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-          <Text style={styles.homeBtnText}>Return to Home</Text>
+          <Ionicons name="home-outline" size={18} color={colors.onAction} style={{ marginRight: 8 }} />
+          <Text style={[styles.homeBtnText, { color: colors.onAction }]}>Return to Home</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -71,7 +68,7 @@ export default function TermsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1 },
   topBar: {
     height: 56,
     flexDirection: 'row',
@@ -79,13 +76,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
   },
   backButton: { padding: 4 },
-  topBarTitle: { fontSize: 17, fontWeight: '700', color: '#1B4332' },
+  topBarTitle: { fontSize: 17, fontWeight: '700' },
   scrollContent: { padding: 20, paddingBottom: 40 },
   homeBtn: {
-    backgroundColor: '#0E3326',
     height: 50,
     borderRadius: 10,
     flexDirection: 'row',
@@ -93,5 +88,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 24,
   },
-  homeBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  homeBtnText: { fontSize: 15, fontWeight: '700' },
 });

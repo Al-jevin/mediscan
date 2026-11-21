@@ -9,19 +9,14 @@ import AuthInput from '@/components/AuthInput';
 import FormError from '@/components/FormError';
 import SaveLoginDialog from '@/components/SaveLoginDialog';
 import { MockAuth } from '@/mock/mockAuth';
-import { Colors, Radius, Spacing } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { isValidEmail } from '@/lib/validation';
 
-// START SCREEN ng app (Log In). Walang tabs/icons dito, Log In or Sign in lang.
-//
-// Flow:
-//  1. Pag bukas ng app, kung may saved login info -> auto-fill email + password (hindi na magta-type).
-//  2. Tap Log In -> backend -> bagong session ID (kahit saved info, nagla-login pa rin talaga).
-//  3. Kung MANUAL login (tinype ni user / iba sa naka-save) -> tanungin kung i-save ang login info.
-//  4. -> "Choose your profile".
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useDisplayTheme();
   const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
 
   const [email, setEmail] = useState('');
@@ -31,7 +26,6 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [askSave, setAskSave] = useState(false);
 
-  // Auto-fill from saved login info (replaces the old "Choose an account" sheet)
   useEffect(() => {
     const s = MockAuth.getSavedLogin();
     if (s) {
@@ -60,8 +54,8 @@ export default function LoginScreen() {
     setLoading(false);
     if (!res.success) return setError(res.message);
 
-    if (usingSaved) goNext(); // auto-filled login -> don't ask again
-    else setAskSave(true); // manual login -> always ask
+    if (usingSaved) goNext();
+    else setAskSave(true);
   };
 
   const onAnswerSave = (save: boolean) => {
@@ -78,21 +72,28 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={[styles.screen, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <StatusBar style="light" />
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
         <AuthHeader />
 
         <View style={styles.body}>
-          <Text style={styles.title}>Welcome back!</Text>
-          <Text style={styles.subtitle}>Log in to keep your family's medicines organized and synced across devices.</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Welcome back!</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+            Log in to keep your family&apos;s medicines organized and synced across devices.
+          </Text>
 
           {usingSaved ? (
-            <View style={styles.savedNote}>
-              <Ionicons name="key-outline" size={16} color={Colors.textMuted} />
-              <Text style={styles.savedText}>Using your saved login info.</Text>
+            <View style={[styles.savedNote, { backgroundColor: colors.primarySoft }]}>
+              <Ionicons name="key-outline" size={16} color={colors.textMuted} />
+              <Text style={[styles.savedText, { color: colors.textMuted }]}>
+                Using your saved login info.
+              </Text>
               <Pressable onPress={forgetSaved} hitSlop={8}>
-                <Text style={styles.savedLink}>Forget</Text>
+                <Text style={[styles.savedLink, { color: colors.text }]}>Forget</Text>
               </Pressable>
             </View>
           ) : null}
@@ -117,8 +118,16 @@ export default function LoginScreen() {
             onSubmitEditing={onLogin}
           />
 
-          <Pressable style={[styles.primaryBtn, loading && styles.disabled]} onPress={onLogin} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Log In</Text>}
+          <Pressable
+            style={[styles.primaryBtn, { backgroundColor: colors.primary }, loading && styles.disabled]}
+            onPress={onLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.onAction} />
+            ) : (
+              <Text style={[styles.primaryText, { color: colors.onAction }]}>Log In</Text>
+            )}
           </Pressable>
 
           <Pressable
@@ -132,17 +141,29 @@ export default function LoginScreen() {
             disabled={loading}
             style={styles.forgotWrap}
           >
-            <Text style={styles.forgotLink}>Forgot password?</Text>
+            <Text style={[styles.forgotLink, { color: colors.text }]}>Forgot password?</Text>
           </Pressable>
 
-          <Text style={styles.hint}>Don&apos;t have an account?</Text>
-          <Pressable style={styles.outlineBtn} onPress={() => router.replace('/signup')} disabled={loading}>
-            <Text style={styles.outlineText}>Sign in</Text>
+          <Text style={[styles.hint, { color: colors.textMuted }]}>Don&apos;t have an account?</Text>
+          <Pressable
+            style={[
+              styles.outlineBtn,
+              { borderColor: colors.primary, backgroundColor: colors.surface },
+            ]}
+            onPress={() => router.replace('/signup')}
+            disabled={loading}
+          >
+            <Text style={[styles.outlineText, { color: colors.text }]}>Sign in</Text>
           </Pressable>
         </View>
 
         <View style={{ flex: 1 }} />
-        <Text style={[styles.terms, { paddingBottom: insets.bottom + Spacing.md }]}>
+        <Text
+          style={[
+            styles.terms,
+            { color: colors.textMuted, paddingBottom: insets.bottom + Spacing.md },
+          ]}
+        >
           By continuing, you agree to our Terms of Service and Privacy Policy.
         </Text>
       </ScrollView>
@@ -153,33 +174,46 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+  screen: { flex: 1 },
   body: { paddingHorizontal: Spacing.lg - 4, paddingTop: Spacing.lg },
-  title: { fontSize: 26, fontWeight: '800', color: Colors.text },
-  subtitle: { fontSize: 15, lineHeight: 22, color: Colors.textMuted, marginTop: Spacing.sm, marginBottom: Spacing.md },
+  title: { fontSize: 26, fontWeight: '800' },
+  subtitle: { fontSize: 15, lineHeight: 22, marginTop: Spacing.sm, marginBottom: Spacing.md },
   savedNote: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: Colors.primarySoft, borderRadius: Radius.sm,
-    paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm + 4, marginBottom: Spacing.md - 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: Radius.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm + 4,
+    marginBottom: Spacing.md - 2,
   },
-  savedText: { flex: 1, fontSize: 13, color: Colors.textMuted },
-  savedLink: { fontSize: 13, fontWeight: '700', color: Colors.text, textDecorationLine: 'underline' },
+  savedText: { flex: 1, fontSize: 13 },
+  savedLink: { fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' },
   primaryBtn: {
-    height: 50, borderRadius: Radius.sm + 2, backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center', marginTop: 4,
+    height: 50,
+    borderRadius: Radius.sm + 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
   },
   disabled: { opacity: 0.7 },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  primaryText: { fontSize: 16, fontWeight: '700' },
   forgotWrap: { alignSelf: 'flex-end', marginTop: Spacing.sm },
-  forgotLink: { color: Colors.text, fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' },
-  hint: { textAlign: 'center', color: Colors.textMuted, fontSize: 14, marginVertical: Spacing.md - 2 },
+  forgotLink: { fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' },
+  hint: { textAlign: 'center', fontSize: 14, marginVertical: Spacing.md - 2 },
   outlineBtn: {
-    height: 50, borderRadius: Radius.sm + 2, borderWidth: 1.5, borderColor: Colors.primary,
-    backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center',
+    height: 50,
+    borderRadius: Radius.sm + 2,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  outlineText: { color: Colors.text, fontSize: 16, fontWeight: '700' },
+  outlineText: { fontSize: 16, fontWeight: '700' },
   terms: {
-    textAlign: 'center', color: Colors.textMuted, fontSize: 12, lineHeight: 18,
-    paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg,
+    textAlign: 'center',
+    fontSize: 12,
+    lineHeight: 18,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
   },
 });

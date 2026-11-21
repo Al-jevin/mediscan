@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  ScrollView,
   Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { overviewCounts } from '@/utils/medicine'; 
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useProfile } from '../context/ProfileContext';
-import { useProfileVault } from '@/services/vaultStore';
-import { useSavedReminders } from '@/services/profileReminders';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Reminder } from '@/components/reminderTypes';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
+import { useSavedReminders } from '@/services/profileReminders';
+import { useProfileVault } from '@/services/vaultStore';
+import { overviewCounts } from '@/utils/medicine';
 import ProfileAvatar from '../components/ProfileAvatar';
+import { useProfile } from '../context/ProfileContext';
 
 interface ReminderItem {
   id: string;
@@ -34,6 +33,7 @@ interface ReminderItem {
 export default function ProfileDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useDisplayTheme();
   const { profileId } = useLocalSearchParams<{ profileId: string }>();
   const { profiles, deleteProfileWithUndo } = useProfile();
   const { medicines = [], error: vaultError, ready: vaultReady } = useProfileVault(profileId);
@@ -43,46 +43,52 @@ export default function ProfileDetailScreen() {
     ready: remindersReady,
   } = useSavedReminders();
 
-  // All Hooks declared at top before any early returns
   const [menuVisible, setMenuVisible] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState<ReminderItem | null>(null);
-  // Find the selected profile
   const profile = profiles.find((p) => p.profile_id.toString() === profileId);
 
   if (!profile) {
     return (
-      <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.topBar}>
+      <SafeAreaView
+        edges={['top', 'bottom']}
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        <View
+          style={[
+            styles.topBar,
+            { backgroundColor: colors.surface, borderBottomColor: colors.border },
+          ]}
+        >
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1B4332" />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
         <View style={styles.notFoundCenter}>
-          <Text style={{ color: '#718096' }}>Profile not found.</Text>
+          <Text style={{ color: colors.textMuted }}>Profile not found.</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-    const counts = overviewCounts(medicines);
-
+  const counts = overviewCounts(medicines);
   const totalCount = counts.total;
   const verifiedCount = counts.verified;
   const needsVerifCount = counts.needsVerification;
   const expiringCount = counts.expiring;
-  
+
   const memberName =
     (profile as any)?.profile_display_name ||
     (profile as any)?.profile_relationship ||
     profile?.profile_fullname ||
     '';
 
-  // Filter dynamic reminders for this member
   const targetTag = memberName === 'Self' ? 'Me' : memberName;
 
   const memberReminders: ReminderItem[] = allReminders
-    .filter((reminder: Reminder) => reminder.member.toLowerCase() === targetTag.toLowerCase())
+    .filter((reminder: Reminder) =>
+      (reminder.members ?? []).some((m) => m.toLowerCase() === targetTag.toLowerCase()),
+    )
     .map((reminder) => ({
       id: reminder.id,
       medicineName: reminder.medicine,
@@ -127,141 +133,213 @@ export default function ProfileDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView
+      edges={['top', 'bottom']}
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
 
-      {/* Top Header */}
-      <View style={styles.topBar}>
+      <View
+        style={[
+          styles.topBar,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
         >
-          <Ionicons name="arrow-back" size={24} color="#1B4332" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>{profile.profile_fullname}</Text>
+        <Text style={[styles.topBarTitle, { color: colors.text }]}>
+          {profile.profile_fullname}
+        </Text>
         <TouchableOpacity
           onPress={() => setMenuVisible(true)}
           style={styles.menuButton}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
         >
-          <Ionicons name="ellipsis-vertical" size={20} color="#1B4332" />
+          <Ionicons name="ellipsis-vertical" size={20} color={colors.text} />
         </TouchableOpacity>
       </View>
 
-      {/* 3-Dots Dropdown with ONLY Delete Profile */}
       <Modal visible={menuVisible} transparent animationType="fade">
         <TouchableOpacity
           style={styles.modalBackdrop}
           activeOpacity={1}
           onPress={() => setMenuVisible(false)}
         >
-          <View style={styles.dropdownMenu}>
+          <View
+            style={[
+              styles.dropdownMenu,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
             <TouchableOpacity style={styles.dropdownItem} onPress={handleDeletePress}>
-              <Ionicons name="trash-outline" size={18} color="#D90429" style={{ marginRight: 10 }} />
-              <Text style={styles.dropdownTextDelete}>Delete Profile</Text>
+              <Ionicons
+                name="trash-outline"
+                size={18}
+                color={colors.danger}
+                style={{ marginRight: 10 }}
+              />
+              <Text style={[styles.dropdownTextDelete, { color: colors.danger }]}>
+                Delete Profile
+              </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* User Card */}
-        <View style={styles.userCard}>
+        <View
+          style={[
+            styles.userCard,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
           <ProfileAvatar icon={profile.profile_icon || 1} size={52} />
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{profile.profile_fullname}</Text>
-            <Text style={styles.userRel}>{memberName}</Text>
+            <Text style={[styles.userName, { color: colors.text }]}>
+              {profile.profile_fullname}
+            </Text>
+            <Text style={[styles.userRel, { color: colors.textMuted }]}>
+              {memberName}
+            </Text>
           </View>
-          <TouchableOpacity style={styles.editBtnOutline} onPress={handleEdit}>
-            <Text style={styles.editBtnOutlineText}>Edit</Text>
+          <TouchableOpacity
+            style={[
+              styles.editBtnOutline,
+              { backgroundColor: colors.surfaceSecondary, borderColor: colors.border },
+            ]}
+            onPress={handleEdit}
+          >
+            <Text style={[styles.editBtnOutlineText, { color: colors.text }]}>Edit</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Medicine Overview (Unified Card matching Home UI) */}
         <View style={styles.sectionHeaderNoViewAll}>
-          <Text style={styles.sectionTitle}>Medicine Overview</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Medicine Overview
+          </Text>
         </View>
-        {vaultError ? <Text style={styles.dataError}>{vaultError}</Text> : null}
-        {!vaultReady && !vaultError ? <ActivityIndicator color="#2D6A4F" /> : null}
+        {vaultError ? (
+          <Text style={[styles.dataError, { color: colors.danger }]}>{vaultError}</Text>
+        ) : null}
+        {!vaultReady && !vaultError ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : null}
 
-        <View style={styles.overviewCard}>
-          {/* Total */}
+        <View
+          style={[
+            styles.overviewCard,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
           <TouchableOpacity
             style={styles.overviewCol}
             activeOpacity={0.7}
             onPress={() => handleStatPress('all')}
           >
-            <View style={[styles.statIconBadge, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="medical" size={18} color="#2D6A4F" />
+            <View style={[styles.statIconBadge, { backgroundColor: colors.primarySoft }]}>
+              <Ionicons name="medical" size={18} color={colors.statusSuccess} />
             </View>
-            <Text style={styles.statNum}>{totalCount}</Text>
-            <Text style={styles.statLabel}>Total</Text>
+            <Text style={[styles.statNum, { color: colors.text }]}>{totalCount}</Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Total</Text>
           </TouchableOpacity>
 
-          <View style={styles.colDivider} />
+          <View style={[styles.colDivider, { backgroundColor: colors.border }]} />
 
-          {/* Verified */}
           <TouchableOpacity
             style={styles.overviewCol}
             activeOpacity={0.7}
             onPress={() => handleStatPress('verified')}
           >
-            <View style={[styles.statIconBadge, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="checkmark-circle" size={18} color="#2D6A4F" />
+            <View style={[styles.statIconBadge, { backgroundColor: colors.primarySoft }]}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.statusSuccess} />
             </View>
-            <Text style={[styles.statNum, { color: '#2D6A4F' }]}>{verifiedCount}</Text>
-            <Text style={styles.statLabel}>Verified</Text>
+            <Text style={[styles.statNum, { color: colors.statusSuccess }]}>
+              {verifiedCount}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Verified</Text>
           </TouchableOpacity>
 
-          <View style={styles.colDivider} />
+          <View style={[styles.colDivider, { backgroundColor: colors.border }]} />
 
-          {/* Needs Verification */}
           <TouchableOpacity
             style={styles.overviewCol}
             activeOpacity={0.7}
             onPress={() => handleStatPress('needs_verification')}
           >
-            <View style={[styles.statIconBadge, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name="warning" size={18} color="#D97706" />
+            <View
+              style={[
+                styles.statIconBadge,
+                { backgroundColor: colors.surfaceSecondary },
+              ]}
+            >
+              <Ionicons name="warning" size={18} color={colors.statusWarning} />
             </View>
-            <Text style={[styles.statNum, { color: '#D97706' }]}>{needsVerifCount}</Text>
-            <Text style={styles.statLabel}>Needs Verif.</Text>
+            <Text style={[styles.statNum, { color: colors.statusWarning }]}>
+              {needsVerifCount}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+              Needs Verif.
+            </Text>
           </TouchableOpacity>
 
-          <View style={styles.colDivider} />
+          <View style={[styles.colDivider, { backgroundColor: colors.border }]} />
 
-          {/* Expiring */}
           <TouchableOpacity
             style={styles.overviewCol}
             activeOpacity={0.7}
             onPress={() => handleStatPress('expiring')}
           >
-            <View style={[styles.statIconBadge, { backgroundColor: '#FEE2E2' }]}>
-              <Ionicons name="calendar" size={18} color="#DC2626" />
+            <View
+              style={[
+                styles.statIconBadge,
+                { backgroundColor: colors.statusDangerSoft },
+              ]}
+            >
+              <Ionicons name="calendar" size={18} color={colors.statusDanger} />
             </View>
-            <Text style={[styles.statNum, { color: '#DC2626' }]}>{expiringCount}</Text>
-            <Text style={styles.statLabel}>Expiring</Text>
+            <Text style={[styles.statNum, { color: colors.statusDanger }]}>
+              {expiringCount}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Expiring</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Upcoming Reminders */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Upcoming Reminders</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Upcoming Reminders
+          </Text>
           <TouchableOpacity onPress={handleViewAllReminders}>
-            <Text style={styles.viewAllText}>View All</Text>
+            <Text style={[styles.viewAllText, { color: colors.statusSuccess }]}>
+              View All
+            </Text>
           </TouchableOpacity>
         </View>
 
         {reminderError ? (
-          <View style={styles.emptyReminderCard}>
-            <Text style={styles.emptyReminderText}>Could not load reminders: {reminderError}</Text>
+          <View
+            style={[
+              styles.emptyReminderCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.emptyReminderText, { color: colors.textMuted }]}>
+              Could not load reminders: {reminderError}
+            </Text>
           </View>
         ) : !remindersReady ? (
-          <ActivityIndicator color="#2D6A4F" />
+          <ActivityIndicator color={colors.primary} />
         ) : memberReminders.length === 0 ? (
-          <View style={styles.emptyReminderCard}>
-            <Text style={styles.emptyReminderText}>
+          <View
+            style={[
+              styles.emptyReminderCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.emptyReminderText, { color: colors.textMuted }]}>
               No upcoming reminders for {memberName}.
             </Text>
           </View>
@@ -269,80 +347,122 @@ export default function ProfileDetailScreen() {
           memberReminders.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={styles.reminderCard}
+              style={[
+                styles.reminderCard,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
               activeOpacity={0.7}
               onPress={() => setSelectedReminder(item)}
             >
-              <View style={styles.medThumb}>
+              <View style={[styles.medThumb, { backgroundColor: colors.primarySoft }]}>
                 <Ionicons
                   name={item.type === 'Capsule' ? 'ellipse-outline' : 'medkit-outline'}
                   size={22}
-                  color="#2D6A4F"
+                  color={colors.statusSuccess}
                 />
               </View>
               <View style={styles.reminderInfo}>
-                <Text style={styles.medName}>{item.medicineName}</Text>
-                <Text style={styles.medSub}>
+                <Text style={[styles.medName, { color: colors.text }]}>
+                  {item.medicineName}
+                </Text>
+                <Text style={[styles.medSub, { color: colors.textSecondary }]}>
                   {item.type} • {item.dosage}
                 </Text>
-                <Text style={styles.medExpiry}>Expiration: {item.expiry}</Text>
+                <Text style={[styles.medExpiry, { color: colors.textMuted }]}>
+                  Expiration: {item.expiry}
+                </Text>
               </View>
-              <View style={styles.timeTag}>
-                <Text style={styles.timeText}>{item.time}</Text>
-                <Ionicons name="chevron-forward" size={16} color="#A0AEC0" style={{ marginLeft: 4 }} />
+              <View style={[styles.timeTag, { backgroundColor: colors.surfaceSecondary }]}>
+                <Text style={[styles.timeText, { color: colors.statusSuccess }]}>
+                  {item.time}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={colors.textMuted}
+                  style={{ marginLeft: 4 }}
+                />
               </View>
             </TouchableOpacity>
           ))
         )}
       </ScrollView>
 
-      {/* Inline Reminder Details Modal */}
       <Modal visible={selectedReminder !== null} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
-          <View style={styles.detailSheet}>
+          <View
+            style={[
+              styles.detailSheet,
+              { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom, 20) },
+            ]}
+          >
             <View style={styles.detailHeader}>
-              <Text style={styles.detailTitle}>Reminder Details</Text>
+              <Text style={[styles.detailTitle, { color: colors.text }]}>
+                Reminder Details
+              </Text>
               <TouchableOpacity onPress={() => setSelectedReminder(null)}>
-                <Ionicons name="close" size={24} color="#4A5568" />
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             {selectedReminder && (
               <View style={styles.detailBody}>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Medicine</Text>
-                  <Text style={styles.detailValue}>{selectedReminder.medicineName}</Text>
+                <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.detailLabel, { color: colors.textMuted }]}>
+                    Medicine
+                  </Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
+                    {selectedReminder.medicineName}
+                  </Text>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Type & Dosage</Text>
-                  <Text style={styles.detailValue}>
+                <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.detailLabel, { color: colors.textMuted }]}>
+                    Type & Dosage
+                  </Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
                     {selectedReminder.type} ({selectedReminder.dosage})
                   </Text>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Intake Time</Text>
-                  <Text style={styles.detailValue}>{selectedReminder.time}</Text>
+                <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.detailLabel, { color: colors.textMuted }]}>
+                    Intake Time
+                  </Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
+                    {selectedReminder.time}
+                  </Text>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Frequency</Text>
-                  <Text style={styles.detailValue}>{selectedReminder.frequency}</Text>
+                <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.detailLabel, { color: colors.textMuted }]}>
+                    Frequency
+                  </Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
+                    {selectedReminder.frequency}
+                  </Text>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Expiration</Text>
-                  <Text style={styles.detailValue}>{selectedReminder.expiry}</Text>
+                <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.detailLabel, { color: colors.textMuted }]}>
+                    Expiration
+                  </Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
+                    {selectedReminder.expiry}
+                  </Text>
                 </View>
                 <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                  <Text style={styles.detailLabel}>Notes</Text>
-                  <Text style={styles.detailValue}>
+                  <Text style={[styles.detailLabel, { color: colors.textMuted }]}>
+                    Notes
+                  </Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
                     {selectedReminder.notes || 'No notes added.'}
                   </Text>
                 </View>
 
                 <TouchableOpacity
-                  style={styles.closeDetailBtn}
+                  style={[styles.closeDetailBtn, { backgroundColor: colors.primary }]}
                   onPress={() => setSelectedReminder(null)}
                 >
-                  <Text style={styles.closeDetailBtnText}>Close</Text>
+                  <Text style={[styles.closeDetailBtnText, { color: colors.onAction }]}>
+                    Close
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -350,26 +470,27 @@ export default function ProfileDetailScreen() {
         </View>
       </Modal>
 
-      {/* Confirmation Modal Before Delete */}
       <Modal visible={showConfirmModal} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
-          <View style={styles.dialog}>
-            <View style={styles.trashCircle}>
-              <Ionicons name="trash-outline" size={28} color="#D90429" />
+          <View style={[styles.dialog, { backgroundColor: colors.surface }]}>
+            <View style={[styles.trashCircle, { backgroundColor: colors.statusDangerSoft }]}>
+              <Ionicons name="trash-outline" size={28} color={colors.danger} />
             </View>
-            <Text style={styles.dialogTitle}>Remove this profile?</Text>
-            <Text style={styles.dialogMsg}>
+            <Text style={[styles.dialogTitle, { color: colors.text }]}>
+              Remove this profile?
+            </Text>
+            <Text style={[styles.dialogMsg, { color: colors.textMuted }]}>
               Are you sure you want to delete {profile.profile_fullname}&apos;s profile? Their medicines, alerts and reminders will also be deleted.
             </Text>
             <View style={styles.dialogActions}>
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={[styles.cancelBtn, { borderColor: colors.border }]}
                 onPress={() => setShowConfirmModal(false)}
               >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+                <Text style={[styles.cancelBtnText, { color: colors.text }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.confirmBtn}
+                style={[styles.confirmBtn, { backgroundColor: colors.danger }]}
                 onPress={handleConfirmDelete}
               >
                 <Text style={styles.confirmBtnText}>Remove</Text>
@@ -383,7 +504,7 @@ export default function ProfileDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1 },
   topBar: {
     height: 56,
     flexDirection: 'row',
@@ -391,39 +512,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
   },
   backButton: { padding: 6 },
-  topBarTitle: { fontSize: 18, fontWeight: '700', color: '#1B4332' },
+  topBarTitle: { fontSize: 18, fontWeight: '700' },
   menuButton: { padding: 6 },
   content: { padding: 16 },
   notFoundCenter: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAF9',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     padding: 14,
     marginBottom: 20,
   },
   userInfo: { flex: 1, marginLeft: 12 },
-  userName: { fontSize: 16, fontWeight: '700', color: '#1B4332' },
-  userRel: { fontSize: 13, color: '#718096', marginTop: 2 },
+  userName: { fontSize: 16, fontWeight: '700' },
+  userRel: { fontSize: 13, marginTop: 2 },
   editBtnOutline: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
   },
-  editBtnOutlineText: { fontSize: 13, fontWeight: '600', color: '#2D3748' },
-
-  /* Unified Medicine Overview Card */
+  editBtnOutlineText: { fontSize: 13, fontWeight: '600' },
   sectionHeaderNoViewAll: { marginBottom: 10, marginTop: 4 },
-  dataError: { color: '#B42318', fontSize: 13, marginBottom: 8 },
+  dataError: { fontSize: 13, marginBottom: 8 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -431,14 +545,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginTop: 18,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1B4332' },
-  viewAllText: { fontSize: 13, color: '#2D6A4F', fontWeight: '600' },
+  sectionTitle: { fontSize: 16, fontWeight: '700' },
+  viewAllText: { fontSize: 13, fontWeight: '600' },
   overviewCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     paddingVertical: 14,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -457,17 +569,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6,
   },
-  statNum: { fontSize: 17, fontWeight: '700', color: '#1B4332' },
-  statLabel: { fontSize: 11, color: '#718096', marginTop: 2, fontWeight: '500' },
-  colDivider: { width: 1, height: 36, backgroundColor: '#EDF2F7' },
-
-  /* Formatted Upcoming Reminders Card */
+  statNum: { fontSize: 17, fontWeight: '700' },
+  statLabel: { fontSize: 11, marginTop: 2, fontWeight: '500' },
+  colDivider: { width: 1, height: 36 },
   reminderCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 12,
     padding: 12,
     marginBottom: 10,
@@ -480,42 +588,36 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#E8F5E9',
     justifyContent: 'center',
     alignItems: 'center',
   },
   reminderInfo: { flex: 1, marginLeft: 12 },
-  medName: { fontSize: 14, fontWeight: '700', color: '#1B4332' },
-  medSub: { fontSize: 12, color: '#4A5568', marginTop: 1 },
-  medExpiry: { fontSize: 11, color: '#718096', marginTop: 2 },
+  medName: { fontSize: 14, fontWeight: '700' },
+  medSub: { fontSize: 12, marginTop: 1 },
+  medExpiry: { fontSize: 11, marginTop: 2 },
   timeTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 6,
   },
-  timeText: { fontSize: 12, fontWeight: '600', color: '#2D6A4F' },
+  timeText: { fontSize: 12, fontWeight: '600' },
   emptyReminderCard: {
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyReminderText: { fontSize: 14, color: '#718096', fontWeight: '500' },
-
-  /* Modals */
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center' },
+  emptyReminderText: { fontSize: 14, fontWeight: '500' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center' },
   dropdownMenu: {
     position: 'absolute',
     top: 55,
     right: 16,
-    backgroundColor: '#FFFFFF',
     borderRadius: 8,
+    borderWidth: 1,
     paddingVertical: 6,
     minWidth: 160,
     elevation: 6,
@@ -524,63 +626,57 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   dropdownItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14 },
-  dropdownTextDelete: { fontSize: 14, fontWeight: '600', color: '#D90429' },
+  dropdownTextDelete: { fontSize: 14, fontWeight: '600' },
   detailSheet: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     marginTop: 'auto',
   },
   detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  detailTitle: { fontSize: 18, fontWeight: '700', color: '#1B4332' },
+  detailTitle: { fontSize: 18, fontWeight: '700' },
   detailBody: { marginTop: 4 },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
   },
-  detailLabel: { fontSize: 13, color: '#718096', fontWeight: '500' },
-  detailValue: { fontSize: 14, color: '#1A202C', fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
+  detailLabel: { fontSize: 13, fontWeight: '500' },
+  detailValue: { fontSize: 14, fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
   closeDetailBtn: {
     marginTop: 20,
     height: 46,
-    backgroundColor: '#0E3326',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeDetailBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
-  dialog: { width: '85%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, alignSelf: 'center' },
+  closeDetailBtnText: { fontWeight: '700', fontSize: 15 },
+  dialog: { width: '85%', borderRadius: 16, padding: 24, alignSelf: 'center' },
   trashCircle: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FEE2E2',
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
     marginBottom: 12,
   },
-  dialogTitle: { fontSize: 18, fontWeight: '700', color: '#1B4332', textAlign: 'center' },
-  dialogMsg: { fontSize: 13, color: '#718096', textAlign: 'center', marginVertical: 12, lineHeight: 18 },
+  dialogTitle: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  dialogMsg: { fontSize: 13, textAlign: 'center', marginVertical: 12, lineHeight: 18 },
   dialogActions: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 8 },
   cancelBtn: {
     flex: 1,
     height: 44,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cancelBtnText: { color: '#4A5568', fontWeight: '600' },
+  cancelBtnText: { fontWeight: '600' },
   confirmBtn: {
     flex: 1,
     height: 44,
-    backgroundColor: '#D90429',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',

@@ -1,4 +1,5 @@
-import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import { Radius, Spacing, Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -11,12 +12,10 @@ import { FabCircle } from './AddTabButton';
 import { useMenu } from './MenuContext';
 
 const CARD_W = 270;
-const GAP = 14; // space between the popup and the X button
+const GAP = 14;
 
 type Option = { label: string; sub: string; icon: keyof typeof Ionicons.glyphMap; route: string; isTab?: boolean };
 
-// Dito is kung maga-add kayo ng medicine, may dalawang options which is yung scan with camera or enter manually. 
-// This is the popup that appears when the '+' button is tapped.
 const OPTIONS: Option[] = [
   { label: 'Scan with Camera', sub: 'Capture the medicine label', icon: 'camera-outline', route: '/camera', isTab: true },
   { label: 'Enter Manually', sub: 'Type in the medicine details', icon: 'pencil-outline', route: '/manual-entry' },
@@ -24,6 +23,7 @@ const OPTIONS: Option[] = [
 
 export default function AddMenu() {
   const { addOpen, closeAdd, addAnchor } = useMenu();
+  const { colors } = useDisplayTheme();
   const router = useRouter();
   const { width: screenW } = useWindowDimensions();
 
@@ -44,7 +44,6 @@ export default function AddMenu() {
     }
   }, [addOpen, t]);
 
-  // Android back button closes the popup
   useEffect(() => {
     if (!addOpen) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -61,7 +60,6 @@ export default function AddMenu() {
     measureInWindow(overlayRef.current, (x, y) => setOrigin({ x, y }));
   };
 
-  // Here yung position of the '+' button, or if not available, default to the center of the screen.
   const a = addAnchor ?? { x: screenW / 2 - 34, y: overlayH - 100, w: 68, h: 68 };
   const ax = a.x - origin.x;
   const ay = a.y - origin.y;
@@ -76,18 +74,18 @@ export default function AddMenu() {
 
   return (
     <View ref={overlayRef} collapsable={false} onLayout={onLayout} style={styles.overlay}>
-      {/* Dim the whole screen (tap to close) */}
       <Animated.View style={[styles.backdrop, { opacity: t }]}>
         <Pressable style={{ flex: 1 }} onPress={closeAdd} />
       </Animated.View>
 
-      {/* The popup */}
       <Animated.View
         style={[
           styles.card,
           {
             left: cardLeft,
             bottom: cardBottom,
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
             opacity: t,
             transform: [
               { translateY: t.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
@@ -96,25 +94,24 @@ export default function AddMenu() {
           },
         ]}
       >
-        <Text style={styles.header}>Add Medicine</Text>
+        <Text style={[styles.header, { color: colors.text }]}>Add Medicine</Text>
         {OPTIONS.map((o) => (
           <Pressable
             key={o.label}
-            style={({ pressed }) => [styles.item, pressed && { backgroundColor: Colors.primarySoft }]}
+            style={({ pressed }) => [styles.item, pressed && { backgroundColor: colors.primarySoft }]}
             onPress={() => go(o)}
           >
-            <View style={styles.iconBox}>
-              <Ionicons name={o.icon} size={20} color={Colors.primary} />
+            <View style={[styles.iconBox, { backgroundColor: colors.primarySoft }]}>
+              <Ionicons name={o.icon} size={20} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>{o.label}</Text>
-              <Text style={styles.sub}>{o.sub}</Text>
+              <Text style={[styles.label, { color: colors.text }]}>{o.label}</Text>
+              <Text style={[styles.sub, { color: colors.textMuted }]}>{o.sub}</Text>
             </View>
           </Pressable>
         ))}
       </Animated.View>
 
-      {/* here is yung 'X' button that appears when the '+' is tapped */}
       <Animated.View style={{ position: 'absolute', left: ax, top: ay, width: a.w, height: a.h, opacity: t }}>
         <Pressable onPress={closeAdd} accessibilityLabel="Close">
           <FabCircle icon="close" />
@@ -128,16 +125,26 @@ const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 100, elevation: 100 },
   backdrop: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(5,31,32,0.45)' },
   card: {
-    position: 'absolute', width: CARD_W, backgroundColor: Colors.surface,
-    borderRadius: Radius.md, padding: Spacing.sm + 4,
-    elevation: 8, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+    position: 'absolute',
+    width: CARD_W,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.sm + 4,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
-  header: { ...Type.caption, color: Colors.text, marginBottom: Spacing.sm, paddingHorizontal: 4 },
+  header: { ...Type.caption, marginBottom: Spacing.sm, paddingHorizontal: 4 },
   item: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 4, padding: Spacing.sm, borderRadius: Radius.sm },
   iconBox: {
-    width: 40, height: 40, borderRadius: Radius.sm, backgroundColor: Colors.primarySoft,
-    alignItems: 'center', justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  label: { ...Type.label, fontSize: 14, color: Colors.text },
-  sub: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },
+  label: { ...Type.label, fontSize: 14 },
+  sub: { fontSize: 11, marginTop: 1 },
 });

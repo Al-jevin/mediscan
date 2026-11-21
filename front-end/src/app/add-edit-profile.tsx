@@ -4,15 +4,15 @@ import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import AvatarPickerSheet from '../components/AvatarPickerSheet';
 import ProfileAvatar from '../components/ProfileAvatar';
 import ReminderDialog from '../components/ReminderDialog';
@@ -21,6 +21,7 @@ import { fromApiDate, maskDate, toApiDate } from '../lib/validation';
 
 export default function AddEditProfileScreen() {
   const router = useRouter();
+  const { colors } = useDisplayTheme();
   const params = useLocalSearchParams<{ mode?: string; profileId?: string }>();
   const isEdit = params.mode === 'edit';
 
@@ -30,19 +31,16 @@ export default function AddEditProfileScreen() {
     (p) => p.profile_id.toString() === params.profileId
   );
 
-  // Form State — pre-filled from the profile when editing (no useEffect needed)
   const [fullname, setFullname] = useState(() => (isEdit ? existingProfile?.profile_fullname ?? '' : ''));
   const [displayName, setDisplayName] = useState(() => (isEdit ? existingProfile?.profile_display_name ?? '' : ''));
-  const [birthdate, setBirthdate] = useState(() => (isEdit ? fromApiDate(existingProfile?.profile_birthdate) : '')); // "2004-02-26" -> "02/26/2004"
+  const [birthdate, setBirthdate] = useState(() => (isEdit ? fromApiDate(existingProfile?.profile_birthdate) : ''));
   const [iconId, setIconId] = useState(() => (isEdit ? existingProfile?.profile_icon || 1 : 1));
   const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
-  // Required-field reminder popup + which fields to outline in red
   const [missing, setMissing] = useState<string[]>([]);
   const [badDate, setBadDate] = useState(false);
   const [reminder, setReminder] = useState<{ title: string; message: string; items?: string[] } | null>(null);
 
-  // Validation: All fields with asterisks (*) are required
   const handleSave = async () => {
     const empty: string[] = [];
     if (!fullname.trim()) empty.push('Full Name');
@@ -59,7 +57,6 @@ export default function AddEditProfileScreen() {
       return;
     }
 
-    // Date of Birth: numbers only, MM/DD/YYYY -> sent to backend as YYYY-MM-DD
     const apiBirthdate = toApiDate(birthdate);
     setBadDate(!apiBirthdate);
     if (!apiBirthdate) {
@@ -96,15 +93,21 @@ export default function AddEditProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView
+      edges={['top', 'bottom']}
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
 
-      {/* Header */}
-      <View style={styles.topBar}>
+      <View
+        style={[
+          styles.topBar,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1B4332" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>
+        <Text style={[styles.topBarTitle, { color: colors.text }]}>
           {isEdit ? 'Edit Profile' : 'Add Family Member'}
         </Text>
         <View style={{ width: 24 }} />
@@ -115,7 +118,6 @@ export default function AddEditProfileScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Avatar Section: Consistent with Create Profile */}
           <View style={styles.avatarSection}>
             <TouchableOpacity
               style={styles.avatarWrap}
@@ -123,22 +125,34 @@ export default function AddEditProfileScreen() {
               onPress={() => setShowPicker(true)}
             >
               <ProfileAvatar icon={iconId} size={96} />
-              <View style={styles.editBadge}>
-                <Ionicons name="pencil" size={14} color="#FFFFFF" />
+              <View
+                style={[
+                  styles.editBadge,
+                  { backgroundColor: colors.primary, borderColor: colors.surface },
+                ]}
+              >
+                <Ionicons name="pencil" size={14} color={colors.onAction} />
               </View>
             </TouchableOpacity>
-            <Text style={styles.avatarHint}>Choose avatar</Text>
+            <Text style={[styles.avatarHint, { color: colors.statusSuccess }]}>Choose avatar</Text>
           </View>
 
-          {/* Form Fields */}
           <View style={styles.form}>
-            <Text style={styles.label}>
-              Full Name <Text style={styles.required}>*</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Full Name <Text style={{ color: colors.danger }}>*</Text>
             </Text>
             <TextInput
-              style={[styles.input, missing.includes('Full Name') && styles.inputInvalid]}
+              style={[
+                styles.input,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                  color: colors.text,
+                },
+                missing.includes('Full Name') && { borderColor: colors.danger, borderWidth: 1.5 },
+              ]}
               placeholder="e.g. Maria Batumbakal"
-              placeholderTextColor="#A0AEC0"
+              placeholderTextColor={colors.textMuted}
               autoCapitalize="words"
               maxLength={150}
               value={fullname}
@@ -148,13 +162,21 @@ export default function AddEditProfileScreen() {
               }}
             />
 
-            <Text style={styles.label}>
-              Nickname / Display Name <Text style={styles.required}>*</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Nickname / Display Name <Text style={{ color: colors.danger }}>*</Text>
             </Text>
             <TextInput
-              style={[styles.input, missing.includes('Nickname / Display Name') && styles.inputInvalid]}
+              style={[
+                styles.input,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                  color: colors.text,
+                },
+                missing.includes('Nickname / Display Name') && { borderColor: colors.danger, borderWidth: 1.5 },
+              ]}
               placeholder="e.g. Me, Mama, Papa"
-              placeholderTextColor="#A0AEC0"
+              placeholderTextColor={colors.textMuted}
               autoCapitalize="words"
               maxLength={150}
               value={displayName}
@@ -164,39 +186,52 @@ export default function AddEditProfileScreen() {
               }}
             />
 
-            <Text style={styles.label}>
-              Date of Birth (MM/DD/YYYY) <Text style={styles.required}>*</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Date of Birth (MM/DD/YYYY) <Text style={{ color: colors.danger }}>*</Text>
             </Text>
             <TextInput
-              style={[styles.input, (missing.includes('Date of Birth') || badDate) && styles.inputInvalid]}
+              style={[
+                styles.input,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                  color: colors.text,
+                },
+                (missing.includes('Date of Birth') || badDate) && {
+                  borderColor: colors.danger,
+                  borderWidth: 1.5,
+                },
+              ]}
               placeholder="MM/DD/YYYY"
-              placeholderTextColor="#A0AEC0"
+              placeholderTextColor={colors.textMuted}
               keyboardType="number-pad"
               maxLength={10}
               value={birthdate}
               onChangeText={(t) => {
-                setBirthdate(maskDate(t)); // numbers only, slashes added automatically
+                setBirthdate(maskDate(t));
                 setBadDate(false);
                 setMissing((m) => m.filter((f) => f !== 'Date of Birth'));
               }}
             />
           </View>
 
-          {/* Save Button */}
           <TouchableOpacity
-            style={[styles.saveBtn, saving && { opacity: 0.7 }]}
+            style={[
+              styles.saveBtn,
+              { backgroundColor: colors.primary },
+              saving && { opacity: 0.7 },
+            ]}
             activeOpacity={0.8}
             onPress={handleSave}
             disabled={saving}
           >
-            <Text style={styles.saveBtnText}>
+            <Text style={[styles.saveBtnText, { color: colors.onAction }]}>
               {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Save Family Member'}
             </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Required-field reminder popup */}
       <ReminderDialog
         visible={!!reminder}
         title={reminder?.title ?? ''}
@@ -205,7 +240,6 @@ export default function AddEditProfileScreen() {
         onClose={() => setReminder(null)}
       />
 
-      {/* Shared AvatarPickerSheet (Identical to Create Profile) */}
       <AvatarPickerSheet
         visible={showPicker}
         selected={iconId}
@@ -220,7 +254,7 @@ export default function AddEditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1 },
   topBar: {
     height: 56,
     flexDirection: 'row',
@@ -228,10 +262,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
   },
   backButton: { padding: 4 },
-  topBarTitle: { fontSize: 18, fontWeight: '700', color: '#1B4332' },
+  topBarTitle: { fontSize: 18, fontWeight: '700' },
   scrollContent: { padding: 24, justifyContent: 'space-between', flexGrow: 1 },
   avatarSection: { alignItems: 'center', marginVertical: 16 },
   avatarWrap: {
@@ -241,48 +274,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  // Same pencil badge as Create Profile
   editBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#183732',
     width: 30,
     height: 30,
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#F8FAFC',
   },
   avatarHint: {
     fontSize: 14,
-    color: '#2E7D32',
     fontWeight: '700',
     marginTop: 8,
   },
   form: { flex: 1 },
-  label: { fontSize: 13, fontWeight: '600', color: '#4A5568', marginBottom: 6 },
-  required: { color: '#E53E3E' },
+  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 8,
     paddingHorizontal: 14,
     height: 48,
     fontSize: 14,
-    color: '#1A202C',
     marginBottom: 18,
-    backgroundColor: '#FAFAFA',
   },
-  inputInvalid: { borderColor: '#E53E3E', borderWidth: 1.5 },
   saveBtn: {
-    backgroundColor: '#0E3326',
     height: 50,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
   },
-  saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  saveBtnText: { fontSize: 15, fontWeight: '700' },
 });

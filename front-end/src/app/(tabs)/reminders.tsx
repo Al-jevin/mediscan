@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ReminderEditorModal from '@/components/ReminderEditorModal';
 import type { Reminder } from '@/components/reminderTypes';
@@ -261,7 +260,6 @@ export default function RemindersScreen() {
 
   return (
     <View style={[styles.safe, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
 
       {!loaded ? (
         <View style={styles.loading}>

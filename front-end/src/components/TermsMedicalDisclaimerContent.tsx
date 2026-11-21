@@ -1,11 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-const GREEN = '#164F43';
-const BG = '#F8FAFB';
-const TEXT = '#18312F';
-const BORDER = '#E0E5E5';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
 // Save this with the user's account when they accept (Profile team, sign-up popup)
 export const TERMS_VERSION = '1.0';
@@ -55,7 +51,7 @@ export const LEGAL_SECTIONS: LegalSection[] = [
   {
     title: 'Sensitive personal information',
     body: [
-      'Your medicines and prescriptions can reveal information about your health, which the Data Privacy Act treats as sensitive personal information. We collect and process it only with your consent, and only to provide MediScan\'s features: identifying medicines, storing your Vault, showing expiry alerts and sending reminders. We do not sell your data.',
+      "Your medicines and prescriptions can reveal information about your health, which the Data Privacy Act treats as sensitive personal information. We collect and process it only with your consent, and only to provide MediScan's features: identifying medicines, storing your Vault, showing expiry alerts and sending reminders. We do not sell your data.",
       'If you add profiles for other people, you confirm that you have their permission, or that you are their parent or legal guardian.',
       'We use reasonable organizational, physical and technical measures to protect your data, and keep it only while your account is active or as required by law.',
       'Under RA 10173, you have the right to be informed, to access your data, to object, to correct inaccurate data, to have your data erased or blocked, to data portability, to claim damages, and to file a complaint with the National Privacy Commission (NPC).',
@@ -65,8 +61,8 @@ export const LEGAL_SECTIONS: LegalSection[] = [
     title: '4. Drug Information and the FDA (Republic Act No. 9711)',
     bullets: [
       'MediScan matches scanned medicines against drug product records registered with the Philippine Food and Drug Administration (FDA), as strengthened by the FDA Act of 2009 (RA 9711).',
-      'Scan results and medicine details shown in the app do not replace the official FDA-approved label, the package insert, or the FDA\'s own records.',
-      'A product\'s registration status can change. For official verification, check the FDA Philippines website.',
+      "Scan results and medicine details shown in the app do not replace the official FDA-approved label, the package insert, or the FDA's own records.",
+      "A product's registration status can change. For official verification, check the FDA Philippines website.",
       'MediScan is not affiliated with or endorsed by the FDA.',
     ],
   },
@@ -114,22 +110,38 @@ export const LEGAL_SECTIONS: LegalSection[] = [
 
 // The legal text only (no header or buttons), so the sign-up popup can reuse it
 export function TermsLegalText() {
+  const { colors, isDark } = useDisplayTheme();
+  const headingColor = colors.textPrimary;
+  const bodyColor = isDark ? '#CBD5D2' : colors.textSecondary;
+  const metaColor = colors.textSecondary;
+
   return (
     <View>
-      <Text style={styles.lastUpdated}>Last updated: {TERMS_LAST_UPDATED}</Text>
-      <Text style={[styles.legalBody, styles.intro]}>{INTRO}</Text>
+      <Text style={[styles.lastUpdated, { color: metaColor }]}>
+        Last updated: {TERMS_LAST_UPDATED}
+      </Text>
+      <Text style={[styles.legalBody, styles.intro, { color: bodyColor }]}>
+        {INTRO}
+      </Text>
       {LEGAL_SECTIONS.map((section) => (
         <View key={section.title} style={styles.section}>
-          <Text style={styles.legalHeading}>{section.title}</Text>
+          <Text style={[styles.legalHeading, { color: headingColor }]}>
+            {section.title}
+          </Text>
           {section.body?.map((paragraph) => (
-            <Text key={paragraph} style={[styles.legalBody, styles.paragraph]}>
+            <Text
+              key={paragraph}
+              style={[styles.legalBody, styles.paragraph, { color: bodyColor }]}
+            >
               {paragraph}
             </Text>
           ))}
           {section.bullets?.map((bullet) => (
             <View key={bullet} style={styles.bulletRow}>
-              <Text style={styles.bulletDot}>•</Text>
-              <Text style={[styles.legalBody, styles.bulletText]}>{bullet}</Text>
+              <Text style={[styles.bulletDot, { color: bodyColor }]}>•</Text>
+              <Text style={[styles.legalBody, styles.bulletText, { color: bodyColor }]}>
+                {bullet}
+              </Text>
             </View>
           ))}
         </View>
@@ -139,16 +151,15 @@ export function TermsLegalText() {
 }
 
 export default function TermsMedicalDisclaimerContent({
-  onBack,
   onHome,
 }: {
   onBack?: () => void;
   onHome?: () => void;
 }) {
+  const { colors } = useDisplayTheme();
+
   return (
-    <View style={styles.container}>
-      
-      {/* Terms, Conditions and Medical Disclaimer */}
+    <View style={[styles.container, { backgroundColor: colors.surfacePrimary }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.legalPageContent}
@@ -159,13 +170,18 @@ export default function TermsMedicalDisclaimerContent({
         {onHome ? (
           <Pressable
             onPress={onHome}
-            style={({ pressed }) => [styles.homeButton, { opacity: pressed ? 0.86 : 1 }]}
+            style={({ pressed }) => [
+              styles.homeButton,
+              { backgroundColor: colors.actionPrimary, opacity: pressed ? 0.86 : 1 },
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Return to Home"
             testID="terms-return-home"
           >
-            <Ionicons name="home-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.homeButtonText}>Return to Home</Text>
+            <Ionicons name="home-outline" size={18} color={colors.onAction} />
+            <Text style={[styles.homeButtonText, { color: colors.onAction }]}>
+              Return to Home
+            </Text>
           </Pressable>
         ) : null}
       </ScrollView>
@@ -174,123 +190,55 @@ export default function TermsMedicalDisclaimerContent({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-
-  header: {
-    height: 100,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 18,
-    paddingBottom: 16,
-    backgroundColor: BG,
-  },
-
-  backButton: {
-    width: 36,
-    height: 32,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-end',
-  },
-
-  headerTitle: {
-    flex: 1,
-    fontSize: 21,
-    fontWeight: '700',
-    color: TEXT,
-    textAlign: 'center',
-    letterSpacing: -0.4,
-    lineHeight: 28,
-  },
-
-  headerSpacer: {
-    width: 36,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: BORDER,
-  },
-
-  scroll: {
-    flex: 1,
-  },
-
+  container: { flex: 1 },
+  scroll: { flex: 1 },
   legalPageContent: {
     paddingHorizontal: 28,
     paddingTop: 16,
     paddingBottom: 40,
   },
-
   lastUpdated: {
-    color: '#7C8986',
     fontSize: 12,
     lineHeight: 18,
     marginBottom: 12,
     textAlign: 'left',
   },
-
-  intro: {
-    marginBottom: 20,
-  },
-
-  section: {
-    width: '100%',
-    marginBottom: 20,
-  },
-
+  intro: { marginBottom: 20 },
+  section: { width: '100%', marginBottom: 20 },
   legalHeading: {
-    color: '#243B38',
     fontSize: 15,
     lineHeight: 21,
     fontWeight: '800',
     marginBottom: 6,
     textAlign: 'left',
   },
-
   legalBody: {
-    color: '#687875',
     fontSize: 13,
     lineHeight: 19,
     textAlign: 'left',
   },
-
-  paragraph: {
-    marginBottom: 6,
-  },
-
+  paragraph: { marginBottom: 6 },
   bulletRow: {
     flexDirection: 'row',
     marginBottom: 6,
     paddingRight: 4,
   },
-
   bulletDot: {
-    color: '#687875',
     fontSize: 13,
     lineHeight: 19,
     width: 14,
   },
-
-  bulletText: {
-    flex: 1,
-  },
-
+  bulletText: { flex: 1 },
   homeButton: {
     minHeight: 46,
     borderRadius: 10,
-    backgroundColor: GREEN,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     marginTop: 8,
   },
-
   homeButtonText: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },

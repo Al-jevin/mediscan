@@ -13,7 +13,6 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { commitDelete, deleteWithUndo, updateMedicine, useVault } from '@/services/vaultStore';
@@ -325,7 +324,6 @@ export default function UpcomingAlertsScreen() {
         { backgroundColor: colors.background, paddingTop: webTopInset },
       ]}
     >
-      <StatusBar style="dark" />
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable
           accessibilityRole="button"

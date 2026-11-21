@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import {
   getUpcomingReminders,
   useLoggedInProfile,
@@ -81,6 +82,7 @@ function parseAlertPrefs(raw: string | null): AlertPrefs {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { colors } = useDisplayTheme();
   const profile = useLoggedInProfile();
   const {
     medicines,
@@ -150,7 +152,7 @@ export default function NotificationsScreen() {
                 : daysAgo === 1
                   ? '1d ago'
                   : `${daysAgo}d ago`,
-            color: '#FF1717',
+            color: colors.statusDanger,
             onPress: () => openMedicine(med.vault_id),
           });
         } else if (isExpiringWithin(med, 30)) {
@@ -169,7 +171,7 @@ export default function NotificationsScreen() {
               day: 'numeric',
               year: 'numeric',
             })}`,
-            color: '#B85C00',
+            color: colors.statusWarning,
             onPress: () => openMedicine(med.vault_id),
           });
         }
@@ -182,7 +184,7 @@ export default function NotificationsScreen() {
           title: 'Verification needed',
           message: `${label} needs verification`,
           time: formatRelativeTime(med.vault_saved_at, now),
-          color: '#B85C00',
+          color: colors.statusWarning,
           onPress: () => openMedicine(med.vault_id),
         });
       }
@@ -196,7 +198,7 @@ export default function NotificationsScreen() {
         title: 'Reminder',
         message: `Time to take ${reminder.medicine}`,
         time: label,
-        color: '#278238',
+        color: colors.statusSuccess,
         onPress: () =>
           router.navigate({
             pathname: '/(tabs)/reminders',
@@ -206,14 +208,25 @@ export default function NotificationsScreen() {
     }
 
     return items.sort((a, b) => a.priority - b.priority);
-  }, [medicines, savedReminders, profile, prefs, now, router]);
+  }, [medicines, savedReminders, profile, prefs, now, router, colors]);
 
   const loading = !vaultReady || !remindersReady;
   const loadError = vaultError || remindersError;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: colors.surfacePrimary }]}
+      edges={['top']}
+    >
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
         <Pressable
           onPress={() => {
             if (router.canGoBack()) {
@@ -227,17 +240,19 @@ export default function NotificationsScreen() {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={25} color="#12312F" />
+          <Ionicons name="arrow-back" size={25} color={colors.text} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          Notifications
+        </Text>
 
         <View style={styles.headerSpacer} />
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#12312F" />
+          <ActivityIndicator size="large" color={colors.actionPrimary} />
         </View>
       ) : (
         <ScrollView
@@ -246,11 +261,23 @@ export default function NotificationsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {loadError ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{loadError}</Text>
+            <View
+              style={[
+                styles.errorBox,
+                {
+                  backgroundColor: colors.surfaceSecondary,
+                  borderColor: colors.statusWarning,
+                },
+              ]}
+            >
+              <Text style={[styles.errorText, { color: colors.statusWarning }]}>
+                {loadError}
+              </Text>
               {vaultError ? (
                 <Pressable onPress={() => void retryVault()} hitSlop={8}>
-                  <Text style={styles.retryText}>Retry</Text>
+                  <Text style={[styles.retryText, { color: colors.textPrimary }]}>
+                    Retry
+                  </Text>
                 </Pressable>
               ) : null}
             </View>
@@ -261,10 +288,12 @@ export default function NotificationsScreen() {
               <Ionicons
                 name="notifications-off-outline"
                 size={40}
-                color="#94A3B8"
+                color={colors.textSecondary}
               />
-              <Text style={styles.emptyTitle}>You&apos;re all caught up</Text>
-              <Text style={styles.emptySub}>
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+                You&apos;re all caught up
+              </Text>
+              <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
                 Expiry alerts, verification notices, and reminders will appear
                 here.
               </Text>
@@ -276,6 +305,10 @@ export default function NotificationsScreen() {
                 onPress={item.onPress}
                 style={({ pressed }) => [
                   styles.card,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
                   pressed && { opacity: 0.85 },
                 ]}
                 accessibilityRole="button"
@@ -285,10 +318,14 @@ export default function NotificationsScreen() {
                   <View
                     style={[styles.dot, { backgroundColor: item.color }]}
                   />
-                  <Text style={styles.title}>{item.title}</Text>
+                  <Text style={[styles.title, { color: colors.textPrimary }]}>
+                    {item.title}
+                  </Text>
                 </View>
 
-                <Text style={styles.message}>{item.message}</Text>
+                <Text style={[styles.message, { color: colors.textSecondary }]}>
+                  {item.message}
+                </Text>
 
                 <Text style={[styles.time, { color: item.color }]}>
                   {item.time}
@@ -305,7 +342,6 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F6F8FA',
   },
   header: {
     height: 62,
@@ -313,9 +349,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
-    borderBottomColor: '#D8DEE3',
   },
   backButton: {
     width: 40,
@@ -328,7 +362,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 25,
     fontWeight: '700',
-    color: '#102B2A',
   },
   headerSpacer: {
     width: 40,
@@ -349,8 +382,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   errorBox: {
-    backgroundColor: '#FEF3C7',
     borderRadius: 10,
+    borderWidth: 1,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -361,12 +394,10 @@ const styles = StyleSheet.create({
   errorText: {
     flex: 1,
     fontSize: 12,
-    color: '#92400E',
   },
   retryText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#102B2A',
   },
   empty: {
     flex: 1,
@@ -379,20 +410,16 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#102B2A',
     marginTop: 4,
   },
   emptySub: {
     fontSize: 13,
-    color: '#707070',
     textAlign: 'center',
     lineHeight: 19,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 11,
     borderWidth: 1,
-    borderColor: '#E0E3E6',
     paddingHorizontal: 14,
     paddingTop: 11,
     paddingBottom: 9,
@@ -419,11 +446,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '900',
-    color: '#102B2A',
   },
   message: {
     fontSize: 13,
-    color: '#707070',
     marginLeft: 20,
     marginBottom: 6,
   },

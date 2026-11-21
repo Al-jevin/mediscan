@@ -1,4 +1,5 @@
 import { getAvatarSource } from '@/constants/avatars';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -8,13 +9,16 @@ import { Profile } from '../../types/profile';
 
 export default function FamilyProfilesTab() {
   const router = useRouter();
+  const { colors } = useDisplayTheme();
   const { profiles, pendingDeleteId, undoDelete, undoSecondsLeft } = useProfile();
 
   const renderItem = ({ item }: { item: Profile }) => (
     <TouchableOpacity
-      style={styles.card}
+      style={[
+        styles.card,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+      ]}
       activeOpacity={0.7}
-            // Viewing a family member does NOT switch the active profile (that's done on "Choose your profile")
       onPress={() => {
         router.push({
           pathname: '/profile-detail',
@@ -22,33 +26,37 @@ export default function FamilyProfilesTab() {
         });
       }}
     >
-      <View style={styles.avatarCircle}>
-        <Image 
-        source={getAvatarSource(item.profile_icon)} 
-        style={{ width: 44, height: 44, borderRadius: 22 }}
-        resizeMode="cover"
+      <View style={[styles.avatarCircle, { backgroundColor: colors.primarySoft }]}>
+        <Image
+          source={getAvatarSource(item.profile_icon)}
+          style={{ width: 44, height: 44, borderRadius: 22 }}
+          resizeMode="cover"
         />
       </View>
 
       <View style={styles.info}>
-        <Text style={styles.name}>{item.profile_fullname}</Text>
-        <Text style={styles.relationship}>
+        <Text style={[styles.name, { color: colors.textPrimary }]}>
+          {item.profile_fullname}
+        </Text>
+        <Text style={[styles.relationship, { color: colors.textSecondary }]}>
           {item.profile_display_name} • Born {fromApiDate(item.profile_birthdate)}
         </Text>
       </View>
 
-      <Ionicons name="chevron-forward" size={20} color="#A0AEC0" />
+      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
     </TouchableOpacity>
   );
 
+  const limitReached = profiles.length >= 6;
+
   return (
-    <View style={styles.container}>
-      {/* Top Banner */}
-      <View style={styles.topBanner}>
-        <Text style={styles.bannerText}>Manage medicines by family member</Text>
+    <View style={[styles.container, { backgroundColor: colors.surfacePrimary }]}>
+      <View style={[styles.topBanner, { backgroundColor: colors.surfaceSecondary }]}>
+        <Text style={[styles.bannerText, { color: colors.textPrimary }]}>
+          Manage medicines by family member
+        </Text>
       </View>
 
-      {/* Profiles List */}
       <FlatList
         data={profiles}
         keyExtractor={(item) => item.profile_id.toString()}
@@ -56,26 +64,27 @@ export default function FamilyProfilesTab() {
         contentContainerStyle={styles.list}
       />
 
-      {/* Add Family Member Button */}
       <TouchableOpacity
-        style={[styles.addButton, profiles.length >= 6 && styles.disabledButton]}
-        disabled={profiles.length >= 6}
+        style={[
+          styles.addButton,
+          { backgroundColor: limitReached ? colors.border : colors.actionPrimary },
+        ]}
+        disabled={limitReached}
         onPress={() => router.push('/add-edit-profile')}
       >
-        <Ionicons name="add" size={20} color="#FFF" style={{ marginRight: 6 }} />
-        <Text style={styles.addButtonText}>
-          {profiles.length >= 6 ? 'Profile Limit Reached (6 Max)' : 'Add Family Member'}
+        <Ionicons name="add" size={20} color={colors.onAction} style={{ marginRight: 6 }} />
+        <Text style={[styles.addButtonText, { color: colors.onAction }]}>
+          {limitReached ? 'Profile Limit Reached (6 Max)' : 'Add Family Member'}
         </Text>
       </TouchableOpacity>
 
-      {/* 15-Second Undo Banner */}
       {pendingDeleteId !== null && (
-        <View style={styles.undoToast}>
-          <Text style={styles.undoText}>
+        <View style={[styles.undoToast, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.undoText, { color: colors.textPrimary }]}>
             Profile deleted. Undo in {undoSecondsLeft}s
           </Text>
           <TouchableOpacity onPress={undoDelete}>
-            <Text style={styles.undoAction}>UNDO</Text>
+            <Text style={[styles.undoAction, { color: colors.statusSuccess }]}>UNDO</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -86,15 +95,12 @@ export default function FamilyProfilesTab() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAF9',
   },
   topBanner: {
     padding: 14,
-    backgroundColor: '#E8F5E9',
   },
   bannerText: {
     fontSize: 13,
-    color: '#2D6A4F',
     fontWeight: '600',
   },
   list: {
@@ -103,9 +109,7 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
@@ -114,7 +118,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#D8F3DC',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -125,15 +128,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1B4332',
   },
   relationship: {
     fontSize: 13,
-    color: '#718096',
     marginTop: 2,
   },
   addButton: {
-    backgroundColor: '#1B4332',
     flexDirection: 'row',
     height: 48,
     borderRadius: 10,
@@ -141,11 +141,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     margin: 16,
   },
-  disabledButton: {
-    backgroundColor: '#A0AEC0',
-  },
   addButtonText: {
-    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
   },
@@ -154,7 +150,7 @@ const styles = StyleSheet.create({
     bottom: 85,
     left: 16,
     right: 16,
-    backgroundColor: '#1E293B',
+    borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -163,11 +159,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   undoText: {
-    color: '#FFFFFF',
     fontSize: 13,
   },
   undoAction: {
-    color: '#52B788',
     fontWeight: '700',
     fontSize: 14,
   },

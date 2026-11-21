@@ -1,4 +1,5 @@
-import { Colors, Radius, Spacing } from '@/constants/display';
+import { Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
@@ -6,31 +7,37 @@ import { Pressable, StyleSheet, Text, TextInput, TextInputProps, View } from 're
 type Props = TextInputProps & {
   label: string;
   password?: boolean;
-  required?: boolean; // shows a red * after the label
-  invalid?: boolean;  // red border (e.g. required field left empty)
+  required?: boolean;
+  invalid?: boolean;
 };
 
-// This part is yung input field na ginagamit sa Sign Up and Log In screens. It has a label, a text input, and optionally a show/hide password button.
 export default function AuthInput({ label, password, required, invalid, ...rest }: Props) {
+  const { colors } = useDisplayTheme();
   const [hidden, setHidden] = useState(true);
 
   return (
     <View style={styles.group}>
-      <Text style={styles.label}>
+      <Text style={[styles.label, { color: colors.text }]}>
         {label}
-        {required ? <Text style={styles.required}> *</Text> : null}
+        {required ? <Text style={{ color: colors.danger }}> *</Text> : null}
       </Text>
-      <View style={[styles.box, invalid && styles.boxInvalid]}>
+      <View
+        style={[
+          styles.box,
+          { borderColor: colors.border, backgroundColor: colors.surface },
+          invalid && { borderColor: colors.danger, borderWidth: 1.5 },
+        ]}
+      >
         <TextInput
-          style={styles.input}
-          placeholderTextColor={Colors.textMuted + '99'}
+          style={[styles.input, { color: colors.text }]}
+          placeholderTextColor={colors.textMuted}
           secureTextEntry={password ? hidden : false}
           autoCapitalize="none"
           {...rest}
         />
         {password ? (
           <Pressable onPress={() => setHidden((h) => !h)} hitSlop={10} accessibilityLabel="Show or hide password">
-            <Ionicons name={hidden ? 'eye-off-outline' : 'eye-outline'} size={22} color={Colors.text} />
+            <Ionicons name={hidden ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.text} />
           </Pressable>
         ) : null}
       </View>
@@ -40,13 +47,14 @@ export default function AuthInput({ label, password, required, invalid, ...rest 
 
 const styles = StyleSheet.create({
   group: { marginBottom: Spacing.md - 2 },
-  label: { fontSize: 14, fontWeight: '700', color: Colors.text, marginBottom: 6 },
-  required: { color: Colors.danger },
+  label: { fontSize: 14, fontWeight: '700', marginBottom: 6 },
   box: {
-    flexDirection: 'row', alignItems: 'center', height: 48,
-    paddingHorizontal: Spacing.md - 2, borderRadius: Radius.md - 2,
-    borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    paddingHorizontal: Spacing.md - 2,
+    borderRadius: Radius.md - 2,
+    borderWidth: 1,
   },
-  boxInvalid: { borderColor: Colors.danger, borderWidth: 1.5 },
-  input: { flex: 1, fontSize: 15, color: Colors.text, paddingVertical: 0 },
+  input: { flex: 1, fontSize: 15, paddingVertical: 0 },
 });

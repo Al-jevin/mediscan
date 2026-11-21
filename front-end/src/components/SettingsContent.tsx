@@ -2,33 +2,37 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { Camera } from 'expo-camera';
 import { useEffect, useState } from 'react';
-import { Alert, AppState, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, Vibration, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import { useProfile } from '@/context/ProfileContext';
 import {
-  cancelScheduledReminders,
-  hasNotificationPermission,
-  requestNotificationPermission,
-  sendNotification,
-  updateSettings,
-  useAppSettings,
-} from '@/services/appSettings';
+  useAppTheme,
+  type AppearanceMode,
+  type AppLanguage,
+} from '@/context/ThemeContext';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
-type Screen = 'Settings' | 'Display' | 'Language' | 'Notifications' | 'Offline Database' | 'Privacy' | 'FAQs' | 'About MediScan' | 'Privacy Policy' | 'Terms of Service' | 'Open Source Licenses';
+type Screen =
+  | 'Settings'
+  | 'Display'
+  | 'Language'
+  | 'Notifications'
+  | 'Offline Database'
+  | 'Privacy'
+  | 'FAQs'
+  | 'About MediScan'
+  | 'Privacy Policy'
+  | 'Terms of Service'
+  | 'Open Source Licenses';
 
-const GREEN = '#164F43';
-const LIGHT_GREEN = '#8FB5A0';
 const SELECTED_LIGHT = '#8DB29B';
-const BG = '#F8FAFB';
-const TEXT = '#18312F';
-const BORDER = '#E0E5E5';
-
+const SELECTED_DARK = '#2E5C4E';
 
 const FAQS = [
   {
     question: 'How do I scan a medicine?',
-    answer: 'Tap the button at the bottom of the screen, choose \"Scan with Camera\", then place the medicine label inside the frame and tap the shutter. MediScan will read the name and expiration date for you.',
+    answer: 'Tap the button at the bottom of the screen, choose "Scan with Camera", then place the medicine label inside the frame and tap the shutter. MediScan will read the name and expiration date for you.',
   },
   {
     question: "What if the app can't read the label?",
@@ -57,59 +61,64 @@ const FAQS = [
 ];
 
 export default function SettingsContent({ onBack }: { onBack?: () => void }) {
-  // The profile picked on "Choose your profile" + the logged-in account's email
-  const profileCtx = useProfile();
-  const activeProfile = profileCtx.activeProfile;
-  // Uses the email if ProfileContext provides one; shows nothing otherwise
-  const email = (profileCtx as unknown as { email?: string }).email ?? '';
+  const { activeProfile, email } = useProfile();
+  const {
+    appearance,
+    setAppearance,
+    language,
+    setLanguage,
+    textSize,
+    setTextSize,
+    t,
+  } = useAppTheme();
+  const { colors, isDark } = useDisplayTheme();
 
-  // Saved on/off settings (shared with the camera screen and reminders)
-  const [settings] = useAppSettings();
-  // Real phone permissions (null = still checking)
-  const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
-  const [notificationPermission, setNotificationPermission] = useState<boolean | null>(null);
-
-  // A switch only shows ON when the app setting is on AND the phone actually allows it
-  const cameraEnabled = settings.cameraEnabled && cameraPermission === true;
-  const pushNotifications = settings.pushNotifications && notificationPermission === true;
-  const { medicationReminders, sound, vibration } = settings;
+  const themeGreen = colors.actionPrimary;
+  const themeMuted = colors.textSecondary;
+  const themeBg = colors.surfacePrimary;
+  const themeText = colors.textPrimary;
+  const themeBorder = colors.borderDefault;
+  const themeCard = isDark ? colors.surfaceSecondary : '#FFFFFF';
+  const themePressed = isDark ? '#1B3D2E' : '#EDF4F1';
+  const themeSelected = isDark ? SELECTED_DARK : SELECTED_LIGHT;
+  const switchThumbOff = isDark ? '#CBD5E1' : '#F7F9F9';
+  const switchTrackOff = isDark ? '#334155' : '#D8DEDD';
+  const switchTrackOn = isDark ? '#2E5C4E' : '#8FB5A0';
 
   const [screen, setScreen] = useState<Screen>('Settings');
-  const [appearance, setAppearance] = useState('Light');
-  const [language, setLanguage] = useState('English');
-  const [textSize, setTextSize] = useState(16);
+  const [pushNotifications, setPushNotifications] = useState(false);
+  const [medicineReminders, setMedicineReminders] = useState(true);
+  const [sound, setSound] = useState(true);
+  const [vibration, setVibration] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(false);
   const [faqSearch, setFaqSearch] = useState('');
   const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [syncModal, setSyncModal] = useState<'closed' | 'syncing' | 'complete'>('closed');
   const [clearCacheModal, setClearCacheModal] = useState(false);
   const [lastSynced, setLastSynced] = useState('Today, 9:32 AM');
 
-
-  // Check the real permissions now, and again when coming back from the phone's Settings app
   useEffect(() => {
     let mounted = true;
-    const checkPermissions = () => {
-      Camera.getCameraPermissionsAsync()
-        .then((result) => { if (mounted) setCameraPermission(result.granted); })
-        .catch(() => { if (mounted) setCameraPermission(false); });
-      hasNotificationPermission()
-        .then((granted) => { if (mounted) setNotificationPermission(granted); });
-    };
-    checkPermissions();
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') checkPermissions();
-    });
+    Camera.getCameraPermissionsAsync()
+      .then((result) => {
+        if (mounted) setCameraEnabled(result.granted);
+      })
+      .catch(() => {
+        if (mounted) setCameraEnabled(false);
+      });
     return () => {
       mounted = false;
-      subscription.remove();
     };
   }, []);
-
 
   const goBack = () => {
     if (screen === 'Settings') {
       onBack?.();
-    } else if (screen === 'Terms of Service' || screen === 'Privacy Policy' || screen === 'Open Source Licenses') {
+    } else if (
+      screen === 'Terms of Service' ||
+      screen === 'Privacy Policy' ||
+      screen === 'Open Source Licenses'
+    ) {
       setScreen('About MediScan');
     } else {
       setScreen('Settings');
@@ -117,88 +126,29 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   };
   const openScreen = (next: Screen) => setScreen(next);
 
-  const openPhoneSettings = () => {
-    Linking.openSettings().catch(() => {});
-  };
-
-
-  // ----- Privacy: Camera Access -----
   const toggleCamera = async (value: boolean) => {
     if (!value) {
-      await updateSettings({ cameraEnabled: false });
+      setCameraEnabled(false);
       Alert.alert(
-        'Camera turned off',
-        'Scanning is now turned off in MediScan. To also remove the permission from your phone, open your phone settings.',
-        [
-          { text: 'OK' },
-          { text: 'Open settings', onPress: openPhoneSettings },
-        ],
+        'Camera permission',
+        'The app switch is off. To revoke device permission itself, open your phone Settings and change MediScan camera access.',
       );
       return;
     }
     try {
-      const existing = await Camera.getCameraPermissionsAsync();
-      const result = existing.granted || !existing.canAskAgain
-        ? existing
-        : await Camera.requestCameraPermissionsAsync();
-      setCameraPermission(result.granted);
-      if (result.granted) {
-        await updateSettings({ cameraEnabled: true });
-      } else {
+      const result = await Camera.requestCameraPermissionsAsync();
+      setCameraEnabled(result.granted);
+      if (!result.granted) {
         Alert.alert(
           'Permission needed',
-          'Allow camera access for MediScan in your phone settings to scan medicines.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open settings', onPress: openPhoneSettings },
-          ],
+          'Allow camera access in your device settings to use camera features.',
         );
       }
     } catch {
-      setCameraPermission(false);
+      setCameraEnabled(false);
       Alert.alert('Camera permission', 'Camera permission could not be requested on this device.');
     }
   };
-
-
-  // ----- Notifications -----
-  const togglePushNotifications = async (value: boolean) => {
-    if (!value) {
-      await updateSettings({ pushNotifications: false });
-      await cancelScheduledReminders();
-      return;
-    }
-    const granted = await requestNotificationPermission();
-    setNotificationPermission(granted);
-    if (!granted) {
-      Alert.alert(
-        'Permission needed',
-        'Allow notifications for MediScan in your phone settings to get medicine reminders.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open settings', onPress: openPhoneSettings },
-        ],
-      );
-      return;
-    }
-    await updateSettings({ pushNotifications: true });
-    await sendNotification('Notifications are on', 'MediScan will remind you about your medicines.');
-  };
-
-  const toggleMedicationReminders = async (value: boolean) => {
-    await updateSettings({ medicationReminders: value });
-    if (!value) await cancelScheduledReminders();
-  };
-
-  const toggleSound = (value: boolean) => {
-    void updateSettings({ sound: value });
-  };
-
-  const toggleVibration = (value: boolean) => {
-    void updateSettings({ vibration: value });
-    if (value) Vibration.vibrate(200); // quick buzz so you can feel it's on
-  };
-
 
   const startSync = () => {
     setSyncModal('syncing');
@@ -208,11 +158,9 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
     }, 2200);
   };
 
-
-
   const Header = ({ title }: { title: string }) => (
-    <SafeAreaView edges={['top']} style={styles.headerSafe}>
-      <View style={styles.header}>
+    <SafeAreaView edges={['top']} style={[styles.headerSafe, { backgroundColor: themeBg }]}>
+      <View style={[styles.header, { backgroundColor: themeBg, borderBottomColor: themeBorder }]}>
         <Pressable
           onPress={goBack}
           style={styles.backButton}
@@ -220,10 +168,10 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
           accessibilityRole="button"
           accessibilityLabel={screen === 'Settings' ? 'Open menu' : 'Go back'}
         >
-          <Ionicons name="arrow-back" size={25} color={GREEN} />
+          <Ionicons name="arrow-back" size={25} color={themeGreen} />
         </Pressable>
 
-        <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={[styles.headerTitle, { color: themeText }]}>{title}</Text>
 
         <View style={{ width: 36 }} />
       </View>
@@ -231,361 +179,581 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   );
 
   const ProfileCard = () => (
-    <View style={styles.profileCard}>
-      {/* Same avatar, name and email as Home, the side menu and the Profile screen */}
+    <View style={[styles.profileCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
       <ProfileAvatar icon={activeProfile?.profile_icon ?? 1} size={50} />
       <View style={{ flex: 1 }}>
-        <Text style={styles.profileName} numberOfLines={1}>{activeProfile?.profile_fullname ?? ''}</Text>
-        <Text style={styles.email} numberOfLines={1}>{email}</Text>
+        <Text style={[styles.profileName, { color: themeText }]} numberOfLines={1}>
+          {activeProfile?.profile_fullname ?? ''}
+        </Text>
+        <Text style={[styles.email, { color: themeMuted }]} numberOfLines={1}>
+          {email ?? ''}
+        </Text>
       </View>
     </View>
   );
 
-
-  const SettingRow = ({ icon, title, value, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; value?: string; onPress: () => void }) => (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]} accessibilityRole="button">
-      {title === 'Appearance' ? (
+  const SettingRow = ({
+    icon,
+    title,
+    value,
+    onPress,
+    isLast = false,
+  }: {
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    value?: string;
+    onPress: () => void;
+    isLast?: boolean;
+  }) => (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.settingRow,
+        { borderBottomColor: themeBorder },
+        isLast && { borderBottomWidth: 0 },
+        pressed && { backgroundColor: themePressed },
+      ]}
+      accessibilityRole="button"
+    >
+      {title === 'Appearance' || title === 'Hitsura' ? (
         <View style={styles.appearanceRowIcon}>
-          {/* Crescent outline with a half-sun tucked into its open side, matching the reference icon */}
-          <Ionicons name="moon-outline" size={23} color="#64847D" style={styles.appearanceMoonGlyph} />
+          <Ionicons name="moon-outline" size={23} color={themeMuted} style={styles.appearanceMoonGlyph} />
           <View style={styles.appearanceSunGraphic}>
-            <View style={styles.appearanceSunCircle} />
-            <View style={styles.sunRayTop} />
-            <View style={styles.sunRayUpperRight} />
-            <View style={styles.sunRayRight} />
+            <View style={[styles.appearanceSunCircle, { borderColor: themeMuted }]} />
+            <View style={[styles.sunRayTop, { backgroundColor: themeMuted }]} />
+            <View style={[styles.sunRayUpperRight, { backgroundColor: themeMuted }]} />
+            <View style={[styles.sunRayRight, { backgroundColor: themeMuted }]} />
           </View>
         </View>
-      ) : <Ionicons name={icon} size={21} color="#64847D" />}
-      <Text style={[styles.rowTitle, { fontSize: Math.max(textSize, 17) }]}>{title}</Text>
-      {value ? <Text style={styles.rowValue}>{value}</Text> : null}
-      <Ionicons name="chevron-forward" size={21} color="#64847D" />
+      ) : (
+        <Ionicons name={icon} size={21} color={themeMuted} />
+      )}
+      <Text style={[styles.rowTitle, { fontSize: Math.max(textSize, 17), color: themeText }]}>{title}</Text>
+      {value ? <Text style={[styles.rowValue, { color: themeMuted }]}>{value}</Text> : null}
+      <Ionicons name="chevron-forward" size={21} color={themeMuted} />
     </Pressable>
   );
 
+  const SectionTitle = ({ children }: { children: string }) => (
+    <Text style={[styles.sectionTitle, { color: themeText }]}>{children}</Text>
+  );
 
-  const SectionTitle = ({ children }: { children: string }) => <Text style={styles.sectionTitle}>{children}</Text>;
-  const ToggleRow = ({ title, value, onValueChange }: { title: string; value: boolean; onValueChange: (value: boolean) => void }) => (
-    <View style={styles.toggleRow}>
-      <Text style={styles.toggleTitle}>{title}</Text>
-      <Switch value={value} onValueChange={onValueChange} trackColor={{ false: '#D8DEDD', true: LIGHT_GREEN }} thumbColor={value ? GREEN : '#F7F9F9'} />
+  const ToggleRow = ({
+    title,
+    value,
+    onValueChange,
+    isLast = false,
+  }: {
+    title: string;
+    value: boolean;
+    onValueChange: (value: boolean) => void;
+    isLast?: boolean;
+  }) => (
+    <View
+      style={[
+        styles.toggleRow,
+        { borderBottomColor: themeBorder },
+        isLast && { borderBottomWidth: 0 },
+      ]}
+    >
+      <Text style={[styles.toggleTitle, { color: themeText }]}>{title}</Text>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: switchTrackOff, true: switchTrackOn }}
+        thumbColor={value ? themeGreen : switchThumbOff}
+      />
     </View>
   );
 
-
   const SettingsScreen = () => (
     <>
-      <Header title="Settings" />
+      <Header title={t('Settings', 'Mga Setting')} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ProfileCard />
-        <SectionTitle>Preferences</SectionTitle>
-        <View style={styles.group}>
-          <SettingRow icon="sunny-outline" title="Appearance" onPress={() => openScreen('Display')} />
-          <SettingRow icon="globe-outline" title="Language" value={language} onPress={() => openScreen('Language')} />
-          <SettingRow icon="notifications-outline" title="Notifications" onPress={() => openScreen('Notifications')} />
+        <SectionTitle>{t('Preferences', 'Mga Kagustuhan')}</SectionTitle>
+        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+          <SettingRow icon="sunny-outline" title={t('Appearance', 'Hitsura')} onPress={() => openScreen('Display')} />
+          <SettingRow icon="globe-outline" title={t('Language', 'Wika')} value={language} onPress={() => openScreen('Language')} />
+          <SettingRow icon="notifications-outline" title={t('Notifications', 'Mga Abiso')} onPress={() => openScreen('Notifications')} isLast />
         </View>
-        <SectionTitle>Data &amp; Sync</SectionTitle>
-        <View style={styles.group}><SettingRow icon="sync-outline" title="Offline Database" onPress={() => openScreen('Offline Database')} /></View>
+        <SectionTitle>{t('Data & Sync', 'Data at Sync')}</SectionTitle>
+        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+          <SettingRow icon="sync-outline" title="Offline Database" onPress={() => openScreen('Offline Database')} isLast />
+        </View>
         <SectionTitle>Security &amp; Privacy</SectionTitle>
-        <View style={styles.group}><SettingRow icon="shield-outline" title="Privacy" onPress={() => openScreen('Privacy')} /></View>
+        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+          <SettingRow icon="shield-outline" title="Privacy" onPress={() => openScreen('Privacy')} isLast />
+        </View>
         <SectionTitle>Support</SectionTitle>
-        <View style={styles.group}>
+        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
           <SettingRow icon="help-circle-outline" title="FAQs" onPress={() => openScreen('FAQs')} />
-          <SettingRow icon="information-circle-outline" title="About MediScan" onPress={() => openScreen('About MediScan')} />
+          <SettingRow icon="information-circle-outline" title="About MediScan" onPress={() => openScreen('About MediScan')} isLast />
         </View>
       </ScrollView>
     </>
   );
 
-
   const DisplayScreen = () => (
     <>
-      <Header title="Display" />
+      <Header title={t('Display', 'Display')} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <Text style={styles.displaySectionTitle}>Appearance</Text>
+        <Text style={[styles.displaySectionTitle, { color: themeText }]}>{t('Appearance', 'Hitsura')}</Text>
         <View style={styles.appearanceRow}>
           {[
             { title: 'Light', icon: 'sunny-outline' as const },
             { title: 'Dark', icon: 'moon-outline' as const },
             { title: 'System', icon: 'phone-portrait-outline' as const },
-          ].map(option => {
+          ].map((option) => {
             const selected = appearance === option.title;
-            return <Pressable key={option.title} onPress={() => setAppearance(option.title)} style={[styles.appearanceCard, selected && styles.appearanceSelected]}>
-              <View style={styles.appearanceIcon}>
-                {option.title === 'System' ? (
-                  <View style={styles.systemIcon}>
-                    {/* Thin custom outline: desktop monitor behind, phone in front */}
-                    <View style={[styles.desktopMonitor, { borderColor: selected ? 'white' : GREEN }]}>
-                      <View style={[styles.monitorStand, { backgroundColor: selected ? 'white' : GREEN }]} />
-                      <View style={[styles.monitorFoot, { backgroundColor: selected ? 'white' : GREEN }]} />
+            return (
+              <Pressable
+                key={option.title}
+                onPress={() => setAppearance(option.title as AppearanceMode)}
+                style={[
+                  styles.appearanceCard,
+                  { backgroundColor: themeCard, borderColor: themeBorder },
+                  selected && { backgroundColor: themeSelected, borderColor: themeSelected },
+                ]}
+              >
+                <View style={styles.appearanceIcon}>
+                  {option.title === 'System' ? (
+                    <View style={styles.systemIcon}>
+                      <View style={[styles.desktopMonitor, { borderColor: selected ? 'white' : themeGreen }]}>
+                        <View style={[styles.monitorStand, { backgroundColor: selected ? 'white' : themeGreen }]} />
+                        <View style={[styles.monitorFoot, { backgroundColor: selected ? 'white' : themeGreen }]} />
+                      </View>
+                      <View
+                        style={[
+                          styles.systemPhone,
+                          {
+                            borderColor: selected ? 'white' : themeGreen,
+                            backgroundColor: selected ? themeSelected : themeCard,
+                          },
+                        ]}
+                      >
+                        <View style={[styles.phoneSpeaker, { backgroundColor: selected ? 'white' : themeGreen }]} />
+                      </View>
                     </View>
-                    <View style={[styles.systemPhone, { borderColor: selected ? 'white' : GREEN, backgroundColor: selected ? SELECTED_LIGHT : 'white' }]}>
-                      <View style={[styles.phoneSpeaker, { backgroundColor: selected ? 'white' : GREEN }]} />
-                    </View>
-                  </View>
-                ) : <Ionicons name={option.icon} size={18} color={selected ? 'white' : GREEN} />}
-              </View>
-              <Text style={[styles.appearanceText, selected && styles.selectedText]}>{option.title}</Text>
-            </Pressable>;
+                  ) : (
+                    <Ionicons name={option.icon} size={18} color={selected ? 'white' : themeGreen} />
+                  )}
+                </View>
+                <Text style={[styles.appearanceText, { color: themeText }, selected && styles.selectedText]}>
+                  {option.title}
+                </Text>
+              </Pressable>
+            );
           })}
         </View>
-        <Text style={styles.displaySectionTitle}>Text Size</Text>
-        <View style={styles.sliderCard}>
-          <Text style={styles.smallA}>A</Text>
+        <Text style={[styles.displaySectionTitle, { color: themeText }]}>{t('Text Size', 'Laki ng Teksto')}</Text>
+        <View style={[styles.sliderCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+          <Text style={[styles.smallA, { color: themeText }]}>A</Text>
           <View style={styles.sliderWrap}>
             <View pointerEvents="none" style={styles.sliderTicks}>
-              {[0, 1, 2, 3, 4].map((tick) => <View key={tick} style={[styles.sliderTick, (textSize >= 12 + tick * 3) && styles.sliderTickActive]} />)}
+              {[0, 1, 2, 3, 4].map((tick) => {
+                const active = textSize >= 12 + tick * 3;
+                return (
+                  <View
+                    key={tick}
+                    style={[
+                      styles.sliderTick,
+                      { backgroundColor: active ? themeGreen : themeBorder },
+                      active && styles.sliderTickActive,
+                    ]}
+                  />
+                );
+              })}
             </View>
-            <Slider style={styles.slider} minimumValue={12} maximumValue={24} step={3} value={Math.round((textSize - 12) / 3) * 3 + 12} onValueChange={setTextSize} minimumTrackTintColor={GREEN} maximumTrackTintColor="#D5D9D8" thumbTintColor="#FFFFFF" />
+            <Slider
+              style={styles.slider}
+              minimumValue={12}
+              maximumValue={24}
+              step={3}
+              value={Math.round((textSize - 12) / 3) * 3 + 12}
+              onValueChange={setTextSize}
+              minimumTrackTintColor={themeGreen}
+              maximumTrackTintColor={themeBorder}
+              thumbTintColor={isDark ? colors.textPrimary : '#FFFFFF'}
+            />
           </View>
-          <Text style={styles.largeA}>A</Text>
+          <Text style={[styles.largeA, { color: themeText }]}>A</Text>
         </View>
-        <SectionTitle>Preview</SectionTitle>
-        <View style={styles.previewCard}>
-          <Text style={[styles.previewTitle, { fontSize: textSize }]}>Sample Reminder</Text>
-          <Text style={[styles.previewDescription, { fontSize: Math.max(11, textSize - 3) }]}>This is how your medicine reminders and text will look throughout the app.</Text>
+        <SectionTitle>{t('Preview', 'Preview')}</SectionTitle>
+        <View style={[styles.previewCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+          <Text style={[styles.previewTitle, { fontSize: textSize, color: themeText }]}>
+            {t('Sample Reminder', 'Halimbawang Paalala')}
+          </Text>
+          <Text style={[styles.previewDescription, { fontSize: Math.max(11, textSize - 3), color: themeMuted }]}>
+            {t(
+              'This is how your medicine reminders and text will look throughout the app.',
+              'Ganito magmumukha ang mga paalala at teksto sa buong app.',
+            )}
+          </Text>
         </View>
       </ScrollView>
     </>
   );
 
-
   const LanguageScreen = () => (
     <>
-      <Header title="Language" />
+      <Header title={t('Language', 'Wika')} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <SectionTitle>Language</SectionTitle>
-        {['English', 'Filipino'].map(item => (
-          <Pressable key={item} onPress={() => setLanguage(item)} style={styles.languageCard}>
-            <Text style={styles.languageText}>{item}</Text>
-            {language === item && <Ionicons name="checkmark" size={23} color={GREEN} />}
+        <SectionTitle>{t('Language', 'Wika')}</SectionTitle>
+        {['English', 'Filipino'].map((item) => (
+          <Pressable
+            key={item}
+            onPress={() => setLanguage(item as AppLanguage)}
+            style={[styles.languageCard, { backgroundColor: themeCard, borderColor: themeBorder }]}
+          >
+            <Text style={[styles.languageText, { color: themeText }]}>{item}</Text>
+            {language === item && <Ionicons name="checkmark" size={23} color={themeGreen} />}
           </Pressable>
         ))}
       </ScrollView>
     </>
   );
 
-
   const NotificationsScreen = () => (
     <>
       <Header title="Notifications" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <SectionTitle>General</SectionTitle>
-        <View style={styles.group}>
-          <ToggleRow title="Push Notifications" value={pushNotifications} onValueChange={togglePushNotifications} />
+        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+          <ToggleRow
+            title="Push Notifications"
+            value={pushNotifications}
+            isLast
+            onValueChange={(value) => {
+              setPushNotifications(value);
+              Alert.alert(
+                'Push Notifications',
+                value
+                  ? 'This switch is currently an in-app preference only. Actual OS notification permission is not connected in this Expo Go version.'
+                  : 'The app preference is off. This does not revoke notification permission in phone settings.',
+              );
+            }}
+          />
         </View>
         <SectionTitle>Reminders</SectionTitle>
-        <View style={styles.group}>
-          <ToggleRow title="Medication Reminders" value={medicationReminders} onValueChange={toggleMedicationReminders} />
+        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+          <ToggleRow title="Medication Reminders" value={medicineReminders} onValueChange={setMedicineReminders} isLast />
         </View>
         <SectionTitle>Sound &amp; Vibration</SectionTitle>
-        <View style={styles.group}>
-          <ToggleRow title="Sound" value={sound} onValueChange={toggleSound} />
-          <ToggleRow title="Vibration" value={vibration} onValueChange={toggleVibration} />
+        <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+          <ToggleRow title="Sound" value={sound} onValueChange={setSound} />
+          <ToggleRow title="Vibration" value={vibration} onValueChange={setVibration} isLast />
         </View>
       </ScrollView>
     </>
   );
 
-
   const OtherScreen = () => {
-    if (screen === 'Offline Database') return <>
-      <Header title="Data & Sync" />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.syncContent}>
-        <SectionTitle>Storage</SectionTitle>
-        <View style={styles.syncInfoCard}>
-          <View>
-            <Text style={styles.syncSmallLabel}>Last Synced</Text>
-          </View>
-          <Text style={styles.syncTimestamp}>{lastSynced}</Text>
-        </View>
-        <Pressable
-          onPress={startSync}
-          style={({ pressed }) => [styles.syncNowButton, pressed && styles.syncNowPressed]}
-          accessibilityRole="button"
-        >
-          <Ionicons name="sync-outline" size={15} color="#FFFFFF" />
-          <Text style={styles.syncNowText}>Sync Now</Text>
-        </Pressable>
-        <SectionTitle>Options</SectionTitle>
-        <Pressable
-          onPress={() => setClearCacheModal(true)}
-          style={({ pressed }) => [styles.clearCacheButton, pressed && styles.clearCachePressed]}
-          accessibilityRole="button"
-        >
-          <Text style={styles.clearCacheText}>Clear Cache</Text>
-          <Ionicons name="chevron-forward" size={19} color="#64847D" />
-        </Pressable>
-      </ScrollView>
-      <Modal
-        visible={syncModal !== 'closed'}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSyncModal('closed')}
-      >
-        <View style={styles.syncModalBackdrop}>
-          <View style={styles.syncModalCard}>
-            {syncModal === 'syncing' ? (
-              <>
-                <View style={styles.syncModalIcon}>
-                  <Ionicons name="sync-outline" size={23} color="#4B8075" />
+    if (screen === 'Offline Database') {
+      return (
+        <>
+          <Header title="Data & Sync" />
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.syncContent}>
+            <SectionTitle>Storage</SectionTitle>
+            <View style={[styles.syncInfoCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+              <Text style={[styles.syncSmallLabel, { color: themeText }]}>Last Synced</Text>
+              <Text style={[styles.syncTimestamp, { color: themeMuted }]}>{lastSynced}</Text>
+            </View>
+            <Pressable
+              onPress={startSync}
+              style={({ pressed }) => [
+                styles.syncNowButton,
+                { backgroundColor: themeGreen },
+                pressed && styles.syncNowPressed,
+              ]}
+              accessibilityRole="button"
+            >
+              <Ionicons name="sync-outline" size={15} color={colors.onAction} />
+              <Text style={[styles.syncNowText, { color: colors.onAction }]}>Sync Now</Text>
+            </Pressable>
+            <SectionTitle>Options</SectionTitle>
+            <Pressable
+              onPress={() => setClearCacheModal(true)}
+              style={({ pressed }) => [
+                styles.clearCacheButton,
+                { backgroundColor: themeCard, borderColor: themeBorder },
+                pressed && { backgroundColor: themePressed },
+              ]}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.clearCacheText, { color: colors.statusDanger }]}>Clear Cache</Text>
+              <Ionicons name="chevron-forward" size={19} color={themeMuted} />
+            </Pressable>
+          </ScrollView>
+
+          <Modal
+            visible={syncModal !== 'closed'}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setSyncModal('closed')}
+          >
+            <View style={styles.syncModalBackdrop}>
+              <View style={[styles.syncModalCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+                {syncModal === 'syncing' ? (
+                  <>
+                    <View style={[styles.syncModalIcon, { backgroundColor: colors.primarySoft }]}>
+                      <Ionicons name="sync-outline" size={23} color={themeGreen} />
+                    </View>
+                    <Text style={[styles.syncModalTitle, { color: themeText }]}>Syncing your data...</Text>
+                    <Text style={[styles.syncModalDescription, { color: themeMuted }]}>
+                      Uploading medicines, reminders and profiles to cloud. Please keep the app open.
+                    </Text>
+                    <View style={[styles.progressTrack, { backgroundColor: themeBorder }]}>
+                      <View style={[styles.progressFill, { backgroundColor: themeGreen }]} />
+                    </View>
+                    <Text style={[styles.progressPercent, { color: themeGreen }]}>65%</Text>
+                  </>
+                ) : (
+                  <>
+                    <View style={[styles.syncModalIcon, { backgroundColor: colors.primarySoft }]}>
+                      <Ionicons name="cloud-outline" size={24} color={themeGreen} />
+                    </View>
+                    <Text style={[styles.syncModalTitle, { color: themeText }]}>Sync Complete</Text>
+                    <Text style={[styles.syncModalDescription, { color: themeMuted }]}>
+                      All your data is backed up. Last synced: {lastSynced}
+                    </Text>
+                    <Pressable
+                      onPress={() => setSyncModal('closed')}
+                      style={[styles.doneButton, { backgroundColor: themeGreen }]}
+                    >
+                      <Text style={[styles.doneButtonText, { color: colors.onAction }]}>Done</Text>
+                    </Pressable>
+                  </>
+                )}
+              </View>
+            </View>
+          </Modal>
+
+          <Modal
+            visible={clearCacheModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setClearCacheModal(false)}
+          >
+            <View style={styles.syncModalBackdrop}>
+              <View style={[styles.clearCacheModalCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+                <View style={[styles.clearCacheModalIcon, { backgroundColor: colors.statusDangerSoft }]}>
+                  <Ionicons name="trash-outline" size={22} color={colors.statusDanger} />
                 </View>
-                <Text style={styles.syncModalTitle}>Syncing your data...</Text>
-                <Text style={styles.syncModalDescription}>
-                  Uploading medicines, reminders and profiles to cloud. Please keep the app open.
+                <Text style={[styles.clearCacheModalTitle, { color: themeText }]}>Clear cache?</Text>
+                <Text style={[styles.clearCacheModalDescription, { color: themeMuted }]}>
+                  Temporary files and scan images will be removed. Your medicines and reminders will not be affected.
                 </Text>
-                <View style={styles.progressTrack}>
-                  <View style={styles.progressFill} />
+                <View style={styles.clearCacheActions}>
+                  <Pressable
+                    onPress={() => setClearCacheModal(false)}
+                    style={[
+                      styles.cancelCacheButton,
+                      { backgroundColor: themeBg, borderColor: themeBorder },
+                    ]}
+                  >
+                    <Text style={[styles.cancelCacheText, { color: themeText }]}>Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      setClearCacheModal(false);
+                      Alert.alert(
+                        'Cache cleared',
+                        'Temporary cache clearing is a visual demo in this version. Your medicine records were not changed.',
+                      );
+                    }}
+                    style={[styles.confirmCacheButton, { backgroundColor: colors.statusDanger }]}
+                  >
+                    <Text style={styles.confirmCacheText}>Clear</Text>
+                  </Pressable>
                 </View>
-                <Text style={styles.progressPercent}>65%</Text>
-              </>
-            ) : (
-              <>
-                <View style={styles.syncModalIcon}>
-                  <Ionicons name="cloud-outline" size={24} color="#4B8075" />
-                </View>
-                <Text style={styles.syncModalTitle}>Sync Complete</Text>
-                <Text style={styles.syncModalDescription}>All your data is backed up. Last synced: {lastSynced}</Text>
-                <Pressable onPress={() => setSyncModal('closed')} style={styles.doneButton}>
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </Pressable>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
-      <Modal
-        visible={clearCacheModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setClearCacheModal(false)}
-      >
-        <View style={styles.syncModalBackdrop}>
-          <View style={styles.clearCacheModalCard}>
-            <View style={styles.clearCacheModalIcon}>
-              <Ionicons name="trash-outline" size={22} color="#D84A43" />
+              </View>
             </View>
-            <Text style={styles.clearCacheModalTitle}>Clear cache?</Text>
-            <Text style={styles.clearCacheModalDescription}>Temporary files and scan images will be removed. Your medicines and reminders will not be affected.</Text>
-            <View style={styles.clearCacheActions}>
-              <Pressable onPress={() => setClearCacheModal(false)} style={styles.cancelCacheButton}>
-                <Text style={styles.cancelCacheText}>Cancel</Text>
-              </Pressable>
-              <Pressable onPress={() => { setClearCacheModal(false); Alert.alert('Cache cleared', 'Temporary cache clearing is a visual demo in this version. Your medicine records were not changed.'); }} style={styles.confirmCacheButton}>
-                <Text style={styles.confirmCacheText}>Clear</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </>;
-    if (screen === 'Privacy') return <>
-      <Header title="Privacy" />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <SectionTitle>Data &amp; Permissions</SectionTitle>
-        <View style={styles.group}>
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleTitle}>Camera Access</Text>
-            <Switch value={cameraEnabled} onValueChange={toggleCamera} trackColor={{ false: '#D8DEDD', true: LIGHT_GREEN }} thumbColor={cameraEnabled ? GREEN : '#F7F9F9'} />
-          </View>
-        </View>
-      </ScrollView>
-    </>;
-    if (screen === 'FAQs') {
-      const filteredFaqs = FAQS.filter(item =>
-        item.question.toLowerCase().includes(faqSearch.trim().toLowerCase()) ||
-        item.answer.toLowerCase().includes(faqSearch.trim().toLowerCase())
+          </Modal>
+        </>
       );
-      return <>
-        <Header title="FAQs" />
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={styles.searchBox}>
-            <Ionicons name="search-outline" size={19} color="#64847D" />
-            <TextInput
-              value={faqSearch}
-              onChangeText={setFaqSearch}
-              placeholder="Search questions..."
-              placeholderTextColor="#879590"
-              style={styles.searchInput}
-              accessibilityLabel="Search frequently asked questions"
-            />
-            {faqSearch.length > 0 && (
-              <Pressable onPress={() => setFaqSearch('')} accessibilityLabel="Clear search">
-                <Ionicons name="close-circle" size={19} color="#64847D" />
-              </Pressable>
-            )}
-          </View>
-          {filteredFaqs.length === 0 ? (
-            <View style={styles.previewCard}><Text style={styles.faqAnswer}>No matching questions. Try a different search.</Text></View>
-          ) : filteredFaqs.map(item => {
-            const expanded = openFaq === item.question;
-            return (
-              <Pressable key={item.question} onPress={() => setOpenFaq(expanded ? null : item.question)} style={styles.faqCard} accessibilityRole="button">
-                <View style={styles.faqTitleRow}>
-                  <Text style={[styles.rowTitle, { flex: 1 }]}>{item.question}</Text>
-                  <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={GREEN} />
-                </View>
-                {expanded && item.answer.length > 0 && <Text style={styles.faqAnswer}>{item.answer}</Text>}
-              </Pressable>
-            );
-          })}
-          <Text style={styles.faqHelp}>Still need help? Email us at support@mediscan.app</Text>
-        </ScrollView>
-      </>;
     }
-    if (screen === 'About MediScan') return <>
-      <Header title="About MediScan" />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.aboutContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.aboutBrand}>
-          <Image source={require('../../assets/images/logo/mediscan-icon.png')} style={styles.aboutLogo} resizeMode="contain" />
-          <Text style={styles.aboutName}>MediScan</Text>
-          <Text style={styles.aboutVersion}>Version 1.0.0 (Build 42)</Text>
-        </View>
-        <Text style={styles.aboutSectionTitle}>Legal</Text>
-        <View style={styles.aboutLinks}>
-          <Pressable onPress={() => openScreen('Terms of Service')} style={styles.aboutLink}>
-            <Text style={styles.termsOfServiceLinkText}>Terms of Service</Text><Ionicons name="chevron-forward" size={19} color="#315F56" />
-          </Pressable>
-          <Pressable onPress={() => openScreen('Privacy Policy')} style={styles.aboutLink}>
-            <Text style={styles.aboutLinkText}>Privacy Policy</Text><Ionicons name="chevron-forward" size={19} color="#315F56" />
-          </Pressable>
-          <Pressable onPress={() => openScreen('Open Source Licenses')} style={styles.aboutLink}>
-            <Text style={styles.aboutLinkText}>Open Source Licenses</Text><Ionicons name="chevron-forward" size={19} color="#315F56" />
-          </Pressable>
-        </View>
-      </ScrollView>
-    </>;
-    if (screen === 'Privacy Policy') return <>
-      <Header title="Privacy Policy" />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.legalPageContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.lastUpdated}>Last updated: October 5, 2026</Text>
-        <Text style={styles.legalHeading}>Information We Collect</Text>
-        <Text style={styles.legalBody}>Your Google account name and email, family profiles you create, medicines you scan or enter, and reminder settings.</Text>
-        <Text style={styles.legalHeading}>Camera Access</Text>
-        <Text style={styles.legalBody}>The camera is used only to scan medicine labels. Photos are processed to read text and are not shared.</Text>
-        <Text style={styles.legalHeading}>How We Use Your Data</Text>
-        <Text style={styles.legalBody}>To show your medicine list, send expiration alerts and reminders, and sync your data across devices.</Text>
-        <Text style={styles.legalHeading}>Data Storage &amp; Sync</Text>
-        <Text style={styles.legalBody}>Your data is stored on your device and backed up to our servers when you tap Sync.</Text>
-        <Text style={styles.legalHeading}>Your Choices</Text>
-        <Text style={styles.legalBody}>You can turn off camera access in Settings &gt; Privacy or remove profiles at any time.</Text>
-      </ScrollView>
-    </>;
-    if (screen === 'Terms of Service') return <>
-      <Header title="Terms of Service" />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.legalPageContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.lastUpdated}>Last updated: October 5, 2026</Text>
-        <Text style={styles.legalHeading}>1. Acceptance of Terms</Text>
-        <Text style={styles.legalBody}>By creating an account or using MediScan, you agree to these Terms. If you do not agree, please do not use the app.</Text>
-        <Text style={styles.legalHeading}>2. Use of the App</Text>
-        <Text style={styles.legalBody}>MediScan helps you organize medicines, track expiration dates and set reminders for your family. It is intended for personal, non-commercial use.</Text>
-        <Text style={styles.legalHeading}>3. Your Account</Text>
-        <Text style={styles.legalBody}>You sign in using your Google account. You are responsible for keeping your device and account secure.</Text>
-        <Text style={styles.legalHeading}>4. Not Medical Advice</Text>
-        <Text style={styles.legalBody}>Scan results and reminders are for organization only and do not replace advice from a doctor or pharmacist. Always verify medication details on the package.</Text>
-        <Text style={styles.legalHeading}>5. Changes to These Terms</Text>
-        <Text style={styles.legalBody}>We may update these Terms from time to time. Continued use of MediScan means you accept the updated Terms.</Text>
-      </ScrollView>
-    </>;
+
+    if (screen === 'Privacy') {
+      return (
+        <>
+          <Header title="Privacy" />
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <SectionTitle>Data &amp; Permissions</SectionTitle>
+            <View style={[styles.group, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+              <ToggleRow title="Camera Access" value={cameraEnabled} onValueChange={toggleCamera} isLast />
+            </View>
+          </ScrollView>
+        </>
+      );
+    }
+
+    if (screen === 'FAQs') {
+      const filteredFaqs = FAQS.filter(
+        (item) =>
+          item.question.toLowerCase().includes(faqSearch.trim().toLowerCase()) ||
+          item.answer.toLowerCase().includes(faqSearch.trim().toLowerCase()),
+      );
+      return (
+        <>
+          <Header title="FAQs" />
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            <View style={[styles.searchBox, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+              <Ionicons name="search-outline" size={19} color={themeMuted} />
+              <TextInput
+                value={faqSearch}
+                onChangeText={setFaqSearch}
+                placeholder="Search questions..."
+                placeholderTextColor={themeMuted}
+                style={[styles.searchInput, { color: themeText }]}
+                accessibilityLabel="Search frequently asked questions"
+              />
+              {faqSearch.length > 0 && (
+                <Pressable onPress={() => setFaqSearch('')} accessibilityLabel="Clear search">
+                  <Ionicons name="close-circle" size={19} color={themeMuted} />
+                </Pressable>
+              )}
+            </View>
+            {filteredFaqs.length === 0 ? (
+              <View style={[styles.previewCard, { backgroundColor: themeCard, borderColor: themeBorder }]}>
+                <Text style={[styles.faqAnswer, { color: themeMuted, marginTop: 0 }]}>
+                  No matching questions. Try a different search.
+                </Text>
+              </View>
+            ) : (
+              filteredFaqs.map((item) => {
+                const expanded = openFaq === item.question;
+                return (
+                  <Pressable
+                    key={item.question}
+                    onPress={() => setOpenFaq(expanded ? null : item.question)}
+                    style={[styles.faqCard, { backgroundColor: themeCard, borderColor: themeBorder }]}
+                    accessibilityRole="button"
+                  >
+                    <View style={styles.faqTitleRow}>
+                      <Text style={[styles.rowTitle, { flex: 1, color: themeText }]}>{item.question}</Text>
+                      <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={themeGreen} />
+                    </View>
+                    {expanded && item.answer.length > 0 && (
+                      <Text style={[styles.faqAnswer, { color: themeMuted }]}>{item.answer}</Text>
+                    )}
+                  </Pressable>
+                );
+              })
+            )}
+            <Text style={[styles.faqHelp, { color: themeMuted }]}>
+              Still need help? Email us at support@mediscan.app
+            </Text>
+          </ScrollView>
+        </>
+      );
+    }
+
+    if (screen === 'About MediScan') {
+      return (
+        <>
+          <Header title="About MediScan" />
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.aboutContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.aboutBrand}>
+              <Image
+                source={require('../../assets/images/logo/mediscan-icon.png')}
+                style={styles.aboutLogo}
+                resizeMode="contain"
+              />
+              <Text style={[styles.aboutName, { color: themeText }]}>MediScan</Text>
+              <Text style={[styles.aboutVersion, { color: themeMuted }]}>Version 1.0.0 (Build 42)</Text>
+            </View>
+            <Text style={[styles.aboutSectionTitle, { color: themeText }]}>Legal</Text>
+            <View style={styles.aboutLinks}>
+              <Pressable
+                onPress={() => openScreen('Terms of Service')}
+                style={[styles.aboutLink, { backgroundColor: themeCard, borderColor: themeBorder }]}
+              >
+                <Text style={[styles.termsOfServiceLinkText, { color: themeText }]}>Terms of Service</Text>
+                <Ionicons name="chevron-forward" size={19} color={themeMuted} />
+              </Pressable>
+              <Pressable
+                onPress={() => openScreen('Privacy Policy')}
+                style={[styles.aboutLink, { backgroundColor: themeCard, borderColor: themeBorder }]}
+              >
+                <Text style={[styles.aboutLinkText, { color: themeText }]}>Privacy Policy</Text>
+                <Ionicons name="chevron-forward" size={19} color={themeMuted} />
+              </Pressable>
+              <Pressable
+                onPress={() => openScreen('Open Source Licenses')}
+                style={[styles.aboutLink, { backgroundColor: themeCard, borderColor: themeBorder }]}
+              >
+                <Text style={[styles.aboutLinkText, { color: themeText }]}>Open Source Licenses</Text>
+                <Ionicons name="chevron-forward" size={19} color={themeMuted} />
+              </Pressable>
+            </View>
+          </ScrollView>
+        </>
+      );
+    }
+
+    if (screen === 'Privacy Policy') {
+      return (
+        <>
+          <Header title="Privacy Policy" />
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.legalPageContent} showsVerticalScrollIndicator={false}>
+            <Text style={[styles.lastUpdated, { color: themeMuted }]}>Last updated: October 5, 2026</Text>
+            <Text style={[styles.legalHeading, { color: themeText }]}>Information We Collect</Text>
+            <Text style={[styles.legalBody, { color: themeMuted }]}>
+              Your Google account name and email, family profiles you create, medicines you scan or enter, and reminder settings.
+            </Text>
+            <Text style={[styles.legalHeading, { color: themeText }]}>Camera Access</Text>
+            <Text style={[styles.legalBody, { color: themeMuted }]}>
+              The camera is used only to scan medicine labels. Photos are processed to read text and are not shared.
+            </Text>
+            <Text style={[styles.legalHeading, { color: themeText }]}>How We Use Your Data</Text>
+            <Text style={[styles.legalBody, { color: themeMuted }]}>
+              To show your medicine list, send expiration alerts and reminders, and sync your data across devices.
+            </Text>
+            <Text style={[styles.legalHeading, { color: themeText }]}>Data Storage &amp; Sync</Text>
+            <Text style={[styles.legalBody, { color: themeMuted }]}>
+              Your data is stored on your device and backed up to our servers when you tap Sync.
+            </Text>
+            <Text style={[styles.legalHeading, { color: themeText }]}>Your Choices</Text>
+            <Text style={[styles.legalBody, { color: themeMuted }]}>
+              You can turn off camera access in Settings &gt; Privacy or remove profiles at any time.
+            </Text>
+          </ScrollView>
+        </>
+      );
+    }
+
+    if (screen === 'Terms of Service') {
+      return (
+        <>
+          <Header title="Terms of Service" />
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.legalPageContent} showsVerticalScrollIndicator={false}>
+            <Text style={[styles.lastUpdated, { color: themeMuted }]}>Last updated: October 5, 2026</Text>
+            <Text style={[styles.legalHeading, { color: themeText }]}>1. Acceptance of Terms</Text>
+            <Text style={[styles.legalBody, { color: themeMuted }]}>
+              By creating an account or using MediScan, you agree to these Terms. If you do not agree, please do not use the app.
+            </Text>
+            <Text style={[styles.legalHeading, { color: themeText }]}>2. Use of the App</Text>
+            <Text style={[styles.legalBody, { color: themeMuted }]}>
+              MediScan helps you organize medicines, track expiration dates and set reminders for your family. It is intended for personal, non-commercial use.
+            </Text>
+            <Text style={[styles.legalHeading, { color: themeText }]}>3. Your Account</Text>
+            <Text style={[styles.legalBody, { color: themeMuted }]}>
+              You sign in using your Google account. You are responsible for keeping your device and account secure.
+            </Text>
+            <Text style={[styles.legalHeading, { color: themeText }]}>4. Not Medical Advice</Text>
+            <Text style={[styles.legalBody, { color: themeMuted }]}>
+              Scan results and reminders are for organization only and do not replace advice from a doctor or pharmacist. Always verify medication details on the package.
+            </Text>
+            <Text style={[styles.legalHeading, { color: themeText }]}>5. Changes to These Terms</Text>
+            <Text style={[styles.legalBody, { color: themeMuted }]}>
+              We may update these Terms from time to time. Continued use of MediScan means you accept the updated Terms.
+            </Text>
+          </ScrollView>
+        </>
+      );
+    }
+
     if (screen === 'Open Source Licenses') {
       const licenses = [
         { title: 'Text Recognition / OCR Library', subtitle: 'Apache License 2.0' },
@@ -594,40 +762,49 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
         { title: 'Date & Time Utilities', subtitle: 'MIT License' },
         { title: 'Icon Set', subtitle: 'ISC License' },
       ];
-      return <>
-        <Header title="Open Source Licenses" />
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.licensePageContent} showsVerticalScrollIndicator={false}>
-          <Text style={styles.licenseIntro}>MediScan is built with the help of these open source projects.</Text>
-          {licenses.map(item => {
-            return <View key={item.title} style={styles.licenseCard}>
-              <View style={styles.licenseRow}>
-                <View style={styles.licenseLabels}>
-                  <Text style={styles.licenseTitle}>{item.title}</Text>
-                  <Text style={styles.licenseSubtitle}>{item.subtitle}</Text>
+      return (
+        <>
+          <Header title="Open Source Licenses" />
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.licensePageContent} showsVerticalScrollIndicator={false}>
+            <Text style={[styles.licenseIntro, { color: themeMuted }]}>
+              MediScan is built with the help of these open source projects.
+            </Text>
+            {licenses.map((item) => (
+              <View
+                key={item.title}
+                style={[styles.licenseCard, { backgroundColor: themeCard, borderColor: themeBorder }]}
+              >
+                <View style={styles.licenseRow}>
+                  <View style={styles.licenseLabels}>
+                    <Text style={[styles.licenseTitle, { color: themeText }]}>{item.title}</Text>
+                    <Text style={[styles.licenseSubtitle, { color: themeMuted }]}>{item.subtitle}</Text>
+                  </View>
+                  <Ionicons name="chevron-down" size={17} color={themeMuted} />
                 </View>
-                <Ionicons name="chevron-down" size={17} color="#71827E" />
               </View>
-            </View>;
-          })}
-        </ScrollView>
-      </>;
+            ))}
+          </ScrollView>
+        </>
+      );
     }
-    return <>
-      <Header title="Terms of Service" />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.legalPageContent}>
-        <Text style={styles.lastUpdated}>Last updated: October 5, 2026</Text>
-        <Text style={styles.legalHeading}>4. Not Medical Advice</Text>
-        <Text style={styles.legalBody}>Scan results and reminders are for organization only and do not replace advice from a doctor or pharmacist. Always verify medication details on the package.</Text>
-      </ScrollView>
-    </>;
+
+    return (
+      <>
+        <Header title="Terms of Service" />
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.legalPageContent}>
+          <Text style={[styles.lastUpdated, { color: themeMuted }]}>Last updated: October 5, 2026</Text>
+          <Text style={[styles.legalHeading, { color: themeText }]}>4. Not Medical Advice</Text>
+          <Text style={[styles.legalBody, { color: themeMuted }]}>
+            Scan results and reminders are for organization only and do not replace advice from a doctor or pharmacist. Always verify medication details on the package.
+          </Text>
+        </ScrollView>
+      </>
+    );
   };
 
-
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeBg }]}>
       <View style={styles.main}>
-        {/* Called as functions (not <SettingsScreen />) so React doesn't treat them as
-            brand-new components on every render — that reset the FAQ search box and scroll. */}
         {screen === 'Settings' && SettingsScreen()}
         {screen === 'Display' && DisplayScreen()}
         {screen === 'Language' && LanguageScreen()}
@@ -638,29 +815,59 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   );
 }
 
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+  container: { flex: 1 },
   main: { flex: 1, minHeight: 0 },
-  headerSafe: { backgroundColor: BG },
-  header: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: BORDER, backgroundColor: BG },
+  headerSafe: {},
+  header: {
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    borderBottomWidth: 1,
+  },
   backButton: { width: 36, height: 44, alignItems: 'flex-start', justifyContent: 'center' },
-  headerTitle: { fontSize: 21, fontWeight: '700', color: TEXT },
+  headerTitle: { fontSize: 21, fontWeight: '700' },
   scroll: { flex: 1 },
   content: { padding: 20, paddingBottom: 30 },
-  profileCard: { minHeight: 82, backgroundColor: 'white', borderRadius: 13, borderWidth: 1, borderColor: '#EDF0F0', flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 22, gap: 12, elevation: 1 },
-  profileName: { fontSize: 19, fontWeight: '800', color: TEXT },
-  email: { color: '#697B79', fontSize: 10, marginTop: 4 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: TEXT, marginBottom: 9, marginTop: 5 },
-  displaySectionTitle: { fontSize: 17, fontWeight: '700', color: TEXT, marginBottom: 9, marginTop: 5, alignSelf: 'stretch', textAlign: 'left' },
-  group: { backgroundColor: 'white', borderWidth: 1, borderColor: BORDER, borderRadius: 12, marginBottom: 19, overflow: 'hidden' },
-  settingRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#EDF0F0' },
-  rowTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: TEXT },
-  rowValue: { fontSize: 12, color: LIGHT_GREEN },
-  pressed: { backgroundColor: '#EDF4F1' },
+  profileCard: {
+    minHeight: 82,
+    borderRadius: 13,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    marginBottom: 22,
+    gap: 12,
+    elevation: 1,
+  },
+  profileName: { fontSize: 19, fontWeight: '800' },
+  email: { fontSize: 10, marginTop: 4 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 9, marginTop: 5 },
+  displaySectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 9, marginTop: 5, alignSelf: 'stretch', textAlign: 'left' },
+  group: { borderWidth: 1, borderRadius: 12, marginBottom: 19, overflow: 'hidden' },
+  settingRow: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+  },
+  rowTitle: { flex: 1, fontSize: 14, fontWeight: '600' },
+  rowValue: { fontSize: 12 },
   appearanceRow: { flexDirection: 'row', gap: 10, marginBottom: 30 },
-  appearanceCard: { flex: 1, height: 82, backgroundColor: 'white', borderWidth: 1, borderColor: '#E5E9E8', borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 7, elevation: 1 },
-  appearanceSelected: { backgroundColor: SELECTED_LIGHT, borderColor: SELECTED_LIGHT },
+  appearanceCard: {
+    flex: 1,
+    height: 82,
+    borderWidth: 1,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    elevation: 1,
+  },
   appearanceIcon: { minHeight: 23, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   systemIcon: { width: 30, height: 21, position: 'relative', alignItems: 'center', justifyContent: 'center' },
   desktopMonitor: { position: 'absolute', width: 23, height: 15, borderWidth: 1, borderRadius: 2, left: 9, top: 3 },
@@ -671,81 +878,173 @@ const styles = StyleSheet.create({
   appearanceRowIcon: { width: 21, height: 29, position: 'relative', marginRight: 0, justifyContent: 'center' },
   appearanceMoonGlyph: { position: 'absolute', left: -1, top: 3, zIndex: 3 },
   appearanceSunGraphic: { position: 'absolute', left: 8, top: -4, width: 15, height: 20, zIndex: 1 },
-  appearanceSunCircle: { position: 'absolute', left: 2, top: 8, width: 9, height: 9, borderWidth: 1.3, borderColor: '#64847D', borderRadius: 4.5 },
-  sunRayTop: { position: 'absolute', left: 6, top: 1, width: 1.2, height: 2.5, backgroundColor: '#64847D', borderRadius: 1 },
-  sunRayUpperRight: { position: 'absolute', left: 11, top: 4, width: 1.2, height: 2.5, backgroundColor: '#64847D', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  sunRayRight: { position: 'absolute', left: 11, top: 12, width: 2.5, height: 1.2, backgroundColor: '#64847D', borderRadius: 1 },
+  appearanceSunCircle: { position: 'absolute', left: 2, top: 8, width: 9, height: 9, borderWidth: 1.3, borderRadius: 4.5 },
+  sunRayTop: { position: 'absolute', left: 6, top: 1, width: 1.2, height: 2.5, borderRadius: 1 },
+  sunRayUpperRight: { position: 'absolute', left: 11, top: 4, width: 1.2, height: 2.5, borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  sunRayRight: { position: 'absolute', left: 11, top: 12, width: 2.5, height: 1.2, borderRadius: 1 },
   syncContent: { paddingHorizontal: 18, paddingTop: 20, paddingBottom: 30 },
-  syncInfoCard: { minHeight: 54, borderWidth: 1, borderColor: '#DDE2E1', borderRadius: 9, backgroundColor: '#FFFFFF', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  syncSmallLabel: { color: '#526662', fontSize: 14, fontWeight: '600' },
-  syncTimestamp: { color: LIGHT_GREEN, fontSize: 14, fontWeight: '500' },
-  syncNowButton: { minHeight: 40, borderRadius: 7, backgroundColor: GREEN, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 19 },
+  syncInfoCard: {
+    minHeight: 54,
+    borderWidth: 1,
+    borderRadius: 9,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  syncSmallLabel: { fontSize: 14, fontWeight: '600' },
+  syncTimestamp: { fontSize: 14, fontWeight: '500' },
+  syncNowButton: {
+    minHeight: 40,
+    borderRadius: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 19,
+  },
   syncNowPressed: { opacity: 0.82 },
-  syncNowText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  clearCacheButton: { minHeight: 48, borderWidth: 1, borderColor: '#DDE2E1', borderRadius: 9, backgroundColor: '#FFFFFF', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  clearCachePressed: { backgroundColor: '#F4F7F6' },
-  clearCacheText: { color: '#C85C5C', fontSize: 14, fontWeight: '600' },
-  syncModalBackdrop: { flex: 1, backgroundColor: 'rgba(99, 117, 116, 0.68)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 35 },
-  syncModalCard: { width: '100%', maxWidth: 300, backgroundColor: '#FFFFFF', borderRadius: 13, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 16, alignItems: 'center', elevation: 8 },
-  syncModalIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#DDF1E1', alignItems: 'center', justifyContent: 'center', marginBottom: 9 },
-  syncModalTitle: { color: TEXT, fontSize: 19, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
-  syncModalDescription: { color: '#6B7C78', fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 12 },
-  progressTrack: { width: '100%', height: 4, backgroundColor: '#E4EAE7', borderRadius: 3, overflow: 'hidden', marginTop: 1 },
-  progressFill: { width: '65%', height: '100%', backgroundColor: '#3FA58D', borderRadius: 3 },
-  progressPercent: { color: '#3FA58D', fontSize: 11, marginTop: 8 },
-  doneButton: { width: '100%', minHeight: 34, borderRadius: 7, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  doneButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  appearanceText: { fontSize: 14, color: '#315B53', fontWeight: '500' },
+  syncNowText: { fontSize: 15, fontWeight: '700' },
+  clearCacheButton: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: 9,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  clearCacheText: { fontSize: 14, fontWeight: '600' },
+  syncModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 31, 32, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 35,
+  },
+  syncModalCard: {
+    width: '100%',
+    maxWidth: 300,
+    borderWidth: 1,
+    borderRadius: 13,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
+    alignItems: 'center',
+    elevation: 8,
+  },
+  syncModalIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 9 },
+  syncModalTitle: { fontSize: 19, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
+  syncModalDescription: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 12 },
+  progressTrack: { width: '100%', height: 4, borderRadius: 3, overflow: 'hidden', marginTop: 1 },
+  progressFill: { width: '65%', height: '100%', borderRadius: 3 },
+  progressPercent: { fontSize: 11, marginTop: 8 },
+  doneButton: { width: '100%', minHeight: 34, borderRadius: 7, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  doneButtonText: { fontSize: 13, fontWeight: '700' },
+  appearanceText: { fontSize: 14, fontWeight: '500' },
   selectedText: { color: 'white', fontWeight: '600' },
-  sliderCard: { minHeight: 90, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, backgroundColor: 'white', borderRadius: 14, borderWidth: 1, borderColor: '#E3E7E6', marginBottom: 28, elevation: 1 },
-  smallA: { color: GREEN, fontSize: 18, fontWeight: '600' },
-  largeA: { color: GREEN, fontSize: 28, fontWeight: '600' },
+  sliderCard: {
+    minHeight: 90,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 28,
+    elevation: 1,
+  },
+  smallA: { fontSize: 18, fontWeight: '600' },
+  largeA: { fontSize: 28, fontWeight: '600' },
   sliderWrap: { flex: 1, height: 54, justifyContent: 'center', marginHorizontal: 10 },
   slider: { width: '100%', height: 44, zIndex: 2 },
   sliderTicks: { position: 'absolute', left: 12, right: 12, top: 22, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 1 },
-  sliderTick: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#B8BFBD' },
-  sliderTickActive: { backgroundColor: GREEN, width: 9, height: 9 },
-  previewCard: { minHeight: 100, padding: 16, backgroundColor: 'white', borderWidth: 1, borderColor: '#DDE2E1', borderRadius: 12 },
-  previewTitle: { fontWeight: '700', color: TEXT, marginBottom: 8 },
-  previewDescription: { color: '#667875', lineHeight: 20 },
-  languageCard: { minHeight: 48, backgroundColor: 'white', borderWidth: 1, borderColor: '#DDE2E1', borderRadius: 10, paddingHorizontal: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  languageText: { color: TEXT, fontSize: 14, fontWeight: '600' },
-  toggleRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 13, borderBottomWidth: 1, borderBottomColor: '#EDF0F0' },
-  toggleTitle: { color: TEXT, fontSize: 15, fontWeight: '600', flex: 1 },
-  searchBox: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: BORDER, borderRadius: 10, backgroundColor: 'white', marginBottom: 12 },
-  searchInput: { flex: 1, minHeight: 42, color: TEXT, fontSize: 15 },
-  faqCard: { backgroundColor: 'white', borderWidth: 1, borderColor: BORDER, borderRadius: 10, padding: 13, marginBottom: 9 },
+  sliderTick: { width: 8, height: 8, borderRadius: 4 },
+  sliderTickActive: { width: 9, height: 9 },
+  previewCard: { minHeight: 100, padding: 16, borderWidth: 1, borderRadius: 12 },
+  previewTitle: { fontWeight: '700', marginBottom: 8 },
+  previewDescription: { lineHeight: 20 },
+  languageCard: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  languageText: { fontSize: 14, fontWeight: '600' },
+  toggleRow: {
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 13,
+    borderBottomWidth: 1,
+  },
+  toggleTitle: { fontSize: 15, fontWeight: '600', flex: 1 },
+  searchBox: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  searchInput: { flex: 1, minHeight: 42, fontSize: 15 },
+  faqCard: { borderWidth: 1, borderRadius: 10, padding: 13, marginBottom: 9 },
   faqTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  faqAnswer: { color: '#526662', fontSize: 15, lineHeight: 23, marginTop: 10 },
-  faqHelp: { color: '#526662', fontSize: 12, lineHeight: 18, textAlign: 'center', alignSelf: 'stretch', marginTop: 8, marginBottom: 10 },
+  faqAnswer: { fontSize: 15, lineHeight: 23, marginTop: 10 },
+  faqHelp: { fontSize: 12, lineHeight: 18, textAlign: 'center', alignSelf: 'stretch', marginTop: 8, marginBottom: 10 },
   aboutContent: { width: '100%', paddingHorizontal: 22, paddingTop: 16, paddingBottom: 28 },
   aboutBrand: { alignItems: 'center', marginBottom: 20 },
   aboutLogo: { width: 76, height: 76, borderRadius: 38, marginBottom: 2 },
-  aboutName: { color: TEXT, fontSize: 17, fontWeight: '700', marginTop: 1 },
-  aboutVersion: { color: LIGHT_GREEN, fontSize: 12, marginTop: 5 },
-  aboutSectionTitle: { color: TEXT, fontSize: 17, fontWeight: '700', marginTop: 0, marginBottom: 12 },
+  aboutName: { fontSize: 17, fontWeight: '700', marginTop: 1 },
+  aboutVersion: { fontSize: 12, marginTop: 5 },
+  aboutSectionTitle: { fontSize: 17, fontWeight: '700', marginTop: 0, marginBottom: 12 },
   aboutLinks: { gap: 10 },
-  aboutLink: { minHeight: 56, borderWidth: 1, borderColor: '#D8DEDD', borderRadius: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  aboutLinkText: { color: TEXT, fontSize: 16, fontWeight: '600' },
-  termsOfServiceLinkText: { color: TEXT, fontSize: 14, fontWeight: '600' },
+  aboutLink: {
+    minHeight: 56,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  aboutLinkText: { fontSize: 16, fontWeight: '600' },
+  termsOfServiceLinkText: { fontSize: 14, fontWeight: '600' },
   legalPageContent: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 30 },
-  lastUpdated: { color: '#7C8986', fontSize: 12, lineHeight: 17, marginBottom: 10 },
-  legalHeading: { color: '#243B38', fontSize: 15, lineHeight: 21, fontWeight: '700', marginTop: 2, marginBottom: 6 },
-  legalBody: { color: '#687875', fontSize: 13, lineHeight: 19, marginBottom: 12 },
+  lastUpdated: { fontSize: 12, lineHeight: 17, marginBottom: 10 },
+  legalHeading: { fontSize: 15, lineHeight: 21, fontWeight: '700', marginTop: 2, marginBottom: 6 },
+  legalBody: { fontSize: 13, lineHeight: 19, marginBottom: 12 },
   licensePageContent: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 30 },
-  licenseIntro: { color: '#687875', fontSize: 12, lineHeight: 16, marginBottom: 10 },
-  licenseCard: { minHeight: 48, borderWidth: 1, borderColor: '#DDE2E1', borderRadius: 8, backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 7 },
+  licenseIntro: { fontSize: 12, lineHeight: 16, marginBottom: 10 },
+  licenseCard: { minHeight: 48, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 7 },
   licenseRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   licenseLabels: { flex: 1, paddingRight: 8 },
-  licenseTitle: { color: '#334743', fontSize: 15, lineHeight: 20, fontWeight: '700' },
-  licenseSubtitle: { color: '#7B8986', fontSize: 12, lineHeight: 16, marginTop: 3 },
-  clearCacheModalCard: { width: '100%', maxWidth: 320, backgroundColor: '#FFFFFF', borderRadius: 13, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 14, alignItems: 'center', elevation: 8 },
-  clearCacheModalIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFF0F0', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  clearCacheModalTitle: { color: TEXT, fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
-  clearCacheModalDescription: { color: '#6B7C78', fontSize: 13, lineHeight: 18, textAlign: 'center', marginBottom: 12 },
+  licenseTitle: { fontSize: 15, lineHeight: 20, fontWeight: '700' },
+  licenseSubtitle: { fontSize: 12, lineHeight: 16, marginTop: 3 },
+  clearCacheModalCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderWidth: 1,
+    borderRadius: 13,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 14,
+    alignItems: 'center',
+    elevation: 8,
+  },
+  clearCacheModalIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  clearCacheModalTitle: { fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
+  clearCacheModalDescription: { fontSize: 13, lineHeight: 18, textAlign: 'center', marginBottom: 12 },
   clearCacheActions: { width: '100%', flexDirection: 'row', gap: 8 },
-  cancelCacheButton: { flex: 1, minHeight: 36, borderWidth: 1, borderColor: '#AAB9B5', borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-  cancelCacheText: { color: '#35534D', fontSize: 13, fontWeight: '700' },
-  confirmCacheButton: { flex: 1, minHeight: 36, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#D9342B' },
+  cancelCacheButton: { flex: 1, minHeight: 36, borderWidth: 1, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  cancelCacheText: { fontSize: 13, fontWeight: '700' },
+  confirmCacheButton: { flex: 1, minHeight: 36, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   confirmCacheText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
 });

@@ -11,18 +11,15 @@ import ProfileAvatar from '@/components/ProfileAvatar';
 import ReminderDialog from '@/components/ReminderDialog';
 import { MockAuth } from '@/mock/mockAuth';
 import { maskDate, toApiDate } from '@/lib/validation';
-import { Colors, Radius, Spacing } from '@/constants/display';
+import { DarkColors, Radius, Spacing } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
-// Two uses:
-//  - "Create Profile"     -> first profile of a new account (no profiles yet). After saving -> Home.
-//  - "Add Family Member"  -> from the "+ Add" tile (?mode=add). After saving -> back to Choose Profile.
-// Fields: avatar, Full Name *, Nickname / Display Name *, Date of Birth * (MM/DD/YYYY). All required.
-// CHANGES: wala nang Relationship (Display Name na lagi), wala ring Allergies (wala sa backend).
 export default function CreateProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useDisplayTheme();
+  const isDark = colors.background === DarkColors.background;
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  // First profile of a new account? (frozen on open so the title doesn't flip after saving)
   const [isFirst] = useState(() => mode !== 'add' && MockAuth.getProfiles().length === 0);
 
   const [icon, setIcon] = useState(3);
@@ -32,7 +29,6 @@ export default function CreateProfileScreen() {
   const [dob, setDob] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Required-field reminder popup + which fields to outline in red
   const [missing, setMissing] = useState<string[]>([]);
   const [badDate, setBadDate] = useState(false);
   const [reminder, setReminder] = useState<{ title: string; message: string; items?: string[] } | null>(null);
@@ -40,7 +36,6 @@ export default function CreateProfileScreen() {
   const goBack = () => {
     if (router.canGoBack()) router.back();
     else if (isFirst) {
-      // nothing behind the first profile screen -> back to Log In
       MockAuth.logout();
       router.replace('/login');
     } else router.replace('/choose-profile');
@@ -51,7 +46,6 @@ export default function CreateProfileScreen() {
     const name = fullName.trim();
     const nickname = displayName.trim();
 
-    // 1) Every field is required
     const empty: string[] = [];
     if (!name) empty.push('Full Name');
     if (!nickname) empty.push('Nickname / Display Name');
@@ -66,7 +60,6 @@ export default function CreateProfileScreen() {
       });
     }
 
-    // 2) Date of Birth must be a real past date in MM/DD/YYYY
     const birthdate = toApiDate(dob);
     setBadDate(!birthdate);
     if (!birthdate) {
@@ -94,42 +87,60 @@ export default function CreateProfileScreen() {
 
     if (isFirst) {
       MockAuth.selectProfile(res.data);
-      // Use the tabs group explicitly so Expo Router does not fall through a bare "/" guard.
       router.replace('/(tabs)');
     } else {
-      goBack(); // back to Choose your profile
+      goBack();
     }
   };
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <StatusBar style="dark" />
+    <KeyboardAvoidingView
+      style={[styles.screen, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + Spacing.sm,
+            borderBottomColor: colors.border,
+            backgroundColor: colors.surface,
+          },
+        ]}
+      >
         <Pressable onPress={goBack} hitSlop={12} accessibilityLabel="Back">
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>{isFirst ? 'Create Profile' : 'Add Family Member'}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {isFirst ? 'Create Profile' : 'Add Family Member'}
+        </Text>
       </View>
 
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
         {isFirst ? (
           <>
-            <Text style={styles.title}>Let&apos;s set up your profile</Text>
-            <Text style={styles.subtitle}>This will be the first profile on MediScan. You can add family members later.</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Let&apos;s set up your profile</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+              This will be the first profile on MediScan. You can add family members later.
+            </Text>
           </>
         ) : null}
 
-        {/* Avatar */}
         <Pressable style={styles.avatarWrap} onPress={() => setPickerOpen(true)} accessibilityLabel="Choose avatar">
           <View>
             <ProfileAvatar icon={icon} size={96} />
-            <View style={styles.editBadge}>
-              <Ionicons name="pencil" size={14} color="#fff" />
+            <View
+              style={[
+                styles.editBadge,
+                { backgroundColor: colors.primary, borderColor: colors.surface },
+              ]}
+            >
+              <Ionicons name="pencil" size={14} color={colors.onAction} />
             </View>
           </View>
-          <Text style={styles.avatarLabel}>Choose avatar</Text>
+          <Text style={[styles.avatarLabel, { color: colors.success }]}>Choose avatar</Text>
         </Pressable>
 
         <FormError message={error} />
@@ -177,16 +188,22 @@ export default function CreateProfileScreen() {
 
         <View style={{ flex: 1 }} />
         <Pressable
-          style={[styles.primaryBtn, { marginBottom: insets.bottom + Spacing.md }, loading && styles.disabled]}
+          style={[
+            styles.primaryBtn,
+            { backgroundColor: colors.primary, marginBottom: insets.bottom + Spacing.md },
+            loading && styles.disabled,
+          ]}
           onPress={onSave}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.onAction} />
           ) : (
             <>
-              <Ionicons name="checkmark" size={20} color="#fff" />
-              <Text style={styles.primaryText}>{isFirst ? 'Create Profile' : 'Save Family Member'}</Text>
+              <Ionicons name="checkmark" size={20} color={colors.onAction} />
+              <Text style={[styles.primaryText, { color: colors.onAction }]}>
+                {isFirst ? 'Create Profile' : 'Save Family Member'}
+              </Text>
             </>
           )}
         </Pressable>
@@ -214,27 +231,41 @@ export default function CreateProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+  screen: { flex: 1 },
   header: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    paddingHorizontal: Spacing.lg - 4, paddingBottom: Spacing.md,
-    borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg - 4,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: Colors.text },
+  headerTitle: { fontSize: 22, fontWeight: '800' },
   body: { flexGrow: 1, paddingHorizontal: Spacing.lg - 4, paddingTop: Spacing.lg },
-  title: { fontSize: 20, fontWeight: '800', color: Colors.text },
-  subtitle: { fontSize: 14, lineHeight: 20, color: Colors.textMuted, marginTop: 4 },
+  title: { fontSize: 20, fontWeight: '800' },
+  subtitle: { fontSize: 14, lineHeight: 20, marginTop: 4 },
   avatarWrap: { alignSelf: 'center', alignItems: 'center', marginVertical: Spacing.lg },
   editBadge: {
-    position: 'absolute', right: 0, bottom: 0, width: 30, height: 30, borderRadius: Radius.pill,
-    backgroundColor: Colors.primary, borderWidth: 2, borderColor: Colors.surface,
-    alignItems: 'center', justifyContent: 'center',
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 30,
+    height: 30,
+    borderRadius: Radius.pill,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  avatarLabel: { marginTop: Spacing.sm, color: Colors.success, fontSize: 14, fontWeight: '700' },
+  avatarLabel: { marginTop: Spacing.sm, fontSize: 14, fontWeight: '700' },
   primaryBtn: {
-    flexDirection: 'row', gap: Spacing.sm, height: 50, borderRadius: Radius.sm + 2, backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center', marginTop: Spacing.lg,
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    height: 50,
+    borderRadius: Radius.sm + 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.lg,
   },
   disabled: { opacity: 0.7 },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  primaryText: { fontSize: 16, fontWeight: '700' },
 });

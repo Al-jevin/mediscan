@@ -1,9 +1,9 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { Assets } from '@/constants/assets';
-import { Colors, Type } from '@/constants/display';
+import { Type } from '@/constants/display';
+import { useDisplayTheme } from '@/hooks/useDisplayTheme';
 
-// Here yung Logo sizes and icons
 type Props = {
   size?: number;
   variant?: 'icon' | 'horizontal' | 'vertical';
@@ -11,6 +11,7 @@ type Props = {
 };
 
 export default function Logo({ size = 32, variant, withText = false }: Props) {
+  const { colors } = useDisplayTheme();
   const v = variant ?? (withText ? 'horizontal' : 'icon');
 
   const icon = (
@@ -27,7 +28,7 @@ export default function Logo({ size = 32, variant, withText = false }: Props) {
     return (
       <View style={styles.col}>
         {icon}
-        <Text style={styles.small}>MediScan</Text>
+        <Text style={[styles.small, { color: colors.text }]}>MediScan</Text>
       </View>
     );
   }
@@ -35,7 +36,7 @@ export default function Logo({ size = 32, variant, withText = false }: Props) {
   return (
     <View style={styles.row}>
       {icon}
-      <Text style={styles.text}>MediScan</Text>
+      <Text style={[styles.text, { color: colors.text }]}>MediScan</Text>
     </View>
   );
 }
@@ -43,6 +44,12 @@ export default function Logo({ size = 32, variant, withText = false }: Props) {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   col: { alignItems: 'center', gap: 4 },
-  text: { ...Type.h2, lineHeight: 26, fontWeight: '800', color: Colors.text, includeFontPadding: false, textAlignVertical: 'center' },
-  small: { fontSize: 10, fontWeight: '700', color: Colors.text },
+  text: {
+    ...Type.h2,
+    lineHeight: 26,
+    fontWeight: '800',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  small: { fontSize: 10, fontWeight: '700' },
 });
