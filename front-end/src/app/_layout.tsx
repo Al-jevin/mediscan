@@ -1,5 +1,6 @@
 import '@/services/appSettings';
 import { Stack } from 'expo-router';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppHeader from '@/components/AppHeader';
 import { MenuProvider } from '@/components/MenuContext';
@@ -11,56 +12,58 @@ import { ProfileProvider } from '../context/ProfileContext';
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <MenuProvider>
-        <ProfileProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            {/* Main app (bottom bar + top bar) */}
-            <Stack.Screen name="(tabs)" />
+      <KeyboardProvider>
+        <MenuProvider>
+          <ProfileProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              {/* Main app (bottom bar + top bar) */}
+              <Stack.Screen name="(tabs)" />
 
-            {/* Opened from the hamburger menu (back arrow returns to the menu) */}
-            <Stack.Screen
-              name="profile"
-              options={{ headerShown: true, header: () => <AppHeader title="Profile" back backToMenu /> }}
-            />
+              {/* Opened from the hamburger menu (back arrow returns to the menu) */}
+              <Stack.Screen
+                name="profile"
+                options={{ headerShown: true, header: () => <AppHeader title="Profile" back backToMenu /> }}
+              />
 
-            {/* Full screens with a back arrow (no bottom bar) */}
-            <Stack.Screen
-              name="notifications"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="manual-entry"
-              options={{ headerShown: true, header: () => <AppHeader title="Manual Entry" back /> }}
-            />
-            <Stack.Screen
-              name="result"
-              options={{ headerShown: true, header: () => <AppHeader title="Scan Result" back /> }}
-            />
-            <Stack.Screen
-              name="edit-medicine"
-              options={{ headerShown: true, header: () => <AppHeader title="Edit Medicine" back /> }}
-            />
+              {/* Full screens with a back arrow (no bottom bar) */}
+              <Stack.Screen
+                name="notifications"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="manual-entry"
+                options={{ headerShown: true, header: () => <AppHeader title="Manual Entry" back /> }}
+              />
+              <Stack.Screen
+                name="result"
+                options={{ headerShown: true, header: () => <AppHeader title="Scan Result" back /> }}
+              />
+              <Stack.Screen
+                name="edit-medicine"
+                options={{ headerShown: true, header: () => <AppHeader title="Edit Medicine" back /> }}
+              />
 
-            {/* Sign-in flow (no header, no bottom bar) */}
-            <Stack.Screen name="login" />
-            <Stack.Screen name="signup" />
-            <Stack.Screen name="verify-code" />
-            <Stack.Screen name="choose-profile" />
-            <Stack.Screen name="create-profile" />
+              {/* Sign-in flow (no header, no bottom bar) */}
+              <Stack.Screen name="login" />
+              <Stack.Screen name="signup" />
+              <Stack.Screen name="verify-code" />
+              <Stack.Screen name="choose-profile" />
+              <Stack.Screen name="create-profile" />
 
-            {/* Bottom sheets: slide up over the screen behind them */}
-            <Stack.Screen
-              name="vault-filters"
-              options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
-            />
-          </Stack>
+              {/* Bottom sheets: slide up over the screen behind them */}
+              <Stack.Screen
+                name="vault-filters"
+                options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
+              />
+            </Stack>
 
-          {/* Popups that sit on top of everything */}
-          <HamburgerMenu />
-          <AddMenu />
-          <LogoutDialog />
-        </ProfileProvider>
-      </MenuProvider>
+            {/* Popups that sit on top of everything */}
+            <HamburgerMenu />
+            <AddMenu />
+            <LogoutDialog />
+          </ProfileProvider>
+        </MenuProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

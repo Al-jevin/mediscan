@@ -2,7 +2,7 @@
 endpoints.md
 
 # Local Environment & Database initialization
-docker-compose.yml
+.dev
 .env
 .env.*
 !.env.example

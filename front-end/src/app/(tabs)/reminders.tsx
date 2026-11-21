@@ -19,6 +19,7 @@ import { useHeaderFilter } from '@/components/HeaderFilterContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useVault } from '@/services/vaultStore';
 import { createReminder, deleteReminder as deleteReminderRecord, fetchReminders, updateReminder } from '@/services/remindersApi';
+import { cancelReminderNotification, scheduleReminderNotification } from '@/services/localNotifications';
 import { overviewCounts } from '@/utils/medicine';
 
 // Older reminders have `member: "Mama"` instead of `members: ["Mama"]`
@@ -176,6 +177,7 @@ export default function RemindersScreen() {
           ? (await updateReminder(reminder), reminder)
           : await createReminder(reminder),
       );
+      await scheduleReminderNotification(saved);
       setReminders((current) =>
         isEditing
           ? current.map((item) => item.id === saved.id ? saved : item)
@@ -199,6 +201,7 @@ export default function RemindersScreen() {
     const removed = reminders[index];
     try {
       await deleteReminderRecord(removed);
+      await cancelReminderNotification(removed.id);
       setReminders((current) => current.filter((item) => item.id !== id));
       setStorageError('');
     } catch (error) {
@@ -222,6 +225,7 @@ export default function RemindersScreen() {
     setDeletedItem(null);
     try {
       const restored = withMembers(await createReminder(reminder));
+      await scheduleReminderNotification(restored);
       setReminders((current) => {
         const next = [...current];
         next.splice(Math.min(index, next.length), 0, restored);
@@ -239,6 +243,11 @@ export default function RemindersScreen() {
     const updated = { ...reminder, enabled: !reminder.enabled };
     try {
       await updateReminder(updated);
+      if (updated.enabled) {
+        await scheduleReminderNotification(updated);
+      } else {
+        await cancelReminderNotification(updated.id);
+      }
       setReminders((current) => current.map((item) => item.id === id ? updated : item));
       setStorageError('');
     } catch (error) {
